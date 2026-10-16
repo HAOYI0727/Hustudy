@@ -1,99 +1,99 @@
-# Hustudy 环境与推进指南
+# Hustudy 环境与验收指南
 
-## 当前环境结果
+更新：2026-10-15。目标Python3.12，当前运行环境3.11.15；独立3.12.13锁依赖环境已通过101项后端测试。Node25.2.1实测，PDF.js要求Node>=22.13.0或>=24。Chrome/WebKit隔离浏览器14项通过，范围见[验收记录](zhy/shared_platform/web_base_acceptance.md)；LibreOffice26.8.1真实转换已通过，复杂版式/干净机器全量部署仍待验收。
 
-已在项目根目录创建 `.venv`，解释器为 Python 3.11.15。当前沙箱禁止访问 PyPI/npm registry，因此 `backend/requirements.txt` 和前端依赖尚未安装；不要把“虚拟环境已创建”理解成“依赖已安装”。
+## 安装和启动
 
-项目技术基线目标是 Python 3.12；本机没有发现 3.12，现阶段使用 3.11。安装 3.12 后，可删除 `.venv` 并重新执行初始化。
-
-## 你需要在本机终端操作
-
-在网络可用的终端进入项目根目录：
+在项目根运行：
 
 ```bash
-cd /Users/zhy/Desktop/hustudy
-./scripts/setup.sh
+bash scripts/setup.sh
 ```
 
-脚本会创建/复用 `.venv`、安装后端依赖、复制 `.env.example`，再安装前端依赖。若你希望明确使用 Python 3.12：
+脚本创建/复用.venv，按backend/requirements.lock安装；npm ci始终同步前端锁文件。只在.env缺失时复制示例，自动为JWT空值/旧占位生成随机密钥并设置0600权限，保留现有有效密钥和GLM配置。密钥不能提交Git或放VITE变量，不要在每次启动时轮换，否则旧会话立即失效。
+
+新建环境可指定Python3.12：
 
 ```bash
-PYTHON_BIN=python3.12 ./scripts/setup.sh
+PYTHON_BIN=python3.12 bash scripts/setup.sh
 ```
 
-若公司/校园网络使用镜像，请先按网络管理员要求配置 pip/npm 镜像；不要把账号、密码或 token 写进仓库文件。
+已有.venv会复用，指定PYTHON_BIN不会替换它。若需要验证另一解释器，先创建独立环境并安装锁依赖，确认通过后再计划切换现有服务，避免直接删除正在运行的环境。
 
-## 配置与启动
-
-1. 打开 `.env`，至少修改 `HUSTUDY_JWT_SECRET` 为随机长字符串；密钥只保存在本机，不提交 Git。
-2. 终端一启动后端：
+分别在两个终端运行：
 
 ```bash
-.venv/bin/python -m uvicorn app.main:app --app-dir backend --reload
+# 后端8000 + 持久worker
+bash scripts/dev.sh
 ```
 
-3. 另一终端启动前端：
-
 ```bash
+# 前端5173
 npm run dev --prefix frontend
 ```
 
-4. 检查 `http://127.0.0.1:8000/health` 和前端开发地址。OpenAPI 在 `/docs`。
+访问http://localhost:5173；API健康检查http://127.0.0.1:8000/health，OpenAPI为/api文档地址http://127.0.0.1:8000/docs。若只单独启动API，需另开终端运行bash scripts/worker.sh，否则解析/预览/AI/备份会停留排队；不要重复启动多个无意的worker。修改.env后重启API与worker。
 
-## 每次开发前后
+PPTX/DOCX预览转换需要LibreOffice的soffice可执行程序。没有时保留明确失败状态和文本阅读；PDF直接由本地PDF.js阅读。不能把缺少转换器当作解析失败，也不能声称已验证Office成功预览。文件/数据库位于data，禁止提交用户原件；低磁盘预检默认保留64MiB，HTTP507时先释放空间再重试。
 
-```bash
-.venv/bin/python -m pytest backend/tests
-./scripts/check.sh
-npm run check --prefix frontend
-npm run build --prefix frontend
-```
-
-当前 API 测试、Ruff 和前端构建在依赖安装前不能执行；执行后把真实结果补进 `docs/progress.md`，不要填写推测结果。
-
-## 需要你准备或确认的产品材料
-
-- 选择一门首版演示课程，准备自制或获授权的 PPTX、文本型 PDF、DOCX、Markdown 和 PNG/JPEG/WebP 小样本；不要直接提交来源不明的课程资料。
-- 确认四名成员姓名、模块分工、分支名和 Gitee 仓库地址，并把占位角色 A/B/C/D 替换到团队 Wiki。
-- 确认首版是否启用远程模型。启用时再配置服务端密钥、端点和发送确认；未确认前只使用 Mock，不把密钥放前端。
-- 组织至少三份自制或获授权的历年样卷，明确年份、卷别、是否有官方答案；未知值保持为空，不补造。
-- 安排真实用户试用与反馈记录。访谈、性能、引用语义和题目质量必须实际测量后再写入报告。
-
-## 四人推进顺序
-
-A 先完成 Alembic 第一版迁移、文件存储和 ProcessingJob；M1 再完成四格式解析、预览降级、切片和关键词索引。Citation 契约稳定后，C 实现笔记/图片/双链，B 实现带来源 AI，最后 D 接入真题、蓝图、作答和复习。各成员只修改自己模块目录，跨模块字段先更新 `docs/contracts.md`。
-
-## 常见问题
-
-- `pip` 报无法连接 PyPI：换到允许访问 registry 的终端，或配置经批准的内部镜像后重新执行脚本。
-- `npm install` 长时间无输出：停止命令，检查 npm registry 和代理配置；不要提交不完整的 `node_modules`。
-- 端口被占用：后端可用 `--port 8001`，同时把前端 API 地址配置方案记录在协作文档中。
-- 依赖安装完成但 API 启动失败：先执行 `.venv/bin/python -m pip check`，再检查 `.env` 和 `data/` 写权限。
-
-## 两个服务的终端用法
-
-后端是常驻进程，会占用当前终端。请打开两个终端窗口：
-
-终端一：
+## 日常检查
 
 ```bash
-.venv/bin/python -m uvicorn app.main:app --app-dir backend --reload
+bash scripts/check.sh
 ```
 
-终端二：
+包含Ruff、隔离pytest、临时库迁移/ORM漂移、实际Markdown安全渲染、PDF.js双页PNG、Vitest、TypeScript与生产构建。保留npm默认可选依赖，Node渲染检查使用@napi-rs/canvas。当前1条Starlette/anyio弃用警告不冒记为无警告。
+
+本机独立Python3.12复验入口（.tools不提交）：
 
 ```bash
-npm run dev --prefix frontend
+PYTHONPATH=backend .tools/venv312/bin/python -m pytest -q
 ```
 
-如果看到旧的 SQLAlchemy `String object has no attribute _set_parent_with_dispatch`，先停止旧进程并重新启动；该问题已修复为 `String(36), ForeignKey(...)` 的正确参数顺序。
+## 浏览器自动验收
 
-## 本轮环境复核（2026-10-09）
-
-当前 `.venv` 已可运行 FastAPI、SQLAlchemy、pytest、Ruff；前端依赖已可执行检查和生产构建。由于执行环境无法访问 PyPI，`pypdf`、`python-docx`、`python-pptx` 尚未下载。请在本机网络可用时执行：
+默认使用Playwright Chromium与WebKit，浏览器首次需从官方源安装：
 
 ```bash
-.venv/bin/pip install pypdf==5.1.0 python-docx==1.1.2 python-pptx==1.0.2
+cd frontend
+PLAYWRIGHT_BROWSERS_PATH=../.tools/playwright npx playwright install chromium webkit
+npm run test:e2e
 ```
 
-安装后，重新上传对应格式资料即可启用解析；缺少这些包时，系统会把解析失败原因写入资料版本和 ProcessingJob 状态，不会伪装成解析成功。
+若本机已有Google Chrome，可使用独立临时profile运行Chrome项目，并只安装WebKit：
+
+```bash
+cd frontend
+PLAYWRIGHT_BROWSERS_PATH=../.tools/playwright npx playwright install webkit
+HUSTUDY_E2E_CHROME_CHANNEL=chrome npm run test:e2e
+```
+
+测试启动8056 API+worker和5178 Vite，仅绑定127.0.0.1；一次性数据库/文件与用户8000/5173隔离，默认Mock且远程密钥为空。不要改成复用当前用户服务。端口占用时先停止此前测试服务，不能随意终止用户进程；浏览器系统依赖按[官方安装指南](https://playwright.dev/docs/browsers)准备。test-results/playwright-report和下载浏览器均被Git忽略。
+
+## 配置智谱GLM-4.7-Flash
+
+工程根运行`.venv/bin/python scripts/configure_zhipu.py`，隐藏输入密钥；配置只在后端.env。真实课程问答先预览将发送的问题/原文/目的地，再逐次确认。预览不调用模型；失败、重登和任务过期不自动重发。演示模式、阅读、笔记和本地检索可独立使用。
+
+可选自制连通检查：`PYTHONPATH=backend .venv/bin/python scripts/probe_zhipu.py --confirm-synthetic-send`。仅发送脚本苹果样例，不读数据库；仍是一次真实外部调用。费用/额度依服务账户，保留/训练政策未核实，不能承诺无限免费或全离线。见[真实问答证据](zhy/integration/zhipu_qa_acceptance.md)。
+
+## 数据保护和部署
+
+“备份与恢复”生成账户ZIP，下载后妥善保管；只在新数据库的空账户恢复，不覆盖已有数据。它与M1课程资料ZIP不同，版本/UUID冲突和损坏会拒绝。恢复前先读[用户操作](user_guide.md)与[恢复边界](zhy/shared_platform/account_backup_acceptance.md)。迁移前SQLite自动备份不包含附件，不能代替整账户备份。
+
+页面使用history路由，部署静态前端须对非静态业务路径回退index.html；API和下载路径仍交给FastAPI。Vite开发/预览自动支持回退。部署到不同地址时配置前端VITE_API_BASE_URL和后端HUSTUDY_CORS_ORIGINS，不能把API密钥放前端。当前没有公开发布或Gitee/CI成功运行的证据。
+
+## Office与Safari预览补验（2026-10-15）
+
+本机已通过获准Homebrew官方cask安装LibreOffice26.8.1，soffice程序26.8.1.1，PPTX/DOCX真实转换与Chrome/WebKit截图回源通过。其他开发机器需自行安装LibreOffice；可设后端HUSTUDY_LIBREOFFICE_PATH为可执行程序绝对路径，留空则自动发现。修改配置后重启API与worker，安装后从阅读区检查环境并重试旧任务，不必重传资料。
+
+新增浏览器预览测试依赖真实Office；普通pytest固定不可用的测试路径并注入转换结果，覆盖失败而不依赖本机软件。自制样例可用`.venv/bin/python scripts/create_preview_fixtures.py`生成；E2E仍使用临时数据库。PDF.js显示层/worker统一legacy兼容构建，不需要用户关闭浏览器安全设置或从外部CDN加载脚本。
+
+## 队长完整本地验收入口
+
+准备Chrome/Playwright WebKit后，`HUSTUDY_E2E_CHROME_CHANNEL=chrome bash scripts/accept_captain.sh` 依次执行共享check、隔离双引擎和容量测试，日志保存到独立临时目录；任一步失败立即非零退出。默认浏览器配置见frontend/playwright.config.ts，不连接现有8000/5173或用户课程。容量测试需要本机监听权限。
+
+干净依赖重建另用 `.venv/bin/python scripts/verify_clean_setup.py --python <Python3.12绝对路径> --output /tmp/hustudy-clean.json`，需依赖下载网络；临时源码只复制backend/frontend/scripts/fixtures及.env.example，新建venv/npm ci，最后清理。2026-10-15同机Python3.12.13重建已通过115项pytest及12项Vitest/全部共享检查；后续新增用例以最新报告为准，不把同机重建称为跨机器验收。
+
+## 本地原格式阅读运行时
+
+新增直接PPTX/DOCX预览后，`npm run dev --prefix frontend` 和 `npm run build --prefix frontend` 的pre钩子自动执行build:office；若开发服务器早已运行，可先 `npm run build:office --prefix frontend` 再刷新。源码在features/materials/office，生成public/native-office被Git忽略，正式构建会复制runtime.js/notices.txt。不要删除钩子或改为远程CDN。LibreOffice仅供Office兼容PDF/截图，不是原格式入口前置条件。新增依赖按package-lock安装，旧干净环境记录是新增依赖前快照，非本轮重新安装成绩。

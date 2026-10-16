@@ -32,7 +32,7 @@ Hustudy 是面向大学生的工具类产品，核心为PPTX/PDF/DOCX 等课程�
 | 后端 | Python 3.12、FastAPI、Pydantic 2、SQLAlchemy 2、Alembic | 使用同步 SQLAlchemy；耗时任务放 worker，避免阻塞异步事件循环 |
 | 存储 | SQLite、FTS5、本地文件 | 启用外键和 WAL、设置忙等待；记录中文分词版本；迁移时校验 FTS5 可用 |
 | 解析 | python-pptx、pypdf、python-docx、Markdown 解析器 | 按正文顺序提取 DOCX 段落/表格；不把 PPTX 或 DOCX 解析器当排版渲染器 |
-| PPTX 预览 | LibreOffice 无头转换为 PDF + PDF.js | worker 隔离转换、限制超时；失败时显示结构化文本视图和状态说明 |
+| PPTX/DOCX 预览 | 本地浏览器原格式渲染；LibreOffice转PDF作为兼容路径 | 原格式在无same-origin/无网络iframe中运行；转换由worker限时，均保留文本降级 |
 | 搜索 | jieba 等中文分词 + FTS5 | 原文与检索 token 字段分离，引用偏移只针对原文 |
 | 前端 | React、TypeScript、Vite、Ant Design、React Router、TanStack Query | 数据请求统一；React 渲染中不直接执行生成任务 |
 | 笔记 | Markdown 编辑器、react-markdown、清洗器 | 禁用未经清洗的 HTML；引用是结构化对象 |
@@ -370,6 +370,98 @@ QuestionTopicMapping 保存 topic_id、primary/secondary、依据引用、sugges
 
 ## 19. 当前代码协作入口
 
-首版代码的四人协作资料统一维护在 `collaboration/`：`roles.md` 记录 A/B/C/D 模块边界与接口，`task_board.md` 记录 P0 任务和真实状态，`workflow.md` 记录分支/评审/测试流程，`roadmap.md` 记录 P0 后优化、P1/P2 与创新候选。角色姓名仍需团队在 GitHub/Gitee 建仓后补充，不能把占位角色写成已确认事实。
+首版代码的四人协作资料统一维护在 `collaboration/`。成员缩写与现行角色为：`zhy`（张昊轶，A 队长，共享基础层 + M1）、`xtc`（向天晨，B，M2）、`fzk`（付振琨，C，M3）、`gcx`（高长鑫，D，M4），与正式 `hustudy/main_idea.md` 的现行分工一致。仓库账号、Issue/PR 地址和具体交期仍按实际补充。
 
-当前可运行闭环为：注册/登录 → 创建课程 → 上传 Markdown 并生成切片 → 关键词搜索与文本阅读 → 创建 Markdown 笔记与结构化 Citation → Mock AI 带来源问答 → 创建考点/导入并拆分真题 → 校验蓝图 → 生成 DRAFT 试卷 → 审阅为 READY → 作答、客观评分、错题与复习任务。PPTX/PDF/DOCX 解析依赖 `backend/requirements.txt` 中的可选解析库；真实模型、OCR、语义检索、复杂统计和完整备份仍按 `collaboration/task_board.md` 保持待办。
+`collaboration/roles.md` 维护唯一成员/模块映射；`task_board.md` 维护公共任务和真实状态；`workflow.md` 维护分支/评审/测试流程；`handoff.md` 是持续追加的跨成员交接日志；`project_handoff.md` 是环境复现指南；`roadmap.md` 记录后续范围。个人进度放入同名成员目录，具体规则见第 20 节。
+
+当前可运行闭环为：注册/登录 → 创建课程 → 上传 Markdown 并生成切片 → 关键词搜索与文本阅读 → 创建 Markdown 笔记与结构化 Citation → Mock AI 带来源问答 → 创建考点/导入并拆分真题 → 校验蓝图 → 生成 DRAFT 试卷 → 审阅为 READY → 作答、客观评分、错题与复习任务。PPTX/PDF/DOCX解析依赖已锁定/安装；GLM真实课程问答与完整账户备份恢复已实现。真实教学报告/拟卷、OCR、语义检索、复杂统计及完整环境/性能/交付仍按当前任务与验收记录保持待办；早期任务板中的历史缺口不覆盖后续实际结果。
+
+## 20. 四人文档隔离与统一交接规则
+
+`collaboration/` 和 `docs/` 均必须保留 `zhy/`、`xtc/`、`fzk/`、`gcx/` 四个同级目录。目录名固定使用小写成员缩写；成员目录与业务模块编号同时写入记录，不能从文件夹归属推断实际贡献。
+
+| 位置 | 唯一维护内容 |
+|---|---|
+| `collaboration/<成员>/README.md`、`progress.md` | 个人任务、进度、依赖/阻塞、下一步与交接 ID |
+| `docs/<成员>/README.md`、`features.md`、`optimizations.md` | 个人负责功能的输入/输出/异常/使用说明，以及优化动机、变化、验证和限制；可增加设计、测试、AI 协作与人工核实证据 |
+| 两目录根级文件 | 公共规则、操作指南、架构/契约/API、公共任务、集成进度与追踪、第三方声明；现有跨模块历史记录保留 |
+| `collaboration/handoff.md` | 跨成员修改/接收/复验的统一入口，链接个人证据与公共契约 |
+
+1. 开始任务先明确当前成员缩写（任务提示可写“成员：xtc；模块：M2”），再读公共文件、自己的目录及与任务相关的 handoff 条目，检查 `git diff`。不得仅凭模块名称推定实际实现者。默认只编辑本人记录；需修改其他成员记录时由该成员维护，或明确记录授权和代写来源，不能替其填写人工确认。
+2. 每个可交接切片同时更新个人 progress、features/optimizations（确有相应变化才更新）和 handoff；未完成但影响下游的接口/阻塞也应及时记录。提交或发起 PR 前完成同步，不等到最终集成才补写。
+3. 记录必须包含日期、记录者/实际实现者（含 AI 辅助）、模块、任务/需求 ID、分支及 commit/PR 或“工作区未提交”、代码范围、测试命令与实际输出、风险、接收人及下一步。没有执行的测试写“未执行”，没有成员提交的材料写“待本人补充”。
+4. 公共 `docs/contracts.md`、`docs/api.md`、`docs/decisions.md` 是权威契约，不在个人目录复制第二套。跨模块/数据库变更先更新公共契约意图，在 handoff 写受影响成员与迁移需求，再按既有模块评审和队长迁移流程集成。
+5. handoff 使用唯一 ID `H-YYYYMMDD-成员-序号`；新增独立条目，不覆写其他成员历史。状态区分“待接收 / 集成中 / 已验收 / 阻塞”。接收人填写本人接收/复验结果；未填写不能视为已接收，已接收不能代替合并和验收。
+6. 共享层与跨模块结果由队长同步 `collaboration/task_board.md`、`docs/progress.md`、`docs/traceability.md`，用链接汇总个人证据；个人完成、集成通过和全部 P0 完成分别标记。AI 在队长会话辅助修改 M2–M4，应记入 zhy 的集成交接并列出受影响成员，不能冒记为 xtc/fzk/gcx 本人贡献。
+7. 公共日志冲突时保留双方条目及唯一 ID，基于最新 develop 整理重复记录；不得以覆盖整个文件解决。任何记录不含密钥、用户私有资料或虚构会议/签收/实验结果；正式个人课程提交仍由本人审阅。
+
+## 21. 当前课程生命周期集成约束
+
+Course.deleted_at（0010）是课程逻辑撤权标记。各模块使用services/courses.owned_course查询有效本人课程；写入课程资源时取得共享课程写锁，来源查询仍校验父课程。不得用仅id/user_id的旧查询重新开放已删除课程。
+
+课程删除协调器通过material/note/ai/exam_retirement的count/retire接口工作；模块适配器不自行commit，失败必须全事务回滚。保留外部笔记正文及失效Citation身份，不把课程笔记转成有效全局笔记，不留下孤立复习任务。只取消活跃任务，历史终态不改写；worker完成检查原租约与有效课程。
+
+DELETE课程必须revision，前端先展示影响并核对名称；没有产品恢复入口，逻辑撤权不保证物理擦除。完整账户备份/恢复已由第25节后续实现覆盖；当前标准JWT见第24节，旧自定义签名令牌只是历史状态。
+
+最新真实验收见docs/test_report.md与docs/zhy/shared_platform/basic_acceptance.md，交接H-20261014-ZHY-007待成员本人接收；47项自动检查通过不等于全部P0、性能、浏览器E2E或正式发布完成。
+
+## 22. 智谱真实课程问答约束
+
+当前GLM-4.7-Flash课程问答已接入，密钥只使用忽略的.env和后端SecretStr；脚本configure_zhipu隐藏输入，普通测试强制假密钥/MockTransport。不得在日志/文档/前端变量或请求正文输出密钥，输入含当前服务密钥时拒绝。
+
+真实调用须RemoteQuery服务端来源快照→严格确认→AI_ANALYSIS任务；worker只认本模块resource_id与本人归属，不在网络等待时占SQLite写锁。引用必须来自实际发送片段，结构不从聊天正则猜测；任何失败不能伪装演示成功，不自动重发已派发请求。取消/删除不能召回已发送请求，但阻止后续采纳。
+
+真实章节报告与M4题目仍待接入。政策保存/训练/远程删除细项未核实，确认页如实说明；文档与接口核对不等于这些政策已核实。最新证据见docs/zhy/integration/zhipu_qa_acceptance.md和handoff008，67项回归不等于全部P0或成员本人接收。
+
+## 23. 队长当前状态与文档分类
+
+正式A01–A10以`collaboration/zhy/task_status.md`管理当前状态/依赖/关闭条件，以`docs/zhy/completion_audit.md`维护技术完成判断；`progress.md`与日期验收报告保留历史。公共任务板早期A01–A05是聚合编号，不得换算为正式十任务Done。当前共享基础层+M1尚未全部实现/验收，历史67项全站回归不等于全部队长任务完成。
+
+`docs/zhy/features.md`维护当前分类功能，`optimizations.md`维护优化过程；`shared_platform/`放共享层证据，`materialhub/`放M1证据，`integration/`放队长辅助M2–M4的记录，`history/`保留归档功能日志。归档时更新引用方和文件内相对链接，保留真实日期/结果，并从历史报告链接当前核查。公共API/契约/决策、全站进度、测试报告与统一handoff仍在两目录根级，不复制成个人权威契约，也不迁入其他成员个人目录冒记贡献。
+
+## 24. 当前认证与存储/目录实现
+
+PLATFORM-AUTH-02后使用PyJWT2.15.1标准HS256，固定issuer/audience/用途/必需claims；旧两段token不兼容须重登。JWT密钥≥32字符，setup只初始化空值/旧占位并保留GLM配置，不回显密钥。历史0010阶段关于自定义令牌的描述仅是历史，不可覆盖当前行为。
+
+PLATFORM-STORAGE-01提供FileStorage原子发布/不覆盖/清理和HUSTUDY_STORAGE_RESERVE_BYTES磁盘预检，低空间HTTP507。资料/图片与解析/预览/导出使用共享保护；预检不是硬配额。M1新增documents/page、jobs/page稳定分页并保留旧数组接口，页外来源须经授权单资料查询，不得仅从当前页判断已删除。最新96项回归不等于全部验收。
+
+## 25. 完整账户备份恢复边界
+
+0012/PLATFORM-BACKUP-01已实现账户ZIP/空账户恢复，经各模块backup适配器而非跨模块查表。恢复只到空账户，业务UUID冲突拒绝；账户凭据/密钥不导出，身份映射为当前账户，FTS重建。不自动恢复运行任务或派发模型；derived课程ZIP字节不复制，记录显示不可下载。schema变化必须更新格式/迁移/往返测试。
+
+任何路径/字段/归属/FK/文件hash/Citation/预算失败须整体回滚业务、清理本次文件。控制记录最多50条，终态可移除，运行中不可移除；过期恢复不自动重放。删除来源后服务端旧包下载撤权。101项回归和四格式/3图/3笔记双链/2卷作答的隔离往返不等于Safari/跨机器/压力或全部P0通过。
+
+## 26. 共享前端、会话与隔离验收
+
+PLATFORM-WEB-BASE-01后页面/课程与可选来源定位由React Router URL驱动，不另建并行useState导航。新增导航必须通过路由器，保留hustudy:before-navigate与beforeunload保护。JSON GET复用统一QueryClient，按会话/路径/写入代次分区，不把token放query key或持久缓存；成功写入切换代次，退出清理。模型确认/生成和其他变更不自动重试。
+
+401保持原工作区挂载并弹出原账户重登，背景inert；恢复token不得重置原笔记、资料整理等编辑草稿。切换账户先显式退出并执行未保存确认，失败请求由用户决定重试。Ant Design沿用公共主题，不引入外部字体或第二套页面风格；工作区按需加载。
+
+本地check包含Vitest；Playwright入口npm run test:e2e --prefix frontend，使用8056/5178与临时数据库/文件，不复用用户8000/5173或密钥。测试路径使用绝对目录；Chrome channel可显式设置HUSTUDY_E2E_CHROME_CHANNEL=chrome，默认Playwright Chromium。3.12已在独立环境101项通过，现有运行环境仍3.11；8项Chrome/WebKit闭环不等于完整P0/性能/发布通过，最新边界见docs/zhy/shared_platform/web_base_acceptance.md。
+
+## 27. M1预览兼容与页号恢复
+
+M1-PREVIEW-RECOVERY-01后PDF.js显示层/worker使用同版本legacy，避免本机Safari缺少Map.getOrInsertComputed。Office可由HUSTUDY_LIBREOFFICE_PATH或自动发现，GET material-capabilities仅返回状态不泄露路径；POST versions/{id}/preview-jobs显式恢复，不重置失败任务次数。普通pytest固定缺失转换器保证确定性，Office成功由独立浏览器闭环验收。
+
+PPTX转换必须包含隐藏页，输出后核对PDF页数等于原幻灯片数；预览读取和截图拒绝旧错位缓存。有既存截图时不得静默重建改变来源，须人工核对；DOCX仍标preview_page，正文引用为docx_block。测试覆盖缺少现代Map方法/隐藏页/真实三格式截图回源，不能仅以Node渲染或最新WebKit通过宣称本机Safari全部验收。具体结果按docs/zhy/materialhub/preview_recovery_acceptance.md记录。
+
+## 28. M1分页检索与验收证据
+
+M1-SEARCH-02新增search/page，旧search数组保持最多50条；不能把旧数组数量当总数。新分页返回纯文本excerpt/Unicode字符highlights，不得当HTML或Citation偏移。M3只读note-search适配器归该模块，M1通过接口消费，不直接查笔记表；资料筛选不约束笔记，未启用语义搜索。计数与页读取使用SQLite只读快照，跨页更新不冻结。
+
+PPTX组合形状递归读取文本/表格，保持原slide定位；不可变旧版本不静默重解析，需导入新版本。自动验收统一scripts/accept_captain.sh，临时容量及干净环境脚本不读取用户.env/data，真实模型调用不进入验收。当前本机容量/性能、干净源码重建及20项双引擎通过的具体证据见docs/zhy/materialhub/search_capacity_acceptance.md，不能冒记真实用户评分、跨机器/完整Safari或团队签收发布。
+
+## 29. 按原格式预览与兼容PDF边界
+
+M1-NATIVE-PREVIEW-01后PPTX/Word直接预览用原件、本地隔离iframe；PDF继续PDF.js原页。转换PDF明确叫兼容预览，其后端preview_status不代表原格式状态。后台解析/轮询只能补文本，不重置用户当前预览视图。已有截图仍是PDF兼容页，不能把DOCX浏览器阅读页或原格式DOM截图冒充其来源。
+
+iframe仅allow-scripts，不能加allow-same-origin/远程连接；只传原件字节和随机通道，绝不传token。消息校验source/origin/channel/页数，卸载取消请求；CSP仅执行nonce的本地IIFE。原格式依赖及完整许可由锁文件/build:office生成，dev/build的pre钩子必须保留；新增依赖或格式需同步许可和验收。旧.ppt/.doc/在线编辑/完整动画仍非当前实现，不能把PPTX支持写成所有PPT二进制格式支持。最新26双引擎/14Vitest见docs/zhy/materialhub/native_preview_acceptance.md，非完整Safari或所有Office版式通过。
+
+
+## 30. 全站密度与多屏布局约定
+
+PLATFORM-RESPONSIVE-01采用共享responsive.css统一覆盖界面密度和断点，不能在各模块重复增加互相冲突的字号/导航规则。1100px及以下使用原生dialog导航抽屉；760px及以下资料库/笔记列表可折叠，内容保持挂载；桌面仍保留侧栏。模块颜色、公共图标、按钮和空状态保持一致。
+
+界面基础字号13px、标题20–26px，阅读内容字号与Office文件排版独立。触屏按钮/图标热区至少44px，触屏表单16px避免iOS聚焦缩放；不可用整体zoom或裁掉body溢出掩盖布局问题。长代码/表格/文档允许局部滚动。抽屉必须支持Escape、Tab循环/焦点恢复，成功导航才关闭，取消离开不能丢草稿；登录失效仍沿用原账户恢复。
+
+共享展示变更需覆盖320/390/820/1024/1440px及Chrome/WebKit、触控媒体条件、原格式阅读和既有导航/草稿流程。尺寸模拟不是实机iPad/iPhone或TC-24真人试用，记录实际命令及截图路径。后续模块继续复用CompactLibrary/WorkspaceNavigation，不引入第二套导航或改变业务契约。

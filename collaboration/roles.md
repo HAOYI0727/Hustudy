@@ -1,5 +1,16 @@
 # 模块职责与交接
 
+成员身份依据用户补充及正式 [main_idea.md](../hustudy/main_idea.md) 现行分工。A/B/C/D 保留为历史任务角色编号，成员缩写用于个人文档目录；仓库账号与交期尚不在此推定。
+
+| 成员 | 角色与主责 | 进度入口 | 功能与优化证据 |
+|---|---|---|---|
+| zhy / 张昊轶 | A 队长：共享层 + M1 MaterialHub、最终集成 | [zhy](zhy/README.md) | [docs/zhy](../docs/zhy/README.md) |
+| xtc / 向天晨 | B：M2 AI Study | [xtc](xtc/README.md) | [docs/xtc](../docs/xtc/README.md) |
+| fzk / 付振琨 | C：M3 NoteGraph | [fzk](fzk/README.md) | [docs/fzk](../docs/fzk/README.md) |
+| gcx / 高长鑫 | D：M4 ExamPilot | [gcx](gcx/README.md) | [docs/gcx](../docs/gcx/README.md) |
+
+持续交接统一追加到 [handoff.md](handoff.md)，个人目录不会改变下面的代码修改边界。公共契约依然只有一套。
+
 ## A：共享基础层 + M1 MaterialHub
 
 负责认证、课程、SQLite/Alembic、文件存储、ProcessingJob、PPTX/PDF/DOCX/Markdown/图片上传、解析、预览降级、版本、切片、关键词检索和归属隔离。对外输出 `DocumentVersion`、`ChunkRef`、`AssetRef`、`Citation`、`ProcessingJob`。

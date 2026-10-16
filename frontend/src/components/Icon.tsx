@@ -1,0 +1,40 @@
+import type { ReactNode } from "react";
+
+// Self-authored outline icons. Shared stroke and sizing keep all workspaces consistent.
+const drawings = {
+  search: <><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></>,
+  home: <><path d="m3 10 9-7 9 7M5 9v11h14V9M9 20v-7h6v7"/></>,
+  file: <><path d="M14 3H6a1 1 0 0 0-1 1v16h14V8l-5-5Zm0 0v5h5M8 12h8M8 16h5"/></>,
+  folder: <path d="M3 7V5h7l2 3h9v12H3V7Zm0 3h18"/>,
+  notes: <><path d="M19 13v7H4V4h10M9 15l1-4L18 3l3 3-8 8-4 1ZM16 5l3 3"/></>,
+  ai: <><path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5L12 3Z"/><path d="M20 3v4M18 5h4"/></>,
+  exam: <><path d="M8 4H5v17h14V4h-3M8 3h8v4H8V3ZM8 12l1 1 2-2M13 12h3M8 17h8"/></>,
+  review: <><path d="M4 9a8 8 0 1 1 0 6M4 4v5h5M9 12l2 2 4-4"/></>,
+  help: <><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 4 2c-1 .5-1.5 1-1.5 2M12 16h.01"/></>,
+  upload: <><path d="M12 16V3m-5 5 5-5 5 5M4 15v6h16v-6"/></>,
+  download: <><path d="M12 3v13m-5-5 5 5 5-5M4 17v4h16v-4"/></>,
+  refresh: <><path d="M20 8a8 8 0 0 0-14-3L3 8M3 3v5h5M4 16a8 8 0 0 0 14 3l3-3M21 21v-5h-5"/></>,
+  tag: <><path d="m3 3 9 1 9 9-8 8-9-9-1-9Z"/><circle cx="8" cy="8" r="1"/></>,
+  edit: <><path d="m4 16 12-12 4 4L8 20H4v-4ZM13 7l4 4"/></>,
+  close: <path d="m6 6 12 12M6 18 18 6"/>,
+  check: <path d="m5 12 4 4L19 6"/>,
+  clock: <><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></>,
+  info: <><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></>,
+  link: <><path d="m10 14 4-4M8 15l-1 1a4 4 0 0 1-6-6l4-4a4 4 0 0 1 6 0M16 9l1-1a4 4 0 0 1 6 6l-4 4a4 4 0 0 1-6 0" transform="translate(1 0) scale(.92 1)"/></>,
+  arrow: <path d="M4 12h16m-6-6 6 6-6 6"/>,
+  up: <path d="M12 20V4m-6 6 6-6 6 6"/>,
+  expand: <path d="M8 3H3v5M16 3h5v5M3 16v5h5M21 16v5h-5"/>,
+  collapse: <path d="M3 8h5V3M21 8h-5V3M8 21v-5H3M16 21v-5h5"/>,
+  trash: <><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/></>,
+  list: <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>,
+  image: <><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1.5"/><path d="m3 17 6-5 4 3 4-5 4 5"/></>,
+  preview: <><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></>,
+  logout: <path d="M10 4H4v16h6M9 12h12m-5-5 5 5-5 5"/>,
+  filter: <path d="M3 4h18l-7 8v7l-4 2v-9L3 4Z"/>,
+  plus: <path d="M12 5v14M5 12h14"/>,
+} satisfies Record<string, ReactNode>;
+
+export type IconName = keyof typeof drawings;
+export function Icon({ name, size = 18, className = "" }: { name: IconName; size?: number; className?: string }) {
+  return <svg className={"ui-icon " + className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">{drawings[name]}</svg>;
+}

@@ -1,5 +1,8 @@
 .env
+.env.*
+!.env.example
 .venv/
+.tools/
 __pycache__/
 *.py[cod]
 .pytest_cache/
@@ -12,3 +15,13 @@ data/*
 *.db
 *.sqlite3
 .DS_Store
+
+Hustudy/
+
+# Local deterministic browser test artifacts
+frontend/test-results/
+frontend/playwright-report/
+frontend/.vitest/
+
+# Generated isolated Office preview runtime
+frontend/public/native-office/

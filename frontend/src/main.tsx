@@ -1,88 +1,120 @@
-import { FormEvent, StrictMode, useEffect, useMemo, useState } from "react";
+import { StrictMode, lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { ConfigProvider, Alert } from "antd";
+import zhCN from "antd/locale/zh_CN";
+import { createBrowserRouter, RouterProvider, useBlocker, useLocation, useNavigate } from "react-router-dom";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient, clearSessionQueries, sessionPartition } from "./api/query";
+import { parseWorkspace, workspaceHref, Section } from "./features/platform/routing";
 import { createRoot } from "react-dom/client";
-import { api, ApiError, Attempt, Blueprint, Chunk, Course, DocumentItem, ExamPaper, Note, Paper, Topic } from "./api/client";
+import { api, ApiError, Course } from "./api/client";
+
+
+
+
+import { AuthScreen } from "./features/platform";
+import { EmptyState, ScrollToTop } from "./components/workspace";
+import { Icon } from "./components/Icon";
+import { WorkspaceNavigation, navigationItems } from "./components/WorkspaceNavigation";
+import type { MaterialTarget } from "./features/platform/Search";
+
+
 import "./styles.css";
+import "./responsive.css";
 
-type Section = "overview" | "materials" | "notes" | "ai" | "exam" | "review";
-const navItems: Array<{ id: Section; label: string; icon: string }> = [
-  { id: "overview", label: "课程总览", icon: "⌂" }, { id: "materials", label: "资料阅读", icon: "▣" },
-  { id: "notes", label: "笔记图谱", icon: "✎" }, { id: "ai", label: "AI 学习", icon: "✦" },
-  { id: "exam", label: "真题与模拟卷", icon: "◇" }, { id: "review", label: "错题复习", icon: "↻" },
-];
+const Materials = lazy(() => import("./features/materials").then(module => ({default:module.Materials})));
+const Notes = lazy(() => import("./features/notes").then(module => ({default:module.Notes})));
+const AIStudy = lazy(() => import("./features/ai").then(module => ({default:module.AIStudy})));
+const Search = lazy(() => import("./features/platform/Search").then(module => ({default:module.Search})));
+const Help = lazy(() => import("./features/platform/Help").then(module => ({default:module.Help})));
+const Backups = lazy(() => import("./features/platform/Backups").then(module => ({default:module.Backups})));
+const Overview = lazy(() => import("./features/platform/Overview").then(module => ({default:module.Overview})));
+const ExamPilot = lazy(() => import("./features/exams").then(module => ({default:module.ExamPilot})));
+const Review = lazy(() => import("./features/exams").then(module => ({default:module.Review})));
+const SessionDialog = lazy(() => import("./features/platform/SessionDialog"));
 
-function App() {
+
+export function App() {
+  const location = useLocation(), routerNavigate = useNavigate();
+  const route = useMemo(() => parseWorkspace(location.pathname, location.search), [location.pathname, location.search]);
+  const {section, courseId, noteId: noteTarget, material: materialTarget} = route;
+  const activeSection = navigationItems.find(item => item.id === section) || {label:"使用指南", icon:"help" as const};
+  const routeRef = useRef(route); routeRef.current = route;
   const [token, setToken] = useState(() => localStorage.getItem("hustudy_token") || "");
+  const tokenRef = useRef(token); tokenRef.current = token;
   const [userName, setUserName] = useState(() => localStorage.getItem("hustudy_user") || "");
-  const [section, setSection] = useState<Section>("overview");
-  const [courses, setCourses] = useState<Course[]>([]); const [courseId, setCourseId] = useState("");
+  const [authNotice, setAuthNotice] = useState("");
+  const [expired, setExpired] = useState(false);
+  const expiredRef = useRef(expired); expiredRef.current = expired;
+  const bypass = useRef(false);
+  const canNavigate = () => window.dispatchEvent(new Event("hustudy:before-navigate", { cancelable: true }));
+  const blocker = useBlocker(({currentLocation, nextLocation}) => {
+    if (bypass.current) {bypass.current = false; return false;}
+    if (!token || (currentLocation.pathname === nextLocation.pathname && currentLocation.search === nextLocation.search)) return false;
+    if (expiredRef.current) return true;
+    return !canNavigate();
+  });
+  useEffect(() => {if (blocker.state === "blocked") blocker.reset();}, [blocker]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [notice, setNotice] = useState(""); const [error, setError] = useState("");
   const selectedCourse = useMemo(() => courses.find((course) => course.id === courseId), [courses, courseId]);
-  const reportError = (reason: unknown) => setError(reason instanceof ApiError ? reason.message : "操作失败，请检查后端服务和输入");
-  const refreshCourses = async () => { if (!token) return; const list = await api.courses(token); setCourses(list); if (!courseId && list[0]) setCourseId(list[0].id); };
-  useEffect(() => { void refreshCourses().catch(reportError); }, [token]);
-  const signOut = () => { localStorage.removeItem("hustudy_token"); localStorage.removeItem("hustudy_user"); setToken(""); setCourses([]); };
-  if (!token) return <AuthScreen onSuccess={(nextToken, username) => { localStorage.setItem("hustudy_token", nextToken); localStorage.setItem("hustudy_user", username); setToken(nextToken); setUserName(username); }} />;
-  return <div className="app-shell"><aside className="sidebar"><div className="brand"><span className="brand-mark">H</span><span>Hustudy</span></div><p className="sidebar-caption">课程学习工作台</p><nav>{navItems.map((item) => <button key={item.id} className={section === item.id ? "nav-item active" : "nav-item"} onClick={() => setSection(item.id)}><span>{item.icon}</span>{item.label}</button>)}</nav><div className="sidebar-bottom"><div className="model-badge"><span className="dot" />演示模型</div><button className="text-button" onClick={signOut}>退出登录</button></div></aside><main className="content"><header className="topbar"><div><p className="eyebrow">GOOD EVENING, {userName.toUpperCase()}</p><h1>{selectedCourse?.name || "开始你的课程学习"}</h1></div><div className="course-picker"><label>当前课程</label><select value={courseId} onChange={(event) => setCourseId(event.target.value)}><option value="">选择课程</option>{courses.map((course) => <option key={course.id} value={course.id}>{course.name}</option>)}</select></div></header>{notice && <div className="toast success">✓ {notice}</div>}{error && <div className="toast error">{error}</div>}{!courseId && section !== "overview" ? <EmptyState title="先选择一门课程" text="从课程总览创建或选择课程后，再开始上传资料和学习。" action="去课程总览" onAction={() => setSection("overview")} /> : <>{section === "overview" && <Overview token={token} courses={courses} onRefresh={refreshCourses} onSelect={setCourseId} onNotice={setNotice} onError={reportError} />}{section === "materials" && <Materials token={token} courseId={courseId} onNotice={setNotice} onError={reportError} />}{section === "notes" && <Notes token={token} courseId={courseId} onNotice={setNotice} onError={reportError} />}{section === "ai" && <AIStudy token={token} courseId={courseId} onNotice={setNotice} onError={reportError} />}{section === "exam" && <ExamPilot token={token} courseId={courseId} onNotice={setNotice} onError={reportError} />}{section === "review" && <Review token={token} onNotice={setNotice} onError={reportError} />}</>}</main></div>;
+  const go = (next: Section, id = courseId, extra?: {noteId?: string; material?: MaterialTarget}, replace = false) => {
+    void routerNavigate(workspaceHref(next, id, extra), {replace});
+  };
+  const navigate = (next: Section) => go(next);
+  const expireSession = () => {
+    if (token !== tokenRef.current || expiredRef.current) return;
+    expiredRef.current = true; setExpired(true); setError("");
+  };
+  const reportError = (reason: unknown) => {
+    if (token !== tokenRef.current) return;
+    if (reason instanceof ApiError && reason.status === 401) {expireSession(); return;}
+    if (!expiredRef.current) setError(reason instanceof Error ? reason.message : "操作失败，请检查后端服务和输入");
+  };
+  const refreshCourses = async () => {
+    if (!token) return;
+    const list = await api.courses(token);
+    if (token !== tokenRef.current || expiredRef.current) return;
+    setCourses(list);
+    const current = routeRef.current;
+    if (current.courseId && list.some(course => course.id === current.courseId)) return;
+    const id = list[0]?.id || "";
+    if (current.courseId !== id) go(current.section, id, undefined, true);
+  };
+  useEffect(() => {void refreshCourses().catch(reportError);}, [token]);
+  useEffect(() => {
+    const unauthorized = (event: Event) => {
+      if ((event as CustomEvent).detail === sessionPartition(token)) expireSession();
+    };
+    window.addEventListener("hustudy:unauthorized", unauthorized);
+    return () => window.removeEventListener("hustudy:unauthorized", unauthorized);
+  }, [token]);
+  useEffect(() => {window.scrollTo({top:0, behavior:"instant"}); setError(""); setNotice("");}, [section, courseId]);
+  const signOut = () => {
+    if (!canNavigate()) return;
+    clearSessionQueries(); localStorage.removeItem("hustudy_token"); localStorage.removeItem("hustudy_user");
+    tokenRef.current = ""; setToken(""); setExpired(false); expiredRef.current = false;
+    setAuthNotice(""); setCourses([]); setNotice(""); setError("");
+    bypass.current = true; go("overview", "", undefined, true); bypass.current = false;
+  };
+  const signedIn = (nextToken: string, username: string) => {
+    clearSessionQueries(); localStorage.setItem("hustudy_token", nextToken); localStorage.setItem("hustudy_user", username);
+    tokenRef.current = nextToken; expiredRef.current = false;
+    setAuthNotice(""); setToken(nextToken); setUserName(username); setExpired(false);
+  };
+  const openNote = async (id: string) => {
+    try {const note = await api.note(token, id); if (token === tokenRef.current) go("notes", note.course_id || courseId, {noteId:id});}
+    catch (reason) {reportError(reason);}
+  };
+  const openSource = async (versionId: string, chunkId: string) => {
+    try {
+      const version = await api.version(token, versionId), doc = await api.document(token, version.document_id);
+      if (token === tokenRef.current) go("materials", doc.course_id, {material:{documentId:doc.id, versionId, chunkId}});
+    } catch (reason) {reportError(reason);}
+  };
+  if (!token) return <AuthScreen message={authNotice} onSuccess={signedIn}/>;
+  return <><div className="app-shell" inert={expired} aria-hidden={expired || undefined}><a className="skip-link" href="#workspace-content">跳到主要内容</a><WorkspaceNavigation username={userName} section={section} locationKey={location.key} expired={expired} onNavigate={navigate} onSignOut={signOut}/><main className="content" id="workspace-content" tabIndex={-1}><header className="topbar"><div><p className="workspace-context"><Icon name={activeSection.icon} size={15}/><span>学习工作台</span><span className="context-divider" aria-hidden="true">/</span><strong>{activeSection.label}</strong></p><h1>{selectedCourse?.name || "开始你的课程学习"}</h1></div><div className="course-picker"><label htmlFor="active-course">当前课程</label><select id="active-course" value={courseId} onChange={(event) => go(section,event.target.value)}><option value="">选择课程</option>{courses.map((course) => <option key={course.id} value={course.id}>{course.name}</option>)}</select></div></header>{route.invalid && <Alert type="warning" showIcon title="地址中的页面或定位无效，请从导航重新选择。"/>}{notice && <div className="toast success" role="status"><Icon name="check" size={18}/><span>{notice}</span><button aria-label="关闭成功提示" onClick={() => setNotice("")}>×</button></div>}{error && <div className="toast error" role="alert"><Icon name="info" size={18}/><span>{error}</span><button aria-label="关闭错误提示" onClick={() => setError("")}>×</button></div>}{!courseId && section !== "overview" && section !== "review" && section !== "help" && section !== "backup" ? <EmptyState title="先选择一门课程" text="从课程总览创建或选择课程后，再开始上传资料和学习。" action="去课程总览" onAction={() => navigate("overview")} /> : <Suspense fallback={<section className="panel" role="status">正在打开工作区…</section>}>{section === "backup" && <Backups token={token} onError={reportError} onNotice={setNotice} onRestored={refreshCourses}/>}{section === "help" && <Help onNavigate={navigate} />}{section === "search" && <Search key={courseId} token={token} courseId={courseId} onError={reportError} onNote={openNote} onMaterial={target => go("materials",courseId,{material:target})} />}{section === "overview" && <Overview token={token} courses={courses} courseId={courseId} onNavigate={navigate} onNote={openNote} onRefresh={refreshCourses} onSelect={id => go("materials",id)} onNotice={setNotice} onError={reportError} />}{section === "materials" && <Materials onNote={openNote} initialTarget={materialTarget} key={`${courseId}-${JSON.stringify(materialTarget)}`} token={token} courseId={courseId} onNotice={setNotice} onError={reportError} />}{section === "notes" && <Notes onSource={openSource} initialNoteId={noteTarget} key={`${courseId}-${noteTarget || ""}`} token={token} courseId={courseId} onNotice={setNotice} onError={reportError} />}{section === "ai" && <AIStudy onSource={openSource} key={courseId} token={token} courseId={courseId} onNotice={setNotice} onError={reportError} />}{section === "exam" && <ExamPilot key={courseId} token={token} courseId={courseId} onNotice={setNotice} onError={reportError} />}{section === "review" && <Review token={token} onNotice={setNotice} onError={reportError} />}</Suspense>}</main><ScrollToTop/></div>{expired && <Suspense fallback={<div className="toast" role="status">正在恢复登录…</div>}><SessionDialog username={userName} onSuccess={signedIn} onExit={signOut}/></Suspense>}</>;
 }
 
-function AuthScreen({ onSuccess }: { onSuccess: (token: string, username: string) => void }) {
-  const [register, setRegister] = useState(false); const [username, setUsername] = useState(""); const [password, setPassword] = useState(""); const [busy, setBusy] = useState(false); const [error, setError] = useState("");
-  const submit = async (event: FormEvent) => { event.preventDefault(); setBusy(true); setError(""); try { const result = register ? await api.register(username, password) : await api.login(username, password); onSuccess(result.access_token, result.user.username); } catch (reason) { setError(reason instanceof Error ? reason.message : "无法登录"); } finally { setBusy(false); } };
-  return <div className="auth-page"><div className="auth-art"><span className="orb orb-a" /><span className="orb orb-b" /><div className="auth-quote"><p className="eyebrow">LEARN WITH EVIDENCE</p><h1>把课程资料，变成自己的知识。</h1><p>从资料阅读、来源引用到模拟练习，Hustudy 把每一步连接起来。</p></div></div><form className="auth-card" onSubmit={submit}><div className="brand large"><span className="brand-mark">H</span><span>Hustudy</span></div><h2>{register ? "创建你的学习空间" : "欢迎回来"}</h2><p className="muted">{register ? "注册后即可创建课程和导入资料。" : "登录以继续你的课程学习。"}</p>{error && <div className="form-error">{error}</div>}<label>用户名<input value={username} onChange={(event) => setUsername(event.target.value)} placeholder="例如 zhangsan" minLength={3} required /></label><label>密码<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="至少 8 位" minLength={8} required /></label><button className="primary full" disabled={busy}>{busy ? "处理中…" : register ? "创建账户" : "登录"}</button><button type="button" className="link-button" onClick={() => setRegister(!register)}>{register ? "已有账户？返回登录" : "还没有账户？注册一个"}</button></form></div>;
-}
 
-function Overview({ token, courses, onRefresh, onSelect, onNotice, onError }: { token: string; courses: Course[]; onRefresh: () => Promise<void>; onSelect: (id: string) => void; onNotice: (s: string) => void; onError: (e: unknown) => void }) {
-  const [name, setName] = useState(""); const [description, setDescription] = useState("");
-  const create = async (event: FormEvent) => { event.preventDefault(); try { await api.createCourse(token, name, description); setName(""); setDescription(""); await onRefresh(); onNotice("课程已创建"); } catch (reason) { onError(reason); } };
-  return <div className="page"><section className="hero-card"><div><p className="eyebrow">YOUR LEARNING OS</p><h2>今天，从一个知识点开始。</h2><p>导入课程资料，留下可回源的笔记，再用一份审阅过的模拟卷检验理解。</p></div><div className="hero-shape">✦</div></section><div className="section-heading"><div><p className="eyebrow">COURSES</p><h2>我的课程</h2></div><span className="count-pill">{courses.length} 门课程</span></div><div className="course-grid">{courses.map((course) => <button className="course-card" key={course.id} onClick={() => onSelect(course.id)}><span className="course-icon">{course.name.slice(0, 1)}</span><strong>{course.name}</strong><span>{course.description || "还没有描述"}</span><small>进入工作台　→</small></button>)}<form className="create-card" onSubmit={create}><div className="plus">＋</div><strong>创建新课程</strong><input value={name} onChange={(event) => setName(event.target.value)} placeholder="课程名称" required /><input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="一句话描述（可选）" /><button className="secondary">创建课程</button></form></div>{courses.length === 0 && <EmptyState title="还没有课程" text="先创建一门课程，Hustudy 会为它准备资料、笔记和练习空间。" />}</div>;
-}
-
-function Materials({ token, courseId, onNotice, onError }: { token: string; courseId: string; onNotice: (s: string) => void; onError: (e: unknown) => void }) {
-  const [documents, setDocuments] = useState<DocumentItem[]>([]); const [file, setFile] = useState<File>(); const [query, setQuery] = useState(""); const [results, setResults] = useState<Array<{ chunk_id: string; document_name: string; locator_type: string; locator_value: string; text: string }>>([]); const [selected, setSelected] = useState<Chunk[]>([]);
-  const load = async () => { try { setDocuments(await api.documents(token, courseId)); } catch (reason) { onError(reason); } }; useEffect(() => { void load(); }, [courseId]);
-  const upload = async (event: FormEvent) => { event.preventDefault(); if (!file) return; try { await api.uploadDocument(token, courseId, file); setFile(undefined); await load(); onNotice("资料已上传，解析任务已完成或正在处理"); } catch (reason) { onError(reason); } };
-  const search = async (event: FormEvent) => { event.preventDefault(); try { setResults(await api.search(token, courseId, query)); } catch (reason) { onError(reason); } };
-  const openDocument = async (doc: DocumentItem) => { if (!doc.latest_version_id) return; try { setSelected(await api.chunks(token, doc.latest_version_id)); } catch (reason) { onError(reason); } };
-  return <div className="page"><PageTitle eyebrow="MATERIAL HUB" title="资料阅读" text="保留版本、定位和处理状态，让每一次理解都能回到原文。" /><div className="two-column"><section className="panel"><div className="panel-title"><h3>导入课程资料</h3><span className="hint">PPTX · PDF · DOCX · Markdown</span></div><form className="upload-zone" onSubmit={upload}><input type="file" accept=".pptx,.pdf,.docx,.md,.markdown,.txt" onChange={(event) => setFile(event.target.files?.[0])} /><div className="upload-icon">↑</div><strong>{file ? file.name : "拖入文件，或点击选择"}</strong><span>单个文件不超过 20 MiB</span><button className="primary" disabled={!file}>开始解析</button></form><div className="list">{documents.map((doc) => <button className="document-row" key={doc.id} onClick={() => void openDocument(doc)}><span className="file-icon">{doc.original_filename.split(".").pop()?.toUpperCase()}</span><span className="row-main"><strong>{doc.name}</strong><small>{doc.original_filename}</small></span><Status value={doc.parse_status || "QUEUED"} /></button>)}{documents.length === 0 && <EmptyInline text="上传第一份课程资料" />}</div></section><section className="panel"><div className="panel-title"><h3>关键词检索</h3><span className="hint">当前课程范围</span></div><form className="search-box" onSubmit={search}><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索：例如 拥塞控制" /><button className="primary">搜索</button></form><div className="search-results">{results.map((result) => <article className="result-card" key={result.chunk_id}><div><span className="locator">{result.locator_type} {result.locator_value}</span><strong>{result.document_name}</strong></div><p>{result.text}</p></article>)}{query && results.length === 0 && <EmptyInline text="没有找到支持该关键词的切片" />}</div>{selected.length > 0 && <div className="reader"><div className="panel-title"><h3>文本阅读视图</h3><span className="hint">引用定位可用于笔记</span></div>{selected.map((chunk) => <article className="chunk" key={chunk.id}><span className="locator">{chunk.locator_type} {chunk.locator_value}</span><p>{chunk.text}</p></article>)}</div>}</section></div></div>;
-}
-
-function Notes({ token, courseId, onNotice, onError }: { token: string; courseId: string; onNotice: (s: string) => void; onError: (e: unknown) => void }) {
-  const [notes, setNotes] = useState<Note[]>([]); const [editing, setEditing] = useState<Note | null>(null); const [title, setTitle] = useState(""); const [content, setContent] = useState("");
-  const load = async () => { try { setNotes(await api.notes(token, courseId)); } catch (reason) { onError(reason); } }; useEffect(() => { void load(); }, [courseId]);
-  const save = async (event: FormEvent) => { event.preventDefault(); try { if (editing) await api.updateNote(token, editing.id, { title, content, revision: editing.revision, course_id: courseId }); else await api.createNote(token, { title, content, course_id: courseId }); setEditing(null); setTitle(""); setContent(""); await load(); onNotice("笔记已保存"); } catch (reason) { onError(reason); } };
-  return <div className="page"><PageTitle eyebrow="NOTE GRAPH" title="笔记图谱" text="用 Markdown 记录理解，用 UUID 双链和 Citation 保留来处。" /><div className="two-column notes-layout"><section className="panel note-editor"><div className="panel-title"><h3>{editing ? "编辑笔记" : "新建笔记"}</h3><span className="hint">revision 乐观锁</span></div><form onSubmit={save}><input className="title-input" value={title} onChange={(event) => setTitle(event.target.value)} placeholder="笔记标题" required /><textarea value={content} onChange={(event) => setContent(event.target.value)} placeholder={'写下你的理解…\n\n支持 [[note:<uuid>|显示名]] 双链语法。'} rows={15} /><div className="editor-footer"><span className="hint">{editing ? `当前版本 ${editing.revision}` : "新建版本 1"}</span><button type="button" className="secondary" onClick={() => { setEditing(null); setTitle(""); setContent(""); }}>清空</button><button className="primary">保存笔记</button></div></form></section><section className="panel"><div className="panel-title"><h3>我的笔记</h3><span className="hint">{notes.length} 篇</span></div><div className="list">{notes.map((note) => <button className="note-row" key={note.id} onClick={() => { setEditing(note); setTitle(note.title); setContent(note.content); }}><span className="note-dot" /><span className="row-main"><strong>{note.title}</strong><small>{note.content.slice(0, 90) || "空白笔记"}</small></span><span className="revision">v{note.revision}</span></button>)}{notes.length === 0 && <EmptyInline text="创建第一篇课程笔记" />}</div></section></div></div>;
-}
-
-function AIStudy({ token, courseId, onNotice, onError }: { token: string; courseId: string; onNotice: (s: string) => void; onError: (e: unknown) => void }) {
-  const [query, setQuery] = useState(""); const [answer, setAnswer] = useState<{ status: string; model_mode: string; result: { answer?: string; message?: string; citations?: Array<{ locator: { value: string }; quote: string }>; model_notice?: string } } | null>(null); const [loading, setLoading] = useState(false);
-  const ask = async (event: FormEvent) => { event.preventDefault(); setLoading(true); try { setAnswer(await api.aiQuery(token, courseId, query)); onNotice("已生成一条可审阅的演示结果"); } catch (reason) { onError(reason); } finally { setLoading(false); } };
-  return <div className="page"><PageTitle eyebrow="AI STUDY" title="AI 学习" text="演示模型只使用当前课程已索引资料；没有证据时会明确返回不足。" /><div className="ai-grid"><section className="panel ai-prompt"><div className="mode-card"><span className="sparkle">✦</span><div><strong>演示模型</strong><p>无需远程发送资料。结果必须回看引用原文。</p></div></div><form onSubmit={ask}><label>向这门课程提问<textarea rows={6} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="例如：拥塞控制和流量控制有什么区别？" required /></label><button className="primary full" disabled={loading}>{loading ? "正在检索…" : "生成带来源回答"}</button></form></section><section className="panel ai-result"><div className="panel-title"><h3>学习结果</h3>{answer && <Status value={answer.status} />}</div>{answer ? <><div className="answer-box"><p>{answer.result.answer || answer.result.message}</p><small>{answer.result.model_notice || "结果需人工审阅"}</small></div><h4>来源引用</h4>{answer.result.citations?.map((citation, index) => <article className="citation-card" key={`${citation.locator.value}-${index}`}><span className="locator">定位 {citation.locator.value}</span><p>{citation.quote}</p></article>)}{(!answer.result.citations || answer.result.citations.length === 0) && <EmptyInline text="暂无可验证来源，请补充课程资料或换一个问题" />}</> : <EmptyState title="从一个问题开始" text="回答会保留 grounded、insufficient_evidence 或 provider_error 状态。" />}</section></div></div>;
-}
-
-function ExamPilot({ token, courseId, onNotice, onError }: { token: string; courseId: string; onNotice: (s: string) => void; onError: (e: unknown) => void }) {
-  const [topics, setTopics] = useState<Topic[]>([]); const [papers, setPapers] = useState<Paper[]>([]); const [blueprint, setBlueprint] = useState<Blueprint | null>(null); const [examPaper, setExamPaper] = useState<ExamPaper | null>(null); const [attempt, setAttempt] = useState<Attempt | null>(null); const [name, setName] = useState("期末复习模拟卷"); const [topicName, setTopicName] = useState(""); const [paperTitle, setPaperTitle] = useState(""); const [paperContent, setPaperContent] = useState(""); const [busy, setBusy] = useState(false);
-  const load = async () => { try { setTopics(await api.topics(token, courseId)); setPapers(await api.papers(token, courseId)); } catch (reason) { onError(reason); } }; useEffect(() => { void load(); }, [courseId]);
-  const createTopic = async (event: FormEvent) => { event.preventDefault(); try { await api.createTopic(token, courseId, topicName); setTopicName(""); await load(); onNotice("考点已添加"); } catch (reason) { onError(reason); } };
-  const addPaper = async (event: FormEvent) => { event.preventDefault(); try { const paper = await api.createPaper(token, courseId, { title: paperTitle, content: paperContent }); await api.extractPaper(token, paper.id); await load(); setPaperTitle(""); setPaperContent(""); onNotice("真题已导入并拆分为草稿题"); } catch (reason) { onError(reason); } };
-  const makeBlueprint = async (event: FormEvent) => { event.preventDefault(); setBusy(true); try { const created = await api.createBlueprint(token, courseId, { name, mode: "history_blueprint", total_points: 100, duration_minutes: 90, question_types: [{ type: "single_choice", count: 10, points: 5 }, { type: "short_answer", count: 3, points: 10 }], topics: topics.length ? topics.map((topic) => ({ name: topic.name, count: 1 })) : [{ name: "综合", count: 1 }] }); setBlueprint(created); setExamPaper(await api.generatePaper(token, created.id)); onNotice("试卷草稿已生成，请先审阅确认"); } catch (reason) { onError(reason); } finally { setBusy(false); } };
-  const review = async () => { if (!examPaper) return; try { setExamPaper(await api.reviewPaper(token, examPaper.id)); onNotice("试卷已进入 READY，可以开始作答"); } catch (reason) { onError(reason); } };
-  const start = async () => { if (!examPaper) return; try { setAttempt(await api.startAttempt(token, examPaper.id)); onNotice("已开始作答，答案会保存到服务器"); } catch (reason) { onError(reason); } };
-  const answer = async (questionId: string, value: unknown) => { if (!attempt) return; try { setAttempt(await api.answer(token, attempt.id, questionId, value)); } catch (reason) { onError(reason); } };
-  const submit = async () => { if (!attempt) return; try { setAttempt(await api.submit(token, attempt.id)); onNotice("作答已提交并完成客观题评分"); } catch (reason) { onError(reason); } };
-  return <div className="page"><PageTitle eyebrow="EXAM PILOT" title="真题与模拟卷" text="先校正真题和考点，再按蓝图生成草稿；审阅后才能进入正式作答。" /><div className="exam-columns"><section className="panel"><div className="panel-title"><h3>考点词表</h3><span className="hint">人工确认后再统计</span></div><form className="inline-form" onSubmit={createTopic}><input value={topicName} onChange={(event) => setTopicName(event.target.value)} placeholder="添加考点，例如 拥塞控制" required /><button className="secondary">添加</button></form><div className="tag-list">{topics.map((topic) => <span className="topic-tag" key={topic.id}>{topic.name}</span>)}{topics.length === 0 && <EmptyInline text="还没有考点" />}</div><div className="divider" /><div className="panel-title"><h3>导入历年真题</h3><span className="hint">草稿 → 确认</span></div><form onSubmit={addPaper}><input value={paperTitle} onChange={(event) => setPaperTitle(event.target.value)} placeholder="试卷名称 / 年份" required /><textarea value={paperContent} onChange={(event) => setPaperContent(event.target.value)} rows={5} placeholder={'每行一道题，例如：\n1. 解释拥塞控制。\n2. 判断流量控制的作用。'} required /><button className="secondary">导入并拆题</button></form><div className="mini-list">{papers.map((paper) => <div className="mini-row" key={paper.id}><span>{paper.title}</span><Status value={paper.review_status} /></div>)}</div></section><section className="panel"><div className="panel-title"><h3>模拟卷蓝图</h3><span className="hint">数量与总分自动校验</span></div><form onSubmit={makeBlueprint}><input value={name} onChange={(event) => setName(event.target.value)} /><div className="blueprint-summary"><span><strong>13</strong> 道题</span><span><strong>100</strong> 总分</span><span><strong>90</strong> 分钟</span></div><button className="primary full" disabled={busy}>{busy ? "生成中…" : "生成模拟卷草稿"}</button></form>{blueprint && <div className="draft-banner">蓝图已保存：{blueprint.name}<span>草稿需要人工审阅</span></div>}{examPaper && <div className="paper-area"><div className="panel-title"><h3>{examPaper.title}</h3><Status value={examPaper.status} /></div>{examPaper.status === "DRAFT" && <button className="secondary full" onClick={() => void review()}>审阅通过，进入 READY</button>}{examPaper.status === "READY" && !attempt && <button className="primary full" onClick={() => void start()}>开始作答</button>}{examPaper.questions.map((question, index) => <article className="question-card" key={question.id}><div className="question-meta"><span>Q{index + 1} · {question.points} 分</span><span>{question.topic}</span></div><p>{question.stem}</p>{attempt && attempt.status === "IN_PROGRESS" && question.type === "single_choice" && <div className="options">{question.options?.map((option, optionIndex) => <button type="button" key={option} className="option" onClick={() => void answer(question.id, String.fromCharCode(65 + optionIndex))}>{String.fromCharCode(65 + optionIndex)}　{option}</button>)}</div>}</article>)}{attempt?.status === "IN_PROGRESS" && <button className="primary full" onClick={() => void submit()}>提交作答</button>}{attempt?.status === "SCORED" && <div className="score-card"><strong>{attempt.score ?? 0}</strong><span>分 · 已完成</span></div>}</div>}</section></div></div>;
-}
-
-function Review({ token, onNotice, onError }: { token: string; onNotice: (s: string) => void; onError: (e: unknown) => void }) {
-  const [mistakes, setMistakes] = useState<Array<{ id: string; question: { stem: string }; given: unknown }>>([]); const [tasks, setTasks] = useState<Array<{ id: string; title: string; due_date: string; status: string }>>([]);
-  const load = async () => { try { setMistakes(await api.mistakes(token)); setTasks(await api.reviewTasks(token)); } catch (reason) { onError(reason); } }; useEffect(() => { void load(); }, []);
-  const makeTask = async (mistakeId: string) => { try { const response = await fetch("http://127.0.0.1:8000/api/v1/review-tasks", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ mistake_id: mistakeId, title: "回看错题并重做", due_date: new Date().toISOString().slice(0, 10) }) }); if (!response.ok) throw new Error("复习任务创建失败"); await load(); onNotice("复习任务已创建"); } catch (reason) { onError(reason); } };
-  return <div className="page"><PageTitle eyebrow="REVIEW LOOP" title="错题与复习" text="每一次正式提交只生成一次错题事件，复习任务可追踪完成。" /><div className="two-column"><section className="panel"><div className="panel-title"><h3>错题库</h3><span className="hint">{mistakes.length} 道</span></div>{mistakes.map((mistake) => <article className="mistake-card" key={mistake.id}><span className="mistake-mark">!</span><div><strong>{mistake.question.stem}</strong><p>你的答案：{String(mistake.given)}</p><button className="link-button" onClick={() => void makeTask(mistake.id)}>安排今天复习 →</button></div></article>)}{mistakes.length === 0 && <EmptyState title="还没有错题" text="完成一套 READY 模拟卷后，错题会自动回到这里。" />}</section><section className="panel"><div className="panel-title"><h3>今日任务</h3><span className="hint">按账户时区</span></div>{tasks.map((task) => <div className="task-row" key={task.id}><span className="task-check">○</span><span><strong>{task.title}</strong><small>{task.due_date}</small></span></div>)}{tasks.length === 0 && <EmptyInline text="今天没有待完成任务" />}<div className="divider" /><Feedback token={token} onNotice={onNotice} onError={onError} /></section></div></div>;
-}
-
-function Feedback({ token, onNotice, onError }: { token: string; onNotice: (s: string) => void; onError: (e: unknown) => void }) { const [content, setContent] = useState(""); const submit = async (event: FormEvent) => { event.preventDefault(); try { await api.feedback(token, { kind: "product", content, rating: 5 }); setContent(""); onNotice("感谢反馈"); } catch (reason) { onError(reason); } }; return <form onSubmit={submit}><h4>留下反馈</h4><textarea rows={3} value={content} onChange={(event) => setContent(event.target.value)} placeholder="哪一步最有帮助？哪里需要改进？" required /><button className="secondary">提交反馈</button></form>; }
-function PageTitle({ eyebrow, title, text }: { eyebrow: string; title: string; text: string }) { return <div className="page-title"><p className="eyebrow">{eyebrow}</p><h2>{title}</h2><p>{text}</p></div>; }
-function Status({ value }: { value: string }) { const label: Record<string, string> = { SUCCEEDED: "已完成", RUNNING: "处理中", QUEUED: "排队中", FAILED: "失败", DRAFT: "草稿", READY: "可作答", SCORED: "已评分", CONFIRMED: "已确认", grounded: "有来源", insufficient_evidence: "证据不足", provider_error: "模型不可用" }; return <span className={`status status-${value.toLowerCase()}`}>{label[value] || value}</span>; }
-function EmptyInline({ text }: { text: string }) { return <div className="empty-inline"><span>○</span>{text}</div>; }
-function EmptyState({ title, text, action, onAction }: { title: string; text: string; action?: string; onAction?: () => void }) { return <div className="empty-state"><div className="empty-icon">✦</div><h3>{title}</h3><p>{text}</p>{action && <button className="secondary" onClick={onAction}>{action}</button>}</div>; }
-
-createRoot(document.getElementById("root")!).render(<StrictMode><App /></StrictMode>);
+const router = createBrowserRouter([{path:"*", element:<App/>}]);
+createRoot(document.getElementById("root")!).render(<StrictMode><ConfigProvider locale={zhCN} theme={{token:{colorPrimary:"#4864dc",borderRadius:12,fontSize:13,controlHeight:36,fontFamily:'-apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif'},components:{Modal:{contentBg:"#ffffff"}}}}><QueryClientProvider client={queryClient}><RouterProvider router={router}/></QueryClientProvider></ConfigProvider></StrictMode>);

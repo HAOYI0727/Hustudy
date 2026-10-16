@@ -1,0 +1,26 @@
+{
+  "recorded_at": "2026-10-15T09:27:02Z",
+  "host": "macOS-15.7.9-arm64-arm-64bit",
+  "python_requested": "python3.12",
+  "commands": [
+    {
+      "command": [
+        "bash",
+        "scripts/setup.sh"
+      ],
+      "exit_code": 0,
+      "seconds": 215.518
+    },
+    {
+      "command": [
+        "bash",
+        "scripts/check.sh"
+      ],
+      "exit_code": 0,
+      "seconds": 28.69
+    }
+  ],
+  "passed": true,
+  "isolation": "Fresh temporary source copy, new Python venv and npm ci. Only backend/frontend/scripts/fixtures and .env.example copied; no .git/.env/data/user uploads/existing venv/node_modules. Temporary tree removed on exit.",
+  "limits": "Same host and already available system tools/Python; not a separate machine/OS. No live browsers or external model calls."
+}

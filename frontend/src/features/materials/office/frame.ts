@@ -1,0 +1,6 @@
+/** Only trusted generated code is executable; document data is sent afterwards. */
+export function officeFrameDocument(runtime:string, channel:string, nonce:string):string {
+  if(!/^[a-zA-Z0-9-]+$/.test(channel)||!/^[a-zA-Z0-9-]+$/.test(nonce))throw new Error('Invalid preview channel');
+  const policy=`default-src 'none'; script-src 'nonce-${nonce}'; style-src 'unsafe-inline'; img-src data: blob:; font-src data: blob:; connect-src 'none'; media-src 'none'; frame-src 'none'; worker-src 'none'; base-uri 'none'; form-action 'none'`;
+  return `<!doctype html><html lang="zh-CN" data-channel="${channel}"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${policy}"><meta name="referrer" content="no-referrer"><style>html,body{margin:0;background:#edf1f7;color:#17243a;font-family:system-ui,sans-serif}*{box-sizing:border-box}#office-stage{min-height:100vh;overflow:auto}.docx-wrapper{padding:16px!important;background:transparent!important}.docx-wrapper>section.docx{margin:0 auto!important;box-shadow:0 4px 24px #182d4814}a{pointer-events:none}body{overflow:auto}#office-stage:has(.pptx-slide){padding:12px}</style></head><body><div id="office-styles"></div><div id="office-stage"></div><script nonce="${nonce}">${runtime.replace(/<\/script/gi,'<\\/script')}</script></body></html>`;
+}

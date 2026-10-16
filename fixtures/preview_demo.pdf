@@ -1,0 +1,103 @@
+%PDF-1.3
+%‚„œ”
+1 0 obj
+<<
+/Producer (pypdf)
+>>
+endobj
+2 0 obj
+<<
+/Type /Pages
+/Count 2
+/Kids [ 4 0 R 7 0 R ]
+>>
+endobj
+3 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+>>
+endobj
+4 0 obj
+<<
+/Type /Page
+/Resources <<
+/Font <<
+/F1 5 0 R
+>>
+>>
+/MediaBox [ 0.0 0.0 595 700 ]
+/Parent 2 0 R
+/Contents 6 0 R
+>>
+endobj
+5 0 obj
+<<
+/Type /Font
+/Subtype /Type1
+/BaseFont /Helvetica
+>>
+endobj
+6 0 obj
+<<
+/Length 398
+>>
+stream
+0.93 0.95 1 rg 30 500 535 170 re f
+0.25 0.35 0.65 rg BT /F1 28 Tf 55 620 Td (Hustudy Reading Lab) Tj 0 -48 Td /F1 18 Tf (Page 1: source-aware images) Tj 0 -100 Td /F1 13 Tf (Self-authored test fixture. No private course content.) Tj ET
+0.3 0.5 0.8 RG 3 w 65 300 180 90 re S 330 300 180 90 re S 245 345 m 330 345 l S
+0.2 0.3 0.5 rg BT /F1 17 Tf 90 340 Td (Document v1) Tj 270 0 Td (Note image) Tj ET
+endstream
+endobj
+7 0 obj
+<<
+/Type /Page
+/Resources <<
+/Font <<
+/F1 8 0 R
+>>
+>>
+/MediaBox [ 0.0 0.0 595 700 ]
+/Parent 2 0 R
+/Contents 9 0 R
+>>
+endobj
+8 0 obj
+<<
+/Type /Font
+/Subtype /Type1
+/BaseFont /Helvetica
+>>
+endobj
+9 0 obj
+<<
+/Length 398
+>>
+stream
+0.93 0.95 1 rg 30 500 535 170 re f
+0.25 0.35 0.65 rg BT /F1 28 Tf 55 620 Td (Hustudy Reading Lab) Tj 0 -48 Td /F1 18 Tf (Page 2: source-aware images) Tj 0 -100 Td /F1 13 Tf (Self-authored test fixture. No private course content.) Tj ET
+0.3 0.5 0.8 RG 3 w 65 300 180 90 re S 330 300 180 90 re S 245 345 m 330 345 l S
+0.2 0.3 0.5 rg BT /F1 17 Tf 90 340 Td (Document v1) Tj 270 0 Td (Note image) Tj ET
+endstream
+endobj
+xref
+0 10
+0000000000 65535 f 
+0000000015 00000 n 
+0000000054 00000 n 
+0000000119 00000 n 
+0000000168 00000 n 
+0000000300 00000 n 
+0000000370 00000 n 
+0000000819 00000 n 
+0000000951 00000 n 
+0000001021 00000 n 
+trailer
+<<
+/Size 10
+/Root 3 0 R
+/Info 1 0 R
+>>
+startxref
+1470
+%%EOF

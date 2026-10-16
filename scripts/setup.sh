@@ -14,8 +14,10 @@ case "$($PYTHON_BIN -c 'import sys; print(f"{sys.version_info.major}.{sys.versio
   *) echo "需要 Python 3.11 或 3.12，当前为 $($PYTHON_BIN --version)" >&2; exit 1;;
 esac
 if [ ! -d .venv ]; then "$PYTHON_BIN" -m venv .venv; fi
-.venv/bin/python -m pip install -r backend/requirements.txt
+.venv/bin/python -m pip install -r backend/requirements.lock
 if [ ! -f .env ]; then cp .env.example .env; fi
-if [ ! -d frontend/node_modules ]; then npm install --prefix frontend; fi
-echo "环境初始化完成。启动后端：.venv/bin/python -m uvicorn app.main:app --app-dir backend --reload"
+.venv/bin/python scripts/configure_auth.py
+npm ci --prefix frontend
+echo "当前后端解释器：$(.venv/bin/python --version)（已有.venv会复用，PYTHON_BIN仅用于新建环境）"
+echo "环境初始化完成。后端 + worker：bash scripts/dev.sh"
 echo "启动前端：npm run dev --prefix frontend"

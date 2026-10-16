@@ -1,25 +1,78 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from typing import Literal
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 from ..core.database import get_db
 from ..dependencies import current_user
 from ..models import Course, User
-from ..schemas.course import CourseCreate, CourseResponse, CourseUpdate
+from ..schemas.course import (
+    CourseCreate,
+    CourseResponse,
+    CourseUpdate,
+    CourseDeletionPreview,
+)
+from ..services.courses import course_directory, organize_course, owned_course
+from ..services.course_retirement import deletion_preview, retire_course
+
 router = APIRouter(prefix="/api/v1/courses", tags=["courses"])
-def _response(course: Course) -> CourseResponse: return CourseResponse.model_validate(course, from_attributes=True)
+
+
+def _response(course: Course) -> CourseResponse:
+    return CourseResponse.model_validate(course, from_attributes=True)
+
+
 @router.get("", response_model=list[CourseResponse])
-def list_courses(user: User = Depends(current_user), db: Session = Depends(get_db)) -> list[CourseResponse]:
-    return [_response(row) for row in db.scalars(select(Course).where(Course.user_id == user.id).order_by(Course.created_at.desc())).all()]
+def list_courses(
+    q: str = Query(default="", max_length=200),
+    category: str | None = Query(default=None, min_length=1, max_length=64),
+    tag: str | None = Query(default=None, min_length=1, max_length=32),
+    sort: Literal["newest", "updated", "name"] = "newest",
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+) -> list[CourseResponse]:
+    return [
+        _response(row) for row in course_directory(db, user.id, q, category, tag, sort)
+    ]
+
+
 @router.post("", response_model=CourseResponse, status_code=status.HTTP_201_CREATED)
-def create_course(payload: CourseCreate, user: User = Depends(current_user), db: Session = Depends(get_db)) -> CourseResponse:
-    course = Course(user_id=user.id, name=payload.name, description=payload.description); db.add(course); db.commit(); db.refresh(course); return _response(course)
+def create_course(
+    payload: CourseCreate,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+) -> CourseResponse:
+    course = Course(user_id=user.id, **payload.model_dump())
+    db.add(course)
+    db.commit()
+    db.refresh(course)
+    return _response(course)
+
+
 def _owned(course_id: str, user: User, db: Session) -> Course:
-    course = db.scalar(select(Course).where(Course.id == course_id, Course.user_id == user.id))
-    if not course: raise HTTPException(status_code=404, detail="课程不存在")
-    return course
+    return owned_course(db, user.id, course_id)
+
+
 @router.patch("/{course_id}", response_model=CourseResponse)
-def update_course(course_id: str, payload: CourseUpdate, user: User = Depends(current_user), db: Session = Depends(get_db)) -> CourseResponse:
-    course = _owned(course_id, user, db); course.name = payload.name; course.description = payload.description; db.commit(); db.refresh(course); return _response(course)
+def update_course(
+    course_id: str,
+    payload: CourseUpdate,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+) -> CourseResponse:
+    return _response(organize_course(db, user.id, course_id, payload))
+
+
 @router.delete("/{course_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_course(course_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)) -> None:
-    db.delete(_owned(course_id, user, db)); db.commit()
+def delete_course(
+    course_id: str,
+    revision: int = Query(ge=1),
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+) -> None:
+    retire_course(db, user.id, course_id, revision)
+
+
+@router.get("/{course_id}/deletion-preview", response_model=CourseDeletionPreview)
+def preview_course_deletion(
+    course_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)
+):
+    return deletion_preview(db, user.id, course_id)

@@ -1,0 +1,68 @@
+# Hustudy 当前测试报告
+
+更新日期：2026-10-16；记录者：Codex（zhy队长会话辅助），本人审阅待填。报告只记录运行证据，工作区未提交/合并。
+
+最近后端共享检查（2026-10-15）`bash scripts/check.sh`：**116 pytest passed（原格式切片19.60秒）、14 Vitest**，Ruff、临时迁移/ORM漂移、安全Markdown/AI显示、PDF.js双页、TypeScript/Vite均通过。独立Python3.12.13工作区116项16.96秒；2026-10-16前端最新完整回归42项3.6分钟、14Vitest、类型/构建通过，无重试。保留1条Starlette/anyio弃用警告，主包约489.66KB/按需PDF492.56KB，原格式阅读器按需加载。运行库head0012，本轮无迁移。
+
+10课程/200实际导入资料/1000笔记/5000片段的隔离容量，5类接口各100次、4并发，p95最大275.814ms；20张PPTX/50页文本PDF解析索引≤60秒。同机Python3.12.13干净源码、新venv、npm ci重建115项及全部共享检查通过（该快照早于新增权限矩阵，当前116项另全量复验）。详见[检索/容量/环境验收及JSON](zhy/materialhub/search_capacity_acceptance.md)。不是跨机器或真实课程复杂样本/所有版式的成绩。
+
+关键补录/撤回、搜索翻页/摘要/回源、索引UUID不变、课程确认删除撤权已双引擎验证；三格式预览/截图、导航、401草稿与备份下载一并回归。归属矩阵覆盖19类M1读取和10种越权变更。真实模型未调用，真实用户试用、Gitee/签收/发布及M2–M4剩余P0不冒记通过。
+
+以下日期增量保留当时的真实数量/限制；当前任务状态见[完成核查](zhy/completion_audit.md)、[任务表](../collaboration/zhy/task_status.md)，历史待办由后续证据覆盖，不能把不同轮次累计成当前测试数。
+
+## 最新增量：GLM课程问答
+
+2026-10-14 M2-ZHIPU-QA-01：最终bash scripts/check.sh为67pytest passed（11.68秒），共享Ruff/迁移漂移/Markdown安全/PDF双页/类型/构建通过。新增20个远程AI风险场景使用假密钥/MockTransport；真实网络只进行自制苹果请求，grounded/1原文引用/417tokens。用户课件不进入自动网络测试。
+
+[详细验收](zhy/integration/zhipu_qa_acceptance.md)说明配置、确认、Source/schema/限流/取消/租约、当前政策未核实与Safari正向闭环限制。覆盖前文“真实模型未接入”中的课程问答部分；完整教学报告、题目生成、语义正确率/压力/备份恢复等继续待验收。
+
+2026-10-15最终补验：AI回答使用真实组件SSR验证生成链接/图片不可导航或加载、HTML移除、GFM表格保留；最终全量命令退出0，日志/tmp/hustudy-zhipu-check-final.log。Safari入口/演示状态可见，但切换真实模式后返回登录，原因未定，未完成正向确认/结果/草稿验收。没有额外远程调用用户资料。保留主包521.87KB构建提示，未测量性能目标。
+
+同日DOC-ZHY-AUDIT-01仅重分类队长文档并核查当前状态，没有重跑业务测试。正式十任务与“已实现/待实现/待验收”的边界见[完成度核查](zhy/completion_audit.md)，67项历史回归不等于队长职责或全部P0完成。
+
+## 2026-10-15 共享认证/存储/分页最新回归
+
+实际bash scripts/check.sh最终96passed(15.84秒)，Ruff/迁移漂移/笔记及AI显示安全/PDF.js双页/TypeScript/Vite通过，日志/tmp/hustudy-browse-01.log；此前JWT89和存储94为历史切片结果。29新增场景验证JWT、原子存储/低磁盘/回滚、105份同时间记录稳定分页。1条依赖警告及主包提示保留；未据此测量p95或认定全部P0通过。
+
+## PLATFORM-BACKUP-01实际结果
+
+完整账户ZIP/空账户恢复已实现，四格式、3张图、3笔记双链、2套试卷作答、人工来源/AI/错题/时区在隔离库往返；同库UUID/非空/越权、损坏/真实字节/假引用/缺失关系、提交故障/文件清理、过期不重放及终态移除验证通过。最终bash scripts/check.sh：101passed(16.43秒)，所有共享检查/构建通过；日志/tmp/hustudy-platform-final.log。Safari/跨机器/Python3.12/压力仍未测，不标全部P0。详情见zhy/shared_platform/account_backup_acceptance.md。
+
+
+## PLATFORM-WEB-BASE-01实际结果
+
+本次check101pytest15.52秒、10项Vitest及全部共享检查通过；独立Python3.12.13锁依赖101项24.19秒。Chrome（本机channel）/官方WebKit各4项，最终8passed52.2秒：真实隔离API上传解析阅读检索、版本定位刷新/前后退/草稿离开确认、模拟401+真实原账户重登保留笔记及资料整理草稿、完整备份实际下载hash。首次WebKit相对路径失败已修为绝对路径并复验通过，不能将失败启动计为通过。
+
+主包485.85KB（按需工作区/Modal），无500KB警告；仅构建体积证据，未测加载时间。Safari查看资料/备份入口；用户现有数据未更改。完整范围、命令、日志和限制见[共享前端验收](zhy/shared_platform/web_base_acceptance.md)。其他课程/性能/交付关口仍待验证。
+
+
+## M1-PREVIEW-RECOVERY-01实际结果
+
+实际缺LibreOffice和Safari缺少Map.getOrInsertComputed两层原因均已定位处理；安装LibreOffice26.8.1（程序26.8.1.1），PDF.js显示层/worker同版本legacy，环境检测/原任务重试/错误详情可用。PPTX包含隐藏页并校验页数，旧错位读取/截图拒绝，有旧截图不静默改指。现有课件缓存重建为146/146页，原件和正文引用身份不变。
+
+最终check110pytest15.47秒、10Vitest及全部共享检查通过；最终14项Chrome/WebKit约1.5分钟通过（含移除Map/WeakMap新API的兼容测试、隐藏第二张PPT、三格式真实预览截图回源）。3.12选定17项3.40秒通过。保留1条依赖警告；主包485.98KB/PDF阅读器492.59KB，均按需或原入口，无500KB提示。Safari曾实际显示原课件第一页；最新146页缓存的新标签页因会话过期需原账户重登，未冒记最终实机再打开。
+
+[验收明细](zhy/materialhub/preview_recovery_acceptance.md)记录命令、日志及剩余范围；测试失败的早期选择器、modern构建记录不替代最终结果。无真实模型调用/用户课件外发。
+
+M1-SEARCH-02最终边界复验：跨窗口删除15篇笔记后旧结果页为空，提示“当前页已无结果”，上一页钳制到有效页；Chrome/WebKit2项12.6秒通过（原20项中的场景增量，不累加计数），类型检查通过。63份文档622本地链接无缺失，18交接锚点唯一，git diff --check/Ruff/bash语法通过。
+
+
+## 2026-10-15 M1-NATIVE-PREVIEW-01
+
+按用户新要求补PPTX/Word直接OOXML预览，PDF继续原文件；转换PDF另标兼容预览，原格式不依赖转换状态。原件仅从授权接口读取，隔离iframe无登录信息/无外部连接，nonce与消息source/channel/页码校验，卸载取消请求。后台解析完成不切走原格式视图；隐藏PPT页/Word显式换页/样式表格图片、缩放/演示、坏ZIP显式重试均已验证。
+
+最终26项双引擎2.1分钟（各13项）、14Vitest、类型与构建通过；后端116项19.60秒及迁移/安全显示/PDF实渲染等共享check通过。API/数据库无迁移，本轮未新跑后端3.12/容量/干净全依赖安装，历史证据不得当作新增依赖后的新测量。Office本地runtime约1.31MB不在主入口，第三方许可随构建发布。初轮故障注入受开发StrictMode重复GET干扰、之后WebKit暴露后台切模式问题，已分别修正测试/实现并最终全量通过。见[原格式验收](zhy/materialhub/native_preview_acceptance.md)。
+
+
+## 2026-10-15 PLATFORM-RESPONSIVE-01
+
+全量Chrome/WebKit各20项共40passed3.2分钟，无重试，含新增7场景/每引擎；覆盖5尺寸/触屏、9工作台页面/登录注册、无整页横向溢出、44px热区、目录折叠、搜索/长笔记、抽屉焦点/草稿/旋转及既有端到端闭环。吸顶收尾后20项1.5分钟，PPT比例及实际可视区收尾6项31.8秒通过，是40项子集，不相加。14Vitest、TypeScript/Vite通过，主包488.37KB；无后端/迁移变化，未在本轮重跑pytest/容量/3.12。
+
+初轮13/14响应式通过后修复Chrome抽屉Shift+Tab焦点；构建Array.at目标lib不支持已改兼容下标。最终结果、日志/截图和未完成实机/真实用户边界见[验收](zhy/shared_platform/responsive_layout_acceptance.md)，不把浏览器模拟当Safari/iPad实机或真人试用。
+
+
+## 2026-10-16 PLATFORM-VISUAL-02
+
+最终完整Chrome/WebKit各21项共42passed3.6分钟，无重试；包含新关键配色/区域账户标识/减少动效场景及此前全部闭环和5尺寸触控布局。7处实际DOM文字/控件配色抽样≥4.5，不声称完整无障碍审计。14Vitest（397ms）、类型检查与Vite构建通过；主包489.66KB、按需PDF492.56KB。无后端/迁移改动，未在本轮重跑pytest/容量/独立3.12。
+
+首轮跨夜33passed/9超时、6.2小时，部分超时记录长达数十分钟/小时；未核实系统休眠日志，不武断归因或当性能数据。连续全量重跑42项均通过，未扩大超时/开启重试；临时caffeinate随测试结束退出。原日志/tmp/hustudy-visual-02-e2e.log，最终/tmp/hustudy-visual-02-final-e2e.log。[验收及截图](zhy/shared_platform/visual_polish_acceptance.md)。

@@ -1,5 +1,5 @@
 from datetime import date
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Literal
 from pydantic import BaseModel, Field
 
 
@@ -40,13 +40,27 @@ class PastPaperResponse(BaseModel):
     questions: List[PastQuestionResponse] = []
 
 
+class QuestionTypeQuota(BaseModel):
+    type: Literal["single_choice", "true_false", "short_answer"]
+    count: int = Field(ge=0, le=100, strict=True)
+    points: int = Field(gt=0, le=500, strict=True)
+    difficulty: str = Field(default="基础", max_length=40)
+
+
+class ChapterQuota(BaseModel):
+    name: str = Field(min_length=1, max_length=240)
+    count: int = Field(ge=0, le=100, strict=True)
+
+
 class BlueprintCreate(BaseModel):
     name: str = Field(min_length=1, max_length=240)
-    mode: str = "history_blueprint"
+    mode: Literal["history_blueprint", "topic_variant", "weakness_practice"] = (
+        "history_blueprint"
+    )
     total_points: int = Field(gt=0, le=500)
     duration_minutes: int = Field(gt=0, le=180)
-    question_types: List[Dict[str, Any]]
-    topics: List[Dict[str, Any]] = []
+    question_types: List[QuestionTypeQuota] = Field(min_length=1, max_length=3)
+    topics: List[ChapterQuota] = Field(default_factory=list, max_length=100)
 
 
 class BlueprintResponse(BaseModel):

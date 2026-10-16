@@ -18,7 +18,9 @@ Hustudy 采用一个共享基础层和四个业务模块：
 
 ## 2. 四名成员的职责和十项任务
 
-角色 A 是队长，同时负责 M1 和最终集成。角色 B、C、D 分别负责 M2、M3、M4。姓名应由小组在 Gitee Wiki 中替换为真实姓名。
+角色 A 为 zhy（张昊轶）队长，负责共享层、M1 和最终集成；B 为 xtc（向天晨）负责 M2；C 为 fzk（付振琨）负责 M3；D 为 gcx（高长鑫）负责 M4。成员映射统一见 `collaboration/roles.md`，仓库账号/Issue/PR/Wiki 地址按实际补充。
+
+个人协作进度放 `collaboration/<成员>/progress.md`，功能与优化放 `docs/<成员>/features.md`、`optimizations.md`；根级文件维护公共契约、规则、操作和集成状态。每个切片提交/PR 前追加 `collaboration/handoff.md`，接收人记录真实复验，队长汇总任务板/进度/追踪。模板不代表本人已完成或已接收。完整维护约束见 `AGENTS.md` 第 20 节。
 
 | 成员 | 模块 | 任务编号 | 任务内容 |
 |---|---|---|---|

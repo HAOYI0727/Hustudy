@@ -1,15 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
-python3 - <<'PY'
-import ast
-from pathlib import Path
-files = list(Path("backend").rglob("*.py"))
-for path in files:
-    ast.parse(path.read_text(), filename=str(path))
-print(f"Python AST syntax check passed: {len(files)} files")
-PY
-if command -v ruff >/dev/null 2>&1; then
-  ruff check backend/app backend/tests
-else
-  echo "ruff is not installed; skipped lint (install backend/requirements.txt first)"
-fi
+cd "$(dirname "$0")/.."
+.venv/bin/ruff check backend/app backend/tests backend/migrations
+PYTHONPATH=backend .venv/bin/python -m pytest -q
+PYTHONPATH=backend .venv/bin/python scripts/verify_migrations.py
+node scripts/verify_markdown.mjs
+node scripts/verify_pdf.mjs
+npm run test --prefix frontend
+npm run build --prefix frontend

@@ -4,11 +4,13 @@ Hustudy 是面向大学生的本地优先课程学习工具，围绕“资料阅
 
 ## 当前版本
 
-当前代码已经具备可演示的 P0 最小闭环：
+更新：2026-10-16。当前具备可演示的学习闭环；共享基础层 + M1 核心实现已通过自动验收，A01–A08 为 Review，A09/A10 正式集成交付为 Doing。其他模块仍有 P0 缺口，不代表完整初版或正式发布完成。
+
+当前可运行流程：
 
 ```text
 注册/登录 → 创建课程 → 上传资料 → 解析切片 → 搜索/阅读
-→ Markdown 笔记与 Citation → Mock AI 带来源问答
+→ Markdown 笔记与 Citation → 演示检索 / 确认发送的 GLM 课程问答
 → 真题导入/拆题 → 蓝图 → DRAFT 模拟卷
 → 审阅为 READY → 作答/评分 → 错题 → 复习任务
 ```
@@ -17,35 +19,43 @@ Hustudy 是面向大学生的本地优先课程学习工具，围绕“资料阅
 
 | 区域 | 当前能力 | 代码位置 |
 |---|---|---|
-| 共享基础层 | FastAPI 应用工厂、CORS、request_id、SQLite、认证、课程归属过滤 | `backend/app/core`、`backend/app/routers/auth.py`、`courses.py` |
-| M1 MaterialHub | 资料上传、hash 去重、版本、ProcessingJob、Markdown/TXT 解析、PDF/DOCX/PPTX 解析适配器、切片、文本搜索、原文件访问 | `backend/app/services/materials.py`、`documents.py`、`backend/app/routers/documents.py` |
-| M2 AI Study | Mock 问答、中文匹配、引用、StudyReport、`grounded`/`insufficient_evidence`/`provider_error` | `backend/app/routers/ai.py`、`backend/app/schemas/ai.py` |
-| M3 NoteGraph | 笔记 CRUD、revision 冲突、UUID 双链、反链、Citation、Asset 基础接口 | `backend/app/routers/notes.py`、`backend/app/models/notes.py` |
-| M4 ExamPilot | Topic、真题导入/拆题确认、蓝图、DRAFT 试卷、审阅、作答评分、错题、复习任务、反馈 | `backend/app/routers/exams.py`、`backend/app/models/exams.py` |
-| 前端工作台 | 登录、课程、资料、笔记、AI、考试、复习导航和基础交互 | `frontend/src/main.tsx`、`frontend/src/styles.css` |
+| 共享基础层 | FastAPI/request_id、标准 JWT、课程整理与删除隔离、SQLite/Alembic 0001–0012、原子文件存储、完整账户备份/空账户恢复 | `backend/app/core`、`backend/app/routers/auth.py`、`courses.py` |
+| M1 MaterialHub | 有界上传、hash 去重、不可变版本、独立 worker/租约/取消恢复/重试/幂等索引重建、四格式切片、中文 FTS5、分类/标签整理与版本筛选、原文关联笔记、人工补录确认/修订、图片改名/说明/标签查找与分页、后台课程资料ZIP/来源清单、PPTX/Word原格式与PDF原页阅读、独立兼容PDF、资料/笔记分页检索和删除撤权 | `backend/app/services`、`workers/materials.py`、`routers/documents.py`、`routers/assets.py` |
+| M2 AI Study | 演示检索、GLM-4.7-Flash 课程问答、片段预览/逐次确认、结构化响应与引用校验；完整真实教学报告待补 | `backend/app/routers/ai.py`、`routers/remote_ai.py`、`schemas/remote_ai.py` |
+| M3 NoteGraph | Markdown 安全预览、自动保存、revision 冲突、UUID 双链/反链、Citation 回源、图片嵌入/反链与解码校验 | `backend/app/routers/notes.py`、`frontend/src/components/knowledge.tsx` |
+| M4 ExamPilot | 基础 Topic、拆题草稿/确认、蓝图、演示 DRAFT 试卷、审阅、作答与客观评分、错题复习；完整映射统计/真实三模式生成待补 | `backend/app/routers/exams.py`、`backend/app/models/exams.py` |
+| 前端工作台 | Router/Query/Ant Design 基线、401原账户恢复保留草稿、统一视觉/图标/状态、电脑/iPad/手机布局、抽屉导航和可折叠目录 | `frontend/src/main.tsx`、`frontend/src/styles.css` |
 
-当前验证结果：后端 pytest 3 项通过，前端 TypeScript 检查通过，Vite 生产构建通过，FastAPI `/health` 返回 200。完整复现步骤和已知限制见 [`collaboration/project_handoff.md`](collaboration/project_handoff.md)。
+最近验收分别记录，不能将不同日期的数量相加：
+
+| 范围 | 已执行结果 | 证据 |
+|---|---|---|
+| 后端与共享检查（10-15） | 116项pytest、Ruff、迁移漂移、安全显示、PDF实际渲染通过；独立3.12亦有116项记录 | [测试报告](docs/test_report.md) |
+| 前端（10-16） | 14项Vitest、TypeScript/构建、42项Chrome/WebKit完整回归（3.6分钟）通过 | [视觉与多端截图](docs/zhy/shared_platform/visual_polish_acceptance.md) |
+| 本机容量/环境（10-15） | 10课程/200资料/1000笔记基线与同机干净源码重建通过；不是其他机器或所有复杂样本的成绩 | [实际范围与JSON](docs/zhy/materialhub/search_capacity_acceptance.md) |
+
+当前状态以[队长任务表](collaboration/zhy/task_status.md)、[完成度核查](docs/zhy/completion_audit.md)为准，逐轮历史见[公共进度](docs/progress.md)。本次仅校正文档，没有重跑以上业务测试。
 
 ## 快速开始
 
 推荐在网络可用的终端执行一次初始化：
 
 ```bash
-cd /Users/zhy/Desktop/hustudy
+# 进入已克隆的仓库根目录
 ./scripts/setup.sh
 ```
 
-脚本会创建 `.venv`、安装后端依赖、生成 `.env` 并安装前端依赖。项目推荐 Python 3.12，当前也兼容 Python 3.11；需要指定解释器时执行：
+脚本会创建 `.venv`、按锁文件安装前后端依赖并生成 `.env`。前端 PDF.js 要求 Node >=22.13.0 或 >=24（本机实测 25.2.1），本地渲染检查需保留 npm 默认可选依赖。项目推荐 Python 3.12，本机既有服务使用 Python 3.11.15，独立 Python 3.12.13 锁依赖116项回归已有通过记录；需要指定解释器时执行：
 
 ```bash
 PYTHON_BIN=python3.12 ./scripts/setup.sh
 ```
 
-打开 `.env`，把 `HUSTUDY_JWT_SECRET` 换成随机长字符串。然后分别在两个终端启动：
+setup会为JWT空值或旧占位自动生成强随机密钥并保留有效配置。密钥仅保存在根目录 `.env` 并由后端读取，不要重复轮换；然后分别在两个终端启动：
 
 ```bash
-# 终端一：后端
-.venv/bin/python -m uvicorn app.main:app --app-dir backend --reload
+# 终端一：后端 + 资料 worker
+bash scripts/dev.sh
 ```
 
 ```bash
@@ -59,19 +69,19 @@ npm run dev --prefix frontend
 - 后端健康检查：`http://127.0.0.1:8000/health`
 - OpenAPI：`http://127.0.0.1:8000/docs`
 
-PDF、DOCX、PPTX 解析依赖以下包；如果初始化时因网络原因未安装，可单独执行：
+后端依赖按 `backend/requirements.lock` 安装。PDF 用 PDF.js 直接按页阅读；PPTX/DOCX 直接本地原格式预览，无需等待转换。LibreOffice 仅用于“兼容预览（PDF）”和现有截图路径，缺失/失败时保留原格式与文本入口。当前使用本地打包的 PDF.js 按页阅读，可保存当前页图片并记录来源版本/页号；截图可从课程图片回到原页。若后端已在运行，可在新终端执行 `bash scripts/worker.sh` 启动资料处理。自制样例位于 `fixtures/materialhub_demo.md`。
 
-```bash
-.venv/bin/pip install pypdf==5.1.0 python-docx==1.1.2 python-pptx==1.0.2
-```
+课程图片可整理名称、说明和标签，并按元数据/标签/来源筛选与分页；改名保留原文件、UUID和来源。并发修改显示409冲突并保留本地输入；查找不识别图中文字。操作见 [docs/user_guide.md](docs/user_guide.md)，最新交接见 [handoff.md](collaboration/handoff.md)。
 
 ## 验证命令
 
 ```bash
-.venv/bin/python -m pytest -q
-./scripts/check.sh
+PYTHONPATH=backend .venv/bin/python -m pytest -q
+bash scripts/check.sh
 npm run check --prefix frontend
 npm run build --prefix frontend
+# 浏览器测试使用8056/5178与临时数据；先按环境指南准备浏览器
+npm run test:e2e --prefix frontend
 ```
 
 浏览器验收建议依次检查：注册和课程创建、Markdown 上传与切片、正文/标题搜索、笔记双链与反链、Mock AI 引用、真题和蓝图、DRAFT 到 READY、作答提交、错题复习，以及两个账号之间的归属隔离。
@@ -80,19 +90,19 @@ npm run build --prefix frontend
 
 ### A：共享基础层 + M1 MaterialHub
 
-负责认证、课程、数据库迁移、文件存储、ProcessingJob、四格式资料解析、预览降级、版本、切片、图片和关键词索引。下一步完成 Alembic 第一版迁移、worker 租约/重试/取消、LibreOffice/PDF.js 预览、四格式 fixture、图片安全校验和 FTS5 索引。
+负责认证课程、迁移、存储/任务、四格式解析、原格式与兼容阅读、版本/图片/来源、关键词分页检索和共享集成。标准JWT、原子存储、完整账户恢复及核心M1流程已有自动证据；下一步为复杂真实样本/实机矩阵、极限资源、成员评审/签收、集成发布和真实试用，不重复实现已通过的基础功能。
 
 对外稳定提供 `DocumentVersion`、`ChunkRef`、`AssetRef`、`Citation`、`ProcessingJob`。其他模块不能直接读取原始文件或私自修改 M1 表结构。
 
 ### B：M2 AI Study
 
-负责 Mock/真实 Provider、提示词版本、课程范围检索、StudyReport、结构化输出校验、引用校验、证据不足、provider_error 和预算。下一步整理 `LLMProvider` 接口，接入 schema 校验、超时/预算记录和发送范围确认，再推进语义检索、费曼报告和难度辅助估计。
+负责Provider/RAG、教学报告、结构化校验与预算。GLM-4.7-Flash课程问答已接入，必须先预览片段并逐次确认发送；下一步完善真实教学报告、知识点讲解/自测与M4结构化题目草稿。演示检索不代表真实理解，语义检索与费曼仍是P1。
 
 只能消费 M1 已校验的 `Citation`/`ChunkRef`，不能上传文件、修改笔记正文或直接创建正式试卷。
 
 ### C：M3 NoteGraph
 
-负责 Markdown 编辑、自动保存、revision 冲突、标签、UUID 双链/反链、Citation、图片嵌入、导出和备份。下一步完善重命名与删除失效、Citation 回源、`![[asset:<uuid>|说明]]`、知识库导出、备份恢复和 AI 草稿审阅。
+负责Markdown、自动保存/冲突、双链/反链、Citation和图片。现有安全预览、回源、图片嵌入、单笔记导出与共享账户备份适配已实现；下一步补笔记标签和独立知识库附件ZIP，不将完整账户恢复误列为尚未实现。
 
 使用 M1 提供的有效来源，不自行解析资料，不改变原始版本，也不替用户确认考点或主观题最终得分。
 
@@ -103,6 +113,28 @@ npm run build --prefix frontend
 只能调用已校验的 M2 题目草稿，必须遵守 `DRAFT → REVIEWED → READY`，正式试卷需要保存生成时的资料和模型快照。
 
 ## 协作与文档入口
+
+团队分工为：**zhy（A）共享基础层 + M1、xtc（B）M2 AI Study、fzk（C）M3 NoteGraph、gcx（D）M4 ExamPilot**。成员与模块映射由 [roles.md](collaboration/roles.md) 统一维护。
+
+```text
+collaboration/                    docs/
+  README.md                         README.md
+  handoff.md       # 实时交接        contracts.md / api.md / decisions.md
+  workflow.md / task_board.md        progress.md / traceability.md
+  project_handoff.md                 setup_guide.md / third_party.md
+  zhy/                              zhy/
+  xtc/           # 每人 progress     xtc/          # 每人 features
+  fzk/                              fzk/          # 与 optimizations
+  gcx/                              gcx/
+```
+
+个人进度在 `collaboration/<成员>/progress.md`，实现的功能与优化说明在 `docs/<成员>/features.md`、`optimizations.md`。同级公共文件继续维护统一接口、约束、操作与集成状态；个人说明引用公共契约，不另建一套。已有跨模块历史记录保留，不能将 AI 辅助的集成改动冒记为其他成员本人完成。
+
+每次完成一个修改切片，在提交/PR 前：更新个人记录 → 在 [handoff.md](collaboration/handoff.md) 追加唯一交接 ID、修改范围、真实测试结果、风险与接收人 → 接收人记录复验 → 队长同步公共任务板、进度与追踪。影响下游的未完成接口和阻塞也要及时记录；“待接收”不等于“已验收”。完整规则见 [AGENTS.md 第 20 节](AGENTS.md#20-四人文档隔离与统一交接规则)。
+
+个人入口：[zhy](collaboration/zhy/README.md)、[xtc](collaboration/xtc/README.md)、[fzk](collaboration/fzk/README.md)、[gcx](collaboration/gcx/README.md)。技术文档导航见 [docs/README.md](docs/README.md)。
+
+2026-10-16队长核查：共享基础层 + M1核心自动验收通过，整体仍待正式评审与交付。[当前A01–A10任务表](collaboration/zhy/task_status.md)管理状态和后续依赖，[完成度核查](docs/zhy/completion_audit.md)列技术证据与缺口；[zhy文档](docs/zhy/README.md)按共享基础层、M1、跨模块集成及历史分类。公共契约/操作/全站进度与handoff保留根级，GLM问答记为队长辅助M2集成，不算M1独有功能。历史骨架Done、构建成功及自动测试均不能替代正式交付。
 
 - [`AGENTS.md`](AGENTS.md)：项目开发规范、领域模型、API 契约和四模块边界。
 - [`main_idea.md`](main_idea.md)：产品思路与学习闭环。
@@ -120,6 +152,81 @@ npm run build --prefix frontend
 
 ## 当前限制
 
-Alembic 正式迁移、LibreOffice/PDF.js 预览、备份恢复、真实 LLM Provider、OCR、语义检索、完整真题统计、完整权限/E2E 测试和真实用户反馈仍需后续推进。扫描 PDF 在 P0 只保留原页并提示人工转录。真实模型密钥只能放后端 `.env`，`data/`、用户文件、数据库、`.env` 和 `node_modules/` 不应提交到 GitHub/Gitee。
+P0仍需完成M2真实教学报告/M4题目草稿、M3标签与独立知识库ZIP、M4完整拆题校正/映射统计/证据约束三模式生成，以及跨模块最终集成、实机/真人试用和正式发布。OCR、语义检索、费曼/间隔复习为P1。旧二进制`.ppt/.doc`需先另存为`.pptx/.docx`；直接预览不保证完整Office动画与所有复杂版式。扫描PDF可看原页并人工确认补录，不能声称已有OCR。
 
+真实模型密钥只进后端读取的 `.env`。用户原件、数据库、依赖和构建产物不提交；`fixtures/`和文档证据仅使用自制/获授权资料。完整账户备份与课程资料包用途不同，恢复只到满足UUID/归属约束的空账户。
 协作分支建议使用 `feature/m1-material`、`feature/m2-ai`、`feature/m3-note`、`feature/m4-exam` 和 `fix/<issue>`；跨模块字段先更新 `docs/contracts.md`，再修改代码和调用方。
+
+## GitHub同步
+
+当前配置为SSH远程 `origin = git@github.com:HAOYI0727/Hustudy.git`；按功能分支提交并推送，再评审合并到`develop`。本次文档更新没有执行提交或推送。具体步骤、现有构建缓存和个人报告删除的暂存核对见[GitHub提交指南](collaboration/github_sync.md)。GitHub源代码同步不等于网站部署，课程要求的Gitee/Wiki证据仍需另行维护。
+
+<details>
+<summary>开发历史（旧状态按日期保留，当前结论以上文为准）</summary>
+
+## 2026-10-13 集成更新
+
+前端已按 `features/materials`、`features/ai`、`features/notes`、`features/exams` 拆分，共享 UI 位于 `components/workspace.tsx`。蓝图支持编辑题数/分值/时长；课程切换清空工作区旧状态，过期登录回到登录页。后端统一错误追踪编号，测试使用隔离临时库。本轮 pytest 为 6 passed，前端构建通过；Safari 已验证登录与蓝图动态重算。交接和下一轮优先级见 [集成记录](collaboration/integration_2026_10_13.md)。
+
+2026-10-14 队长缺口分析与依赖顺序见 [M1 分析](docs/zhy/materialhub/materialhub_gap_analysis.md)，本轮交接见 [H-20261014-ZHY-001](collaboration/handoff.md#h-20261014-zhy-001)。
+
+扫描 PDF 可在原页阅读点击“补录本页文字”：保存草稿 → 对照原页 → 核对确认 → 检索/引用。确认不会更改原始解析失败状态；修订与旧引用分开保存，撤回不自动回退。当前仅支持原始 PDF。
+
+## 2026-10-14 最新任务管理验收
+
+资料任务可取消和恢复，关键词索引可按选中版本幂等重建；租约保护防迟到结果覆盖，恢复不清零尝试预算，原文与引用不改。自动检查通过，完整Safari流程/附件备份/压力仍待补。具体判定见[本轮验收报告](docs/zhy/materialhub/acceptance_2026_10_14.md)，交接[004](collaboration/handoff.md#h-20261014-zhy-004)待成员接收。
+
+## 2026-10-14 课程资料包与验收
+
+在资料页展开“课程资料包”，后台生成各版本原件、可用预览、解析文本、确认人工来源、图片和来源清单，保留UUID与hash。源删除/撤回/文件损坏停止旧包下载；不是完整账户备份，当前不能恢复导入。40项自动检查通过；Safari实际3份资料/3版本包下载，374片段/377内容文件与整包hash验证通过。[验收及正式队长A01–A10关口](docs/zhy/materialhub/material_export_acceptance.md)保留完整备份/环境/压力/发布等待办。
+
+## 2026-10-14 共享课程整理
+
+课程总览支持创建时分类/标签、改名/描述/分类/标签整理、关键词与组合筛选/排序、可点标签和revision冲突对照。0009保留旧课程与资料/笔记UUID，改名不再清空未提交描述。43项自动检查通过；Safari创建/改名/刷新/双标签页冲突已验收。课程删除完整关联清理、资料/任务分页与完整恢复仍待补，详见[验收](docs/zhy/shared_platform/course_organization_acceptance.md)与[交接006](collaboration/handoff.md#h-20261014-zhy-006)。
+
+## 最新基本功能验收（2026-10-14）
+
+课程删除已补影响预览/名称确认/revision与同事务跨模块清理，保留其他笔记的失效来源，取消活跃任务，避免孤立笔记/复习与迟到结果。0010追加标记；最终47项测试及共享检查通过，Safari确认保护已观察，用户课程未删除。[公开测试报告](docs/test_report.md)、[基本功能与剩余关口](docs/zhy/shared_platform/basic_acceptance.md)。当前仍不是全部P0验收完成。
+
+## 智谱真实课程问答（2026-10-14）
+
+已接入GLM-4.7-Flash：后端密钥→课程片段预览→逐次确认→后台任务→JSON/原文引用校验→结果回源/笔记草稿。使用.venv/bin/python scripts/configure_zhipu.py隐藏输入配置，重启API与worker。默认演示不发送；真实调用仅发送确认的片段，保留/训练/删除政策细项未核实。
+
+67项回归/共享检查通过，自制真实请求grounded/1引用/417tokens；Safari模式入口观察通过，完整正向浏览器闭环待补。[验收](docs/zhy/integration/zhipu_qa_acceptance.md)、[配置指南](docs/setup_guide.md)。真实章节报告、M4生成与完整P0仍未完成，密钥不提交Git/前端/文档。
+
+2026-10-15共享层升级：标准HS256 JWT已启用，旧会话需重新登录；setup自动初始化后端强签名密钥并保留有效配置。文件/图片原子写入，低磁盘507；资料与全部处理记录可服务端筛选/分页，页外引用正常回源。最新96项回归/共享检查通过，完整恢复、前端基线与环境/性能/发布仍待补。
+
+2026-10-15新增“备份与恢复”：后台生成包含资料/图片/笔记引用/AI/试卷作答/错题复习的完整账户ZIP，校验后恢复到新数据库的空账户，保持业务UUID/hash/关系。保留源对象的同库账户会拒绝UUID冲突，不覆盖数据；迁移0012。当前101项回归与共享检查通过，跨机器/Safari/压力及其余基线仍待验收。
+
+
+## 2026-10-15 共享前端与当前验收
+
+页面导航已接入React Router，地址记录课程和引用来源，支持刷新/前进后退及未保存确认；TanStack Query统一GET的会话隔离/去重/写入失效，变更不自动重试。登录过期弹出原账户登录框，保留原笔记和资料整理草稿。Ant Design主题沿用公共视觉，工作区按需加载，当前主包485.85KB。
+
+最新共享检查101项后端、10项Vitest、迁移/显示安全/PDF实渲染/类型/构建通过；隔离Chrome/WebKit共8项浏览器闭环通过，包含真实API上传检索与完整备份下载hash。Python3.12.13独立环境101项通过，现有服务解释器未替换。命令和限制见[环境指南](docs/setup_guide.md)、[zhy前端验收](docs/zhy/shared_platform/web_base_acceptance.md)。LibreOffice成功转换、完整业务矩阵、容量/性能、人类评审/Gitee/发布及真实用户反馈仍待完成，不能称全部P0完成。
+
+## 2026-10-15 PDF预览修复
+
+PPTX/DOCX需要本机LibreOffice转PDF；本机已安装并验证真实转换，阅读区新增环境检查和原版本“重试预览”。Safari因新Map方法缺失而渲染失败的问题已改用同版本PDF.js legacy解决；PPTX保留隐藏页并核对页号，旧错位截图不会被静默重新指向。
+
+最新110项后端、10项Vitest、14项Chrome/WebKit闭环及共享检查通过；独立Python3.12相关17项补验通过。原课件旧缓存已146页/146张一致，当前Safari新标签页会话过期需原账户重新登录后查看。[验收与剩余限制](docs/zhy/materialhub/preview_recovery_acceptance.md)。
+
+### 队长共享层与M1当前验收
+
+知识查找现支持资料/笔记独立服务端分页和原文命中摘要，不再截断前50个结果；PPTX嵌套组合文字/表格提取已补齐。新增双引擎补录/撤回/来源回跳/课程删除闭环，10课程/200文档/1000笔记的本机容量读性能已测，Python3.12干净源码重建通过。具体范围、实际数值和限制见[zhy验收](docs/zhy/materialhub/search_capacity_acceptance.md)。
+
+本地完整自动验收：`HUSTUDY_E2E_CHROME_CHANNEL=chrome bash scripts/accept_captain.sh`（需已准备浏览器，使用隔离临时数据）。功能自动通过不代表Gitee正式合并、成员签收或全站其他模块完成。
+
+### PPT / PDF / Word 按原格式预览
+
+选中资料后，`.pptx` 点“PPT 预览”，`.docx` 点“Word 预览”，`.pdf` 点“PDF 预览”。Office直接在本地浏览器读取原件，支持基础样式/表格/图片、翻页与缩放，PPT另有演示模式；不需等待PDF转换。转换路径另叫“兼容预览（PDF）”，用于静态版式核对和截图；文本引用保持原契约。
+
+开发/构建会自动生成隔离运行时（npm run build:office）；不上传文档给外部服务。首版不支持旧.ppt/.doc或完整Office动画/编辑，复杂排版有差异。最新14Vitest、26项Chrome/WebKit闭环通过，具体说明见[zhy原格式验收](docs/zhy/materialhub/native_preview_acceptance.md)。
+
+
+全站多屏布局：电脑使用紧凑侧栏；平板/手机使用吸顶导航菜单，手机资料与笔记目录可折叠。统一字号/卡片密度并保留触控热区、输入可读性与文档独立缩放。40项双引擎/14Vitest/类型构建通过，具体范围与实机待验边界见[响应式验收](docs/zhy/shared_platform/responsive_layout_acceptance.md)。
+
+
+2026-10-16视觉细化：统一主色、文字层级、按钮/选中/禁用/焦点与语义状态，增加工作区/账户标识、功能图标与可见表单标签；保留电脑/iPad/手机布局及触控尺寸。最新42项双引擎、14Vitest、类型与构建通过，截图与实际边界见[视觉验收](docs/zhy/shared_platform/visual_polish_acceptance.md)。
+
+</details>

@@ -1,0 +1,80 @@
+{
+  "recorded_at": "2026-10-15T09:07:57Z",
+  "environment": {
+    "python": "3.11.15",
+    "platform": "macOS-15.7.9-arm64-arm-64bit",
+    "machine": "arm64",
+    "logical_cpus": 10
+  },
+  "baseline": {
+    "courses": 10,
+    "documents": 200,
+    "notes": 1000,
+    "chunks": 5000
+  },
+  "cache": "First API request after separate API process startup; OS filesystem cache NOT cleared. Then 100 warm requests per endpoint with max 4 concurrent reads. HTTP loopback incl auth/response, elapsed excludes client JSON validation.",
+  "percentile": "nearest-rank ceil(0.95*n), milliseconds",
+  "reads": {
+    "courses": {
+      "first_request_ms": 15.754,
+      "requests": 100,
+      "concurrency": 4,
+      "p50_ms": 5.991,
+      "p95_ms": 22.897,
+      "max_ms": 37.608,
+      "status_and_shape_ok": 100
+    },
+    "notes": {
+      "first_request_ms": 47.785,
+      "requests": 100,
+      "concurrency": 4,
+      "p50_ms": 153.558,
+      "p95_ms": 275.814,
+      "max_ms": 508.389,
+      "status_and_shape_ok": 100
+    },
+    "material_search": {
+      "first_request_ms": 66.015,
+      "requests": 100,
+      "concurrency": 4,
+      "p50_ms": 156.72,
+      "p95_ms": 266.731,
+      "max_ms": 295.895,
+      "status_and_shape_ok": 100
+    },
+    "note_search": {
+      "first_request_ms": 11.649,
+      "requests": 100,
+      "concurrency": 4,
+      "p50_ms": 11.426,
+      "p95_ms": 14.297,
+      "max_ms": 19.005,
+      "status_and_shape_ok": 100
+    },
+    "document_page": {
+      "first_request_ms": 16.525,
+      "requests": 100,
+      "concurrency": 4,
+      "p50_ms": 36.864,
+      "p95_ms": 60.148,
+      "max_ms": 80.201,
+      "status_and_shape_ok": 100
+    }
+  },
+  "processing": {
+    "20_slides.pptx": {
+      "parse_index_seconds": 0.191,
+      "chunks": 20,
+      "bytes": 45070,
+      "under_60_seconds": true
+    },
+    "50_pages.pdf": {
+      "parse_index_seconds": 0.1766,
+      "chunks": 50,
+      "bytes": 8866,
+      "under_60_seconds": true
+    }
+  },
+  "passed": true,
+  "limits": "Synthetic contents; not production capacity, browser latency, manual retrieval relevance, Office conversion, external models or clean-machine proof."
+}

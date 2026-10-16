@@ -6,7 +6,7 @@
 |---|---|---|
 | 名称 | Hustudy | 用户已确认 |
 | 类型 | 工具类 | 用户已确认；适配附件工具类选题 |
-| 开发团队 | 4 人 | 用户已确认，姓名与实际分工未提供 |
+| 开发团队 | 4 人 | 成员缩写 zhy/xtc/fzk/gcx 已确认；现行 A/M1、B/M2、C/M3、D/M4 分工见正式方案与 collaboration/roles.md |
 | 核心功能 | PPTX/PDF/DOCX 资料阅读与检索、AI 知识点讲解、笔记/资料/图片交叉引用、历年真题考点分析与模拟题生成 | 用户已确认 |
 | 当前作业 | 需求分析、AI 协作记录、人工核实说明；个人提交 | 附件明确要求 |
 | 架构、指标、规模 | 见下文 | 设计建议，未经过运行或用户调研验证 |
@@ -321,3 +321,55 @@ Obsidian 是交互参考：借鉴内链、反链与附件嵌入的用户体验�
 - [Obsidian 内部链接说明](https://help.obsidian.md/links)：内链可关联笔记、附件与文件；本方案借鉴交互，不保证格式/插件完全兼容。
 
 检索日期：2026-10-09。库版本与具体兼容性在初始化时锁定并实测。
+
+## 当前实施增量入口（2026-10-13）
+
+用户本轮指定的 `hustudy/main_idea.md` 已包含团队更新与工作台体验增量；最新体验切片与依赖交付路线见 [collaboration/experience_roadmap.md](collaboration/experience_roadmap.md)，真实验证见 [docs/progress.md](docs/progress.md)。本轮新增课程查找、指定来源/笔记直达和使用指南，未扩大 P0/P1 功能范围。
+
+## 2026-10-13 实施同步：资料来源作为统一基础
+
+本轮按已有需求推进共享层与 M1：不可变资料版本、持久任务 worker、FTS5 中文检索、PDF/转换预览与文本降级、删除撤权。M2 摘录、M3 笔记图片与 Citation、M4 作答共用认证和来源契约。没有扩展 P1/P2 范围。实现与测试详见 docs/progress.md；完整 P0、真实模型、真题统计/来源拟卷和附件备份仍未完成。
+
+## 2026-10-13 实施同步：资料整理与全站一致体验
+
+M1-ORGANIZE-01 在 P0 范围补充资料展示名/分类/标签、精确筛选与版本检索范围、当前版本原文引用笔记查询。共享前端图标/控件/卡片与动效遵循统一风格，提供原文查找/专注阅读及未保存整理保护；不重写 M2/M4 内部。迁移/18 项测试及局部 Safari 证据见 [docs/progress.md](docs/progress.md)，个人记录和交接见 [003](collaboration/handoff.md#h-20261013-zhy-003)。资料标签不代替课程/笔记标签验收，未扩大 P1/P2，也未宣称全部 P0 完成。
+
+## 2026-10-14 实施同步：图像资料可回到原页
+
+队长完成 M1-PREVIEW-ASSET-01：本地 PDF.js 页级读取与当前页图片保存、版本/页号来源、图库回页、来源删除撤权。M3 保留图片嵌入语法，截图不自动进入 AI/OCR/全文搜索。分析与后续依赖见 [M1 缺口分析](docs/zhy/materialhub/materialhub_gap_analysis.md)；22 项测试、PDF.js 实際渲染与浏览器未完成边界见 [进度](docs/progress.md)。不扩大 P1/P2 或冒称全部 P0 完成。
+
+## 2026-10-14 实施同步：扫描资料人工来源
+
+M1-TRANSCRIPT-01 已补原始 PDF 人工草稿/核对确认、独立修订与历史引用、撤回、关键词索引和 source_kind 消费。原 PDF 的解析失败不被伪改为成功；重试恢复的提取文本和人工来源并存。26 项测试/共享检查通过，Safari 补录完整闭环未验收；[进度](docs/progress.md)及[交接](collaboration/handoff.md#h-20261014-zhy-002)保持实际边界，未扩大 P1/P2 或宣称全部 P0 完成。
+
+## 2026-10-14 实施同步：课程图片整理与元数据查找
+
+M1-ASSET-ORGANIZE-01 补齐 FR-37 的图片改名/说明/标签及目录查找/筛选/排序/分页，revision 冲突保留本地输入，原文件/UUID/来源/已存笔记不变。0007 旧图回填与故障回滚可重试，30 项后端与共享检查通过；Safari 图片完整闭环、附件导出/恢复与任务管理仍未验收。[进度](docs/progress.md)、[交接](collaboration/handoff.md#h-20261014-zhy-003)记录实际结果，未扩大 P1/P2 或把局部代码交付当完整 P0 完成。
+
+## 2026-10-14 任务控制与验收增量
+
+共享/M1的取消、恢复、UUID幂等重建及租约迟到保护已实现，失败/取消依赖不通过换新记录绕过预算；无新schema/迁移，不改M2–M4内部。35项后端与共享检查通过，Safari真实课件/状态/重建入口局部观察；完整任务交互、资料/任务分页、附件导出/恢复、压力/全资源验收仍待推进。详见[验收报告](docs/zhy/materialhub/acceptance_2026_10_14.md)与[交接](collaboration/handoff.md#h-20261014-zhy-004)，不扩大P1/P2或把局部通过写为全部完成。
+
+## 2026-10-14 课程资料包与队长验收增量
+
+M1-EXPORT-01交付课程原件/版本/预览/文本/确认补录/图片/来源ZIP和独立hash校验器，后台租约/预算/来源撤权，0008追加表；同时修复SQLite新Session租约恢复。40项测试/共享检查及Safari生成到实际下载/hash验证通过，M2–M4内部未改。资料包不含笔记/AI/考试等数据，不支持恢复；完整账户备份、环境/LO/资源压力/发布关口仍需完成。见[验收与队长十任务映射](docs/zhy/materialhub/material_export_acceptance.md)及[交接005](collaboration/handoff.md#h-20261014-zhy-005)，不扩大P1/P2或把局部交付冒充全部P0完成。
+
+## 2026-10-14 共享课程整理增量
+
+PLATFORM-COURSE-01落实正式A02的课程名称/描述/分类/标签整理、筛选及revision冲突保护；0009追加列，来源/笔记关系保持。43项自动检查通过；Safari自制课程/双标签页冲突实测，最终界面补丁部分复验待补。课程删除清理、资料/任务分页、完整恢复、环境/发布仍待验收，未扩大P1/P2或标全部P0完成。[验收](docs/zhy/shared_platform/course_organization_acceptance.md)、[交接006](collaboration/handoff.md#h-20261014-zhy-006)。
+
+## 2026-10-14 基础验收与课程删除
+
+PLATFORM-COURSE-DELETE-01补齐课程逻辑撤权、影响预览/revision/名称确认、模块同事务清理与失效来源保持；0010追加列。47项回归与共享检查通过，Safari预览保护通过，用户库没有执行删除。M2–M4适配仅生命周期/授权；标准JWT迁移、完整恢复/附件ZIP、真题统计与真实生成、性能/环境/完整E2E与发布仍待完成，未把自动通过写成全部P0完成。[验收矩阵](docs/zhy/shared_platform/basic_acceptance.md)、[交接007](collaboration/handoff.md#h-20261014-zhy-007)。
+
+## 2026-10-14 智谱真实问答增量
+
+用户指定GLM-4.7-Flash，M2-ZHIPU-QA-01交付后端配置/M1有界来源/不可变预览/明确确认/单次后台任务/JSON与原文校验/真实结果回源和冻结引用草稿，0011。67项检查与自制真实417tokens请求通过，Safari模式入口观察；政策细项与完整浏览器闭环待补。真实章节报告/M4生成未自动接入，其他P0与环境/性能/发布关口保持待办。[验收](docs/zhy/integration/zhipu_qa_acceptance.md)、[交接008](collaboration/handoff.md#h-20261014-zhy-008)。不记录密钥、不冒记xtc本人工作。
+
+
+## 2026-10-15 用户原格式预览变更
+
+M1支持PPTX/PDF/DOCX按源格式直接阅读：PPT按幻灯片，Word保留基础段落/样式/表格/图片，PDF按原页。Office原件本地浏览器隔离渲染，不再必须等待PDF转换；LibreOffice转PDF保留为明确的兼容预览/截图路径，正文引用仍按不可变版本与原定位。首版不含旧二进制.ppt/.doc、编辑和完整动画。该用户新要求覆盖早期“PPTX仅转PDF预览”的产品入口约定，技术/验收见公共contracts及zhy材料目录。
+
+
+2026-10-15用户界面增量：全站适配电脑/iPad/手机，采用共享紧凑密度、窄屏抽屉导航及可折叠资料/笔记列表；文档原格式排版独立。契约PLATFORM-RESPONSIVE-01，范围与证据见[响应式验收](docs/zhy/shared_platform/responsive_layout_acceptance.md)，正式方案与需求基线同步记录。

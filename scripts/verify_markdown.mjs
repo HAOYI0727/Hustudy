@@ -1,0 +1,40 @@
+// Render the actual preview component and check hostile content without a browser/network.
+import { createRequire } from 'node:module';
+import { mkdtemp, readFile, writeFile, rm } from 'node:fs/promises';
+import { resolve, join } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import assert from 'node:assert/strict';
+const frontend = resolve('frontend');
+const require = createRequire(join(frontend,'package.json'));
+import { execFileSync } from 'node:child_process';
+const React = require('react');
+const { renderToStaticMarkup } = require('react-dom/server');
+const scratch = await mkdtemp(join(frontend,'.markdown-check-'));
+try {
+  execFileSync(join(frontend,'node_modules/.bin/tsc'), [
+    join(frontend,'src/components/knowledge.tsx'), join(frontend,'src/features/ai/AIAnswerPreview.tsx'), '--noCheck', '--jsx', 'react-jsx',
+    '--target','es2020','--module','esnext','--moduleResolution','bundler',
+    '--rootDir',join(frontend,'src'),'--outDir',scratch
+  ]);
+  const previewFile = join(scratch,'components/knowledge.js');
+  const compiled = (await readFile(previewFile,'utf8')).replace('"../api/client"','"../api/client.js"').replace('"./Icon"','"./Icon.js"');
+  await writeFile(previewFile,compiled);
+  const clientFile = join(scratch,'api/client.js');
+  await writeFile(clientFile,(await readFile(clientFile,'utf8')).replace('"./query"','"./query.js"'));
+  const {NotePreview} = await import(pathToFileURL(join(scratch,'components/knowledge.js')));
+  const id='11111111-1111-1111-1111-111111111111';
+  const render = content => renderToStaticMarkup(React.createElement(NotePreview,{content,token:'test',notes:[{id,title:'改名后的概念'}],onNote:()=>{}}));
+  const hostile=render('<script>alert(1)</script>\n\n[x](javascript:alert(1))\n\n![track](https://example.invalid/tracker.png)');
+  assert(!hostile.includes('<script') && !hostile.includes('href="javascript:') && !hostile.includes('<img'));
+  assert(render(`[[note:${id}|旧名称]]`).includes('改名后的概念'));
+  assert(render('[[note:22222222-2222-2222-2222-222222222222|已删除]]').includes('目标笔记已删除'));
+  assert(render(`![[asset:${id}|课程图]]`).includes('正在加载图片'));
+  assert(render('|列|\n|---|\n|值|').includes('<table>'));
+  const {AIAnswerPreview} = await import(pathToFileURL(join(scratch,'features/ai/AIAnswerPreview.js')));
+  const ai = renderToStaticMarkup(React.createElement(AIAnswerPreview,{content:
+    '<script>alert(1)</script>\n\n[x](javascript:alert(1))\n\n[外部链接](https://example.invalid/?private=quote)\n\n![track](https://example.invalid/tracker.png)\n\n|列|\n|---|\n|值|'}));
+  assert(!ai.includes('<script') && !ai.includes('<img') && !ai.includes('href='));
+  assert(ai.includes('<table>') && ai.includes('外部链接'));
+  console.log('Markdown checks passed: HTML/script, unsafe URL, external image, rename/deletion, asset and GFM table.');
+  console.log('AI answer checks passed: HTML removed, generated links/images inert, GFM table preserved.');
+} finally { await rm(scratch,{recursive:true,force:true}); }
