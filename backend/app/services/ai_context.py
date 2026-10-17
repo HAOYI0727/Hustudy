@@ -117,6 +117,13 @@ def validate_context(db, user_id, course_id, sources):
         if (
             not chunk
             or source["text"] not in chunk.text
+            or (
+                "chunk_start" in source
+                and chunk.text[
+                    source["chunk_start"] : source["chunk_start"] + len(source["text"])
+                ]
+                != source["text"]
+            )
             or hashlib.sha256(source["text"].encode()).hexdigest() != source["sha256"]
         ):
             raise HTTPException(409, "来源已变化或不再有效，请重新预览")

@@ -377,3 +377,18 @@ H-20261016-GCX-004用户反馈补充（2026-10-16）：gcx表示本轮新增功�
 ## H-20261016-GCX-005
 
 2026-10-16，Codex辅助gcx，M2入口命名与用途说明；工作区未提交/未上传，待接收，未代签其他成员。入口名改为资料原文检索、资料问答、学习报告、练习题生成；本地检索不调用模型，预览确认及结果审阅流程保持。修改frontend/src/features/ai/index.tsx及现有浏览器定位，测试更新不涉及其他模块行为。TypeScript检查通过，4项M2 Chrome流程通过/25.3秒。文档见gcx/features、optimizations和个人progress；无API/schema/依赖变化，不需后端/worker重启。
+
+## H-20261017-GCX-001
+
+Codex辅助gcx，M2-MODEL-53-FLASH，用户指定GLM-5.3-Flash。原Hustudy-main的Settings/.env.example/configure脚本默认新模型，保留旧4.7兼容；本机.env只改模型，不上传。Provider新模型启用思考+low effort，JSON/预算/引用保持，状态文档对应模型切换；旧预览/旧排队任务配置变更后拒绝派发。104后端/4Chrome及Ruff通过，未调用真实模型、新增依赖或迁移；真实内容/费用/权限待用户实际确认。工作区未上传、待zhy/xtc/fzk接收，不代签；旧已上传83项副本/已下载版本未修改。[证据和重启](../docs/gcx/model_switch_2026_10_17.md)。
+
+
+<a id="h-20261017-gcx-002"></a>
+## H-20261017-GCX-002：逐题知识点与已有结果复用
+
+- 日期/成员：2026-10-17，Codex辅助gcx，M2-TOPICS-REUSE。状态：本地实施、待接收；未上传或代签接收，无commit/PR链接。
+- 输入/输出：新候选信封per_question_topics=true、提示词v5，逐题非空合法Topic子集；页面与既有QuestionDraft JSON保留每题关联。旧信封/历史兼容，不改正式试卷。
+- 复用：三类真实任务预览新增reusable_result；POST /remote-queries/{id}/reuse显式选择已有结果，归属/来源/设置/当前提示词/模型/完整成功及依赖复验，无新任务/模型调用。仍可显式确认重新生成，失败/部分/演示/旧提示词不复用，无新表/迁移/依赖。
+- 验证：165项关联后端、25项Vitest、Chrome390/1440px共6项及Ruff/类型/构建通过；临时数据与模拟AI，无真实质量或完整全量通过声明。
+- 重启：worker须重启；API --reload自动加载否则重启；网页刷新，前端dev不用重启。普通Python与Anaconda完整路径命令、人工验收及新增上传文件见[交付记录](../docs/gcx/topics_reuse_2026_10_17.md)。旧上传副本/下载版未更新。
+- 接收：zhy集成、xtc候选消费；M4正式章节/试卷约束不在此次修改中。知识点配额、跨批去重、预算及学科质量仍待后续，不宣称整个M2完成。接收与实际复验待本人填写。

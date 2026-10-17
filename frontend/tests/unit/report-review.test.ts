@@ -1,4 +1,7 @@
 import {describe,expect,it} from 'vitest';
+import {createElement} from 'react';
+import {renderToStaticMarkup} from 'react-dom/server';
+import {StudyReportView} from '../../src/features/ai/StudyReportView';
 import type {StudyReport} from '../../src/api/client';
 import {beginReportReview,reviewedReportMarkdown,reviewError} from '../../src/features/ai/report-review';
 
@@ -9,6 +12,20 @@ const report:StudyReport={summary:'概念总结',learning_goals:['理解概念']
 }],examples:[{question:'例题',answer:'例题解答',citations:[]}],self_checks:[{question:'自测',answer:'自测解答',citations:[]}],review_suggestions:['合上原文再解释']};
 
 describe('FR-38 reviewed label note snapshots',()=>{
+  it('shows locally grounded basic checks and preserves the replacement notice in notes',()=>{
+    const notice='模型自测缺少依据，已舍弃并补充基础自测';
+    const input={...report,validation_notices:[notice],self_checks:[{...report.self_checks[0],generation_origin:'rule_generated' as const}]};
+    const html=renderToStaticMarkup(createElement(StudyReportView,{report:input,onSource:()=>{}}));
+    expect(html).toContain('基础自测 · 根据已校验知识点或例题生成');
+    expect(html).toContain(notice);
+    expect(reviewedReportMarkdown(beginReportReview(input))).toContain(notice);
+  });
+  it('preserves server relation cleanup notice when creating a reviewed note',()=>{
+    const input={...report,validation_notices:['已移除1条无效概念关系']};
+    const review=beginReportReview(input);
+    expect(reviewedReportMarkdown(review)).toContain('> 已移除1条无效概念关系');
+    expect(input.validation_notices).toEqual(['已移除1条无效概念关系']);
+  });
   it('keeps original suggestions, full teaching content and evidence when labels change',()=>{
     const review=beginReportReview(report);
     review.labels[0]=[{kind:'difficult',reason:'  我的理解仍需练习  '}];

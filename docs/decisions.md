@@ -65,3 +65,7 @@ M2-STUDY-REPORT-01沿用RemoteQuery/AIResult/AI_ANALYSIS，不新增数据库字
 业务错误对照[阿里云官方GLM-智谱业务错误码](https://help.aliyun.cn/zh/model-studio/glm-zhipu)（2026-10-16）核对1113/1302/1303/1304/1305/1312，仅映射安全代码和自有提示，不沿用原始供应商message；HTTP与账户规则不作越界推断。智谱原站错误页本轮访问超时，未声称所有服务政策已核实。未知429保留原因不明，Retry-After有限展示，不自动重发。
 
 旧通用演示报告改为完整自制固定报告，报告和候选共用真实输出校验路径，但明确演示身份；未知材料返回不足，不把模板或演示作为真实模型质量证据。
+
+## M2-MODEL-53-FLASH（2026-10-17）
+
+用户指定切换glm-5.3-flash。官方模型页https://docs.bigmodel.cn/cn/guide/models/vlm/glm-5.3-flash明确仅支持thinking.enabled及JSON输出；官方模型卡https://huggingface.co/zai-org/GLM-5.3-Flash列low/high/max。新模型low控制推理投入，不沿用4.7的thinking.disabled；保留原请求/输出预算、不保存推理原文、不自动试调用。仅添加第二个智谱模型，不扩大成任意URL平台或多模态上传。真实费用和权限由用户控制台确认。

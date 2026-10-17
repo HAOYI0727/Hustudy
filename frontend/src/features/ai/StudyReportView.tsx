@@ -9,6 +9,7 @@ export function StudyReportView({report,onSource}:Props) {
   return <article className="study-report" aria-label="章节学习报告">
     <p className="eyebrow">LEARN · EXPLAIN · CHECK</p><h3>章节学习报告</h3>
     <AIAnswerPreview content={report.summary}/>
+    {report.validation_notices?.map((notice,i)=><p className="hint" role="status" key={i}>{notice}</p>)}
     <section className="report-section"><h4>本次学习目标</h4><ul>{report.learning_goals.map((v,i)=><li key={i}>{v}</li>)}</ul></section>
     <section className="report-section"><h4>前置知识</h4>{report.prerequisites.length ? <ul>{report.prerequisites.map((v,i)=><li key={i}>{v}</li>)}</ul> : <p className="hint">资料未明确要求前置知识。</p>}<h4>建议学习顺序</h4><ol>{report.learning_sequence.map((v,i)=><li key={i}>{v}</li>)}</ol></section>
     {report.topics.some(topic=>topic.concept_group)&&<section className="report-section"><h4>知识点分层目录 · AI建议</h4>
@@ -20,7 +21,7 @@ export function StudyReportView({report,onSource}:Props) {
       {Boolean(topic.breakthrough_steps?.length)&&<ol>{topic.breakthrough_steps!.map((step,i)=><li key={i}>{step}</li>)}</ol>}{citations(topic.citations)}
     </div>)}</section>}
     <section className="report-section"><h4>用例题理解</h4>{report.examples.map((exercise,i)=><div key={i}><AIAnswerPreview content={exercise.question}/><AIAnswerPreview content={exercise.answer}/>{citations(exercise.citations)}</div>)}</section>
-    <section className="report-section"><h4>先自测，再展开答案</h4>{report.self_checks.map((exercise,i)=><div className="report-exercise" key={i}><AIAnswerPreview content={`${i+1}. ${exercise.question}`}/><details><summary>查看答案与依据</summary><AIAnswerPreview content={exercise.answer}/>{citations(exercise.citations)}</details></div>)}</section>
+    <section className="report-section"><h4>先自测，再展开答案</h4>{report.self_checks.map((exercise,i)=><div className="report-exercise" key={i}>{exercise.generation_origin==="rule_generated"&&<p className="hint">基础自测 · 根据已校验知识点或例题生成</p>}<AIAnswerPreview content={`${i+1}. ${exercise.question}`}/><details><summary>查看答案与依据</summary><AIAnswerPreview content={exercise.answer}/>{citations(exercise.citations)}</details></div>)}</section>
     {Boolean(report.review_suggestions?.length)&&<section className="report-section"><h4>复习建议 · AI建议</h4><ul>{report.review_suggestions!.map((item,i)=><li key={i}>{item}</li>)}</ul></section>}
   </article>;
 }

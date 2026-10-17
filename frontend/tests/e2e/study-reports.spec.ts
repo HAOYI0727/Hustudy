@@ -17,9 +17,9 @@ for (const width of [390,1440]) test(`M2报告：确认、报告、自测、草�
   const exercise={question:'线程主要承担什么作用？',answer:'线程是调度和执行的基本单位。',citations:[citation]};
   const report={summary:'理解进程与线程的分工。',learning_goals:['区分资源分配与执行'],prerequisites:[],learning_sequence:['阅读概念','核对区别','完成自测'],topics:[{topic_id:crypto.randomUUID(),name:'进程与线程',explanation:'进程负责资源分配，线程承担调度和执行。',misconceptions:['不要将两种基本单位混淆'],labels:[{kind:'key',origin:'ai_suggestion',reason:'原文直接给出了两者区别'}],citations:[citation]}],examples:[exercise],self_checks:[exercise,exercise,exercise]};
   const coverage={truncated:false,notice:'报告仅依据实际发送片段。',versions:[{version_id:version,document_name:'报告样例.md',total_chunks:1,selected_chunks:1,total_chars:chunk.text.length,sent_chars:chunk.text.length,truncated:false}]};
-  const result={id:crypto.randomUUID(),course_id:course.id,query:'理解所选资料，梳理知识点并完成自测',status:'grounded',model_mode:'real',result:{study_report:report,coverage,citations:[citation],answer:'# 报告草稿\n进程与线程的分工。',model:'glm-4.7-flash',model_notice:'测试响应 · 非真实模型调用'}};
-  const remote={id:crypto.randomUUID(),course_id:course.id,query:result.query,request_kind:'study_report',report_scope:{goal:result.query,scope_version_ids:[version],study_mode:'systematic',coverage},model:'glm-4.7-flash',endpoint:'https://open.bigmodel.cn/api/paas/v4/chat/completions',expires_at:new Date(Date.now()+900000).toISOString(),consented_at:null as string|null,dispatched_at:null as string|null,sources:[{source_id:chunk.id,version_id:version,document_name:'报告样例.md',version_no:1,locator:citation.locator,text:chunk.text}],job:null as object|null,result:null as typeof result|null};
-  let confirms=0;
+  const result={id:crypto.randomUUID(),course_id:course.id,query:'理解所选资料，梳理知识点并完成自测',status:'grounded',model_mode:'real',result:{study_report:report,coverage,citations:[citation],answer:'# 报告草稿\n进程与线程的分工。',model:'glm-5.3-flash',model_notice:'测试响应 · 非真实模型调用'}};
+  const remote={id:crypto.randomUUID(),course_id:course.id,query:result.query,request_kind:'study_report',report_scope:{goal:result.query,scope_version_ids:[version],study_mode:'systematic',coverage},model:'glm-5.3-flash',endpoint:'https://open.bigmodel.cn/api/paas/v4/chat/completions',expires_at:new Date(Date.now()+900000).toISOString(),consented_at:null as string|null,dispatched_at:null as string|null,sources:[{source_id:chunk.id,version_id:version,document_name:'报告样例.md',version_no:1,locator:citation.locator,text:chunk.text}],job:null as object|null,result:null as typeof result|null};
+  let confirms=0,resumes=0;
   await page.route('**/api/v1/ai/provider',route=>route.fulfill({json:{configured:true,model:remote.model,checked_at:'2026-10-16',policy_status:'政策细项未核实',documentation_url:'https://docs.bigmodel.cn',policy_entry_url:'https://open.bigmodel.cn/console'}}));
   await page.route(`**/api/v1/courses/${course.id}/study-reports/preview`,async route=>{
     expect(route.request().postDataJSON().version_ids).toEqual([version]);
@@ -27,6 +27,12 @@ for (const width of [390,1440]) test(`M2报告：确认、报告、自测、草�
   });
   await page.route(`**/api/v1/courses/${course.id}/study-reports`,route=>route.fulfill({json:confirms ? [result] : []}));
   await page.route(`**/api/v1/remote-queries/${remote.id}**`,async route=>{
+    if(route.request().url().endsWith('/resume')){
+      resumes++;expect(route.request().postDataJSON()).toEqual({confirm_remote_send:true});
+      Object.assign(remote,{job:{status:'SUCCEEDED',progress:100},batch_progress:{total:2,completed:2,max_calls:2,chars:10000}});
+      Object.assign(result,{id:crypto.randomUUID(),status:'grounded'});
+      Object.assign(result.result,{partial:false,study_report_sections:[{title:'第1部分',report},{title:'第2部分',report}]});
+    }
     if(route.request().url().endsWith('/confirm')){
       confirms++;expect(route.request().postDataJSON()).toEqual({confirm_remote_send:true});
       remote.consented_at=new Date().toISOString();remote.dispatched_at=remote.consented_at;remote.job={status:'SUCCEEDED',progress:100};remote.result=result;
@@ -92,4 +98,22 @@ for (const width of [390,1440]) test(`M2报告：确认、报告、自测、草�
   await expect(page.getByLabel('AI 笔记草稿')).toHaveCount(0);
   await page.reload();await page.getByRole('button',{name:'学习报告',exact:true}).click();
   await expect(page.getByRole('article',{name:'章节学习报告'})).toBeVisible();expect(confirms).toBe(1);
+  Object.assign(remote,{job:{status:'FAILED',progress:50,error:'第2批请求超时'},batch_progress:{total:2,completed:1,max_calls:2,chars:10000}});
+  Object.assign(result,{id:crypto.randomUUID(),status:'provider_error'});
+  Object.assign(result.result,{partial:true,message:'第2批请求超时',error_code:'TIMEOUT',study_report_sections:[{title:'第1部分',report}]});
+  await page.reload();await page.getByRole('button',{name:'学习报告',exact:true}).click();
+  await expect(page.getByText('当前不是完整报告。',{exact:false})).toBeVisible();
+  const resume=page.getByRole('button',{name:'确认继续未完成批次',exact:true});
+  await expect(resume).toBeDisabled();expect(resumes).toBe(0);
+  await page.getByRole('checkbox',{name:/我同意仅继续未完成批次/}).check();await resume.click();
+  await expect(page.getByText('第2部分',{exact:true})).toBeVisible();expect(resumes).toBe(1);
+  if(width>1100){
+    const panels=await page.locator('.ai-workspace-grid > section').evaluateAll(nodes=>nodes.map(node=>({height:node.getBoundingClientRect().height,overflow:getComputedStyle(node).overflowY})));
+    expect(panels).toHaveLength(2);expect(panels[0].overflow).toBe('auto');expect(panels[1].overflow).toBe('auto');
+    expect(Math.abs(panels[0].height-panels[1].height)).toBeLessThan(2);
+  }
+  await page.locator('.ai-workspace-grid > section').evaluateAll(nodes=>nodes.forEach(node=>node.scrollTop=0));
+  await page.locator('.ai-workspace-grid').scrollIntoViewIfNeeded();
+  if(width<=1100)await expect(page.getByRole('link',{name:'设置与发送',exact:true})).toBeInViewport();
+  await page.screenshot({path:fileURLToPath(new URL(`../../../docs/gcx/evidence/ai-layout-${width}.png`,import.meta.url)),fullPage:false});
 });

@@ -13,18 +13,20 @@ from ..schemas.question_drafts import (
     CANDIDATE_PREFIX,
     DEMO_PROMPT_VERSION,
 )
-from .ai_context import select_report_context
+from .ai_material_scope import full_context
 from .exam_ai_context import candidate_context
 from .courses import owned_course
 
 
 def prepare(db, user_id, course_id, request):
-    sources, coverage = select_report_context(
+    sources, coverage = full_context(
         db,
         user_id,
         course_id,
         [str(v) for v in request.version_ids],
         [str(c) for c in request.chunk_ids],
+        max_chars=32000,
+        max_chunks=128,
     )
     context = candidate_context(
         db,
@@ -44,7 +46,7 @@ def prepare(db, user_id, course_id, request):
             },
         )
     envelope = CandidateEnvelope(
-        request=request, coverage=coverage, exam_context=context
+        request=request, coverage=coverage, exam_context=context, per_question_topics=True
     )
     return sources, envelope
 
@@ -80,6 +82,7 @@ def demo(db, user_id, course_id, request):
         questions = []
         for index in range(request.count):
             exercise = {
+                "topic_ids": [str(t) for t in request.topic_ids],
                 "options": [],
                 "rubric": [],
                 "original_past_question_ids": [],

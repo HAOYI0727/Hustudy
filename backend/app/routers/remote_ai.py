@@ -4,6 +4,7 @@ from ..core.database import get_db
 from ..dependencies import current_user
 from ..models import User
 from ..schemas.remote_ai import PreviewRequest, ConsentRequest, RemoteQueryResponse
+from ..schemas.remote_ai import ReuseRequest
 from ..services import remote_ai
 from ..schemas.study_reports import (
     ReportPreviewRequest,
@@ -25,6 +26,18 @@ from ..services.exam_ai_context import candidate_context
 from ..ai.providers import PROMPT_VERSION
 
 router = APIRouter(prefix="/api/v1", tags=["ai"])
+
+
+@router.post("/remote-queries/{query_id}/reuse", response_model=AIResultResponse)
+def reuse_result(
+    query_id: str,
+    payload: ReuseRequest,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    from ..services.ai_result_reuse import reuse
+
+    return reuse(db, user.id, query_id, str(payload.result_id))
 
 
 @router.post(
@@ -70,7 +83,7 @@ def preview_candidates(
         PreviewRequest(
             query=payload.goal,
             version_ids=payload.version_ids,
-            chunk_ids=payload.chunk_ids,
+            chunk_ids=[],
         ),
         candidate_request=payload,
     )
@@ -105,7 +118,14 @@ def candidate_history(
             AIResult.user_id == user.id,
             AIResult.course_id == course_id,
             AIResult.prompt_version.in_(
-                [CANDIDATE_PROMPT_VERSION, DEMO_PROMPT_VERSION]
+                [
+                    CANDIDATE_PROMPT_VERSION,
+                    DEMO_PROMPT_VERSION,
+                    "zhipu-question-drafts-v1",
+                    "zhipu-question-drafts-v2",
+                    "zhipu-question-drafts-v3",
+                    "zhipu-question-drafts-v4",
+                ]
             ),
         )
         .order_by(AIResult.created_at.desc(), AIResult.id.desc())
@@ -123,7 +143,14 @@ def saved_candidates(
             AIResult.id == result_id,
             AIResult.user_id == user.id,
             AIResult.prompt_version.in_(
-                [CANDIDATE_PROMPT_VERSION, DEMO_PROMPT_VERSION]
+                [
+                    CANDIDATE_PROMPT_VERSION,
+                    DEMO_PROMPT_VERSION,
+                    "zhipu-question-drafts-v1",
+                    "zhipu-question-drafts-v2",
+                    "zhipu-question-drafts-v3",
+                    "zhipu-question-drafts-v4",
+                ]
             ),
         )
     )
@@ -143,7 +170,9 @@ def query_history(
         .where(
             AIResult.user_id == user.id,
             AIResult.course_id == course_id,
-            AIResult.prompt_version.in_([PROMPT_VERSION, "mock-v1"]),
+            AIResult.prompt_version.in_(
+                [PROMPT_VERSION, "zhipu-grounded-qa-v1", "mock-v1"]
+            ),
             ~AIResult.query.startswith("study-report:"),
         )
         .order_by(AIResult.created_at.desc(), AIResult.id.desc())
@@ -183,7 +212,15 @@ def report_history(
             AIResult.user_id == user.id,
             AIResult.course_id == course_id,
             AIResult.prompt_version.in_(
-                [REPORT_PROMPT_VERSION, DEMO_REPORT_PROMPT_VERSION]
+                [
+                    REPORT_PROMPT_VERSION,
+                    DEMO_REPORT_PROMPT_VERSION,
+                    "zhipu-study-report-v1",
+                    "zhipu-study-report-v2",
+                    "zhipu-study-report-v3",
+                    "zhipu-study-report-v4",
+                    "zhipu-study-report-v5",
+                ]
             ),
         )
         .order_by(AIResult.created_at.desc(), AIResult.id.desc())
@@ -201,7 +238,15 @@ def saved_report(
             AIResult.id == result_id,
             AIResult.user_id == user.id,
             AIResult.prompt_version.in_(
-                [REPORT_PROMPT_VERSION, DEMO_REPORT_PROMPT_VERSION]
+                [
+                    REPORT_PROMPT_VERSION,
+                    DEMO_REPORT_PROMPT_VERSION,
+                    "zhipu-study-report-v1",
+                    "zhipu-study-report-v2",
+                    "zhipu-study-report-v3",
+                    "zhipu-study-report-v4",
+                    "zhipu-study-report-v5",
+                ]
             ),
         )
     )
@@ -256,3 +301,19 @@ def cancel(
     query_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)
 ):
     return remote_ai.cancel(db, user.id, query_id)
+
+
+@router.post(
+    "/remote-queries/{query_id}/resume",
+    response_model=RemoteQueryResponse,
+    status_code=202,
+)
+def resume_report(
+    query_id: str,
+    payload: ConsentRequest,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    from ..services.report_batches import resume
+
+    return resume(db, remote_ai.owned_query(db, user.id, query_id))
