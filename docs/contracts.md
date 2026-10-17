@@ -1,5 +1,30 @@
 # Hustudy 共享契约（Phase 0）
 
+## 2026-10-16 M2-CANDIDATES-01（当前增量）
+
+用户取消M2按日期分段的限制，按依赖持续推进。本轮继续复用RemoteQuery/AIResult/AI_ANALYSIS，无迁移。候选请求以`hustudy:question-drafts:v1\n`加严格JSON保存，普通问答禁止此保留前缀。确认/派发/完成均复核有效来源及M4只读依赖快照。不得直接查询或写入M4业务表，使用exam_ai_context适配器；适配器只负责读取与快照校验，不commit。
+
+- GET `/courses/{id}/question-draft-context`：本人课程Topic与已确认原题摘要（无答案）；原题必须题目和父试卷都CONFIRMED。不提供教师标注/历史频率/个人掌握度。
+- POST `/courses/{id}/question-drafts/preview`：goal、version_ids、可选chunk_ids（≤6）、chapter_id（必须为范围中的版本UUID）、topic_ids（1–4个）、type（single_choice/boolean/short_answer）、count（1–6）、points（正数≤100，最多2小数）、difficulty_label、mode（historical/variant/weakness）、original_past_question_ids（≤6，variant必需）。接受M4旧枚举true_false/history_blueprint/topic_variant/weakness_practice并规范化，输出只用需求标准枚举。所有配置、原题正文、目标Topic和实际材料须在确认预览可见。
+- 当前M4没有章节UUID实体：候选chapter_id是资料版本UUID，chapter_ref_kind=document_version。不得直接把该ID当正式蓝图章节；M4必须映射并执行蓝图配额/状态/总分检查。historical只按用户指定结构生成，weakness无作答数据时明确自选弱项，不能编造历史统计或个人掌握度。
+- 候选结构含服务端question_id、chapter_id、type、stem、options、answer/rubric、points、explanation、topic_ids、difficulty_label、mode、original_past_question_ids、material_citations、generation_status=draft。数量/类型/分值/题干hash/选项/布尔答案/rubric和引用均校验；拒绝同批重复及与参考原题完全规范化相同的题干。模型输出只能选择提供的参考ID，不能制造依据。
+- GET `/courses/{id}/question-drafts`、GET `/question-drafts/{id}`：持久候选与失败历史。成功候选是UNREVIEWED，只有课程作者/集成方使用，不是考生接口，不能将含答案JSON传给正式作答页。
+- POST `/courses/{id}/question-drafts/demo`：仅项目自制fixtures/materialhub_demo.md完全匹配的有效来源，固定Topic与确定性题例；未知材料返回insufficient_evidence，不调用Provider、不创建任务。不冒充真实生成。演示输出也经过相同校验。
+- 报告预览新增可选chunk_ids，服务端逐个校验归属/版本/有效性，按选中片段选择（原接口不传时保留顺序选择）。普通问答同样支持显式片段。覆盖快照包含用户实际选取的范围，不静默扩大发送。
+- GET `/courses/{id}/ai-results`：最近20条普通课程问答（排除报告/候选），读取重新验证引用。错误只白名单返回供应商数字code和有限Retry-After秒数，不返回原始body/message或密钥；未知429不猜额度原因，不自动发送重试。
+
+## 2026-10-16 M2-STUDY-REPORT-01 契约
+
+成员gcx负责M2、xtc负责M4。教学报告复用RemoteQuery/AIResult及AI_ANALYSIS；不改数据库schema。RemoteQuery.query以保留前缀`hustudy:study-report:v1\n`加JSON保存服务端生成的请求信封（goal、scope_version_ids、coverage、study_mode）；普通问答拒绝此前缀。预览/确认/worker均使用同一不可变信封，不能由确认正文替换范围。既有备份JSON原样保留，恢复不派发。
+
+- POST `/courses/{id}/study-reports/preview`：goal（1–2000字符）、version_ids（1–20个UUID）、study_mode（preview/systematic/revision）。按版本正文顺序选取有效片段，最多6段/每段2000字符/共8000字符；返回实际覆盖数量和截断提示，绝不声称自动完整覆盖全章。空范围返回409/details.status=insufficient_evidence，不调用模型、不写成功报告。
+- 沿用 `/remote-queries/{id}` 的GET/confirm/cancel；响应新增request_kind（qa/study_report）和report_scope（普通问答为null）。确认严格true、15分钟过期、单次派发、来源复核/取消租约与问答一致。单次报告输出上限6000 tokens，绝不自动重发。
+- GET `/courses/{id}/study-reports`：最近20条本轮报告结果（含失败），GET `/study-reports/{id}`：本人有效课程的持久结果。响应沿用AIResultResponse，成功result含study_report、可导入笔记的answer Markdown、去重citations、scope/coverage、model、prompt_version及UNREVIEWED。
+- 模型只输出严格结构：status/ reason/ report；grounded须有summary、learning_goals、prerequisites、learning_sequence、topics（解释、misconceptions、labels、evidence）、examples和3–5个self_checks。每个知识点/例题/自测均有实际发送原文evidence；模型不能指定持久ID/审阅状态/来源版本。服务器转换为Citation并分配topic UUID；标签仅ai_suggestion，本轮未接教师/真题证据。
+- Citation来源失效时，顶层及报告内引用同步unavailable；报告保持历史文本，不再允许失效来源保存新笔记。候选结构与事实正确性分别验收，schema通过不代表学科事实通过。
+
+M4候选接口本轮仅在docs/gcx/m2_plan.md记录后续对接计划，不宣称已实现；正式QuestionDraft应遵循需求附录，并先统一M4判断题/模式枚举。
+
 根目录是唯一工程根。四个业务模块通过 `backend/app/schemas`、服务接口和 API 交互，不能直接读写其他模块的表。成员 A 统一维护数据库迁移。
 
 ## API
@@ -252,3 +277,19 @@ PPTX分页仍对应原幻灯片序号，包含隐藏页；DOCX浏览器排版页
 用户继续要求前端美观、配色协调、文字与按钮适中。输入为现有响应式工作台和真实业务状态，输出为统一主色/文本/边框/焦点/语义状态、清晰的当前工作区标识、侧栏账户、带功能语义的空状态和一致的图标/表单层级。沿用13px界面与20–26px页面标题、44px触控热区；提升过浅/过小元数据的可读性，不继续整体缩字，不更改原格式文档排版。
 
 范围为共享前端组件、responsive.css、登录/帮助、M1–M4必要的展示标签/图标和浏览器验收；无API/schema/迁移/模块算法变更、无新依赖/外部资源请求。导航与草稿保护/远程发送确认保持现有契约；颜色配合文字与图标，不用颜色单独表达成功/失败。真实需求状态决定提示，不能用美化伪造进度或用户成果。验收检查多屏布局、键盘/减少动效、关键文本/按钮/状态配色对比及既有闭环；不能据此宣称全站无障碍认证或真实用户满意度。
+
+### 完整固定报告与公开候选结构补充
+
+POST `/courses/{id}/study-reports/demo`接受ReportPreviewRequest，固定自制资料返回完整StudyReport；未知输入/不含目标片段返回insufficient_evidence，不写成功报告、不创建AI任务。旧版本演示端点转用此实现，报告历史同时包括zhipu-study-report-v1/demo-study-report-v1；query.history排除它们。
+
+`schemas.question_drafts.QuestionDraft`为服务端持久/交接结构，生成前的ModelQuestion与它分离；规范化题干hash放结果顶层stem_hashes。JSON schema发布于docs/gcx/question_draft_schema.json。Chapter临时版本身份、真实目标依赖和正式试卷边界仍按本节定义，不凭可导出就声称已接通M4。所有样例均为自制资料，不含用户密钥。
+
+## 2026-10-16 M2结构化输出诊断补充
+
+保持既有错误响应形态。Provider语法错误使用INVALID_JSON，结构不符保持INVALID_OUTPUT并在message中给出最多3项schema白名单字段路径及固定中文原因；禁止返回模型原文、未知字段名、输入值或Pydantic原始错误。提示词可增加输出示例，不改变QuestionDraft契约，不自动重发。
+
+## M2-LABEL-REVIEW-01：FR-38标签审阅草稿
+
+AIResult及其中ReportLabel保持不可变，本轮不新增API或数据表。前端维护独立报告/引用快照与用户标签列表，每知识点0–3项，每项kind限key/difficult/exam、reason去空白后1–1000字符；拒绝相同kind重复标签。原始AI标签与用户整理在保存的Markdown中分段留存，用户整理不宣称teacher_mark/observed_exam或整报告已审阅。显式从标签审阅转正文编辑后，用户确认通过现有POST /notes保存，Citation按快照交由M3现有接口重新检查。切换模式或新AI结果不改变该草稿；替换/返回重建正文前确认，取消/失败不覆盖其他笔记。
+
+M2-LABEL-REVIEW-01同时补main_idea 14.1的教学结构：topic增加可选concept_group、related_concepts（目标报告知识点名与关系说明）、breakthrough_steps，report增加可选review_suggestions。旧JSON缺字段按空值兼容，不重写旧AIResult。关系指向必须属于本报告且非自身/不重复，解释依据沿用该topic经校验引用；层次与步骤为AI学习建议，不冒称课程大纲。新提示词v2要求尽可能基于证据填写，不凭空补足。固定自制示例同步提供，前端/Markdown审阅草稿均保留。无数据库迁移。

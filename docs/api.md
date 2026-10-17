@@ -1,5 +1,26 @@
 # Hustudy API（Phase 0）
 
+## 2026-10-16 M2候选/演示/精确范围
+
+- GET `/api/v1/courses/{id}/question-draft-context`：可用Topic/已确认原题摘要，不含原题答案。
+- POST `/api/v1/courses/{id}/question-drafts/preview`：CandidateRequest，201返回不可变设置/材料/原题预览；沿用remote-queries确认/状态/取消。GET同课程`question-drafts`最近20条，GET `/question-drafts/{result_id}`读取单条。
+- POST `/api/v1/courses/{id}/question-drafts/demo`：固定自制演示，未知输入insufficient_evidence；不创建模型任务。
+- POST `/api/v1/courses/{id}/study-reports/demo`：ReportPreviewRequest，完整固定教学演示；旧`/versions/{id}/study-reports`演示入口转用同一实现，未知材料不再返回通用成功模板。
+- 报告preview/demo新增可选chunk_ids（最多6）；普通问答原有chunk_ids现可从前端选择。GET `/api/v1/courses/{id}/ai-results`最近20条普通问答，排除报告和候选。
+
+参数、枚举兼容、章节范围映射与失败语义见[公共契约](contracts.md)，[公开QuestionDraft schema](gcx/question_draft_schema.json)及[验收](gcx/candidate_acceptance.md)。
+
+
+## 2026-10-16 教学报告（M2-STUDY-REPORT-01）
+
+- POST `/api/v1/courses/{course_id}/study-reports/preview`：`{"goal":"理解本章","version_ids":["UUID"],"study_mode":"systematic"}`；201返回RemoteQueryResponse、request_kind=study_report、report_scope/coverage，尚未发送模型。
+- POST `/api/v1/remote-queries/{id}/confirm`：`{"confirm_remote_send":true}`；202入队。GET同一路径查询、POST `/cancel`取消。普通问答接口保持兼容。
+- GET `/api/v1/courses/{id}/study-reports`：最近20条报告结果；GET `/api/v1/study-reports/{result_id}`：单份持久结果。均校验本人/有效课程；响应AIResultResponse，成功含result.study_report、answer Markdown、citations、coverage、prompt_version，失败含原因。
+- 旧POST `/versions/{id}/study-reports`保留演示兼容，real模式返回409引导新预览流程。
+
+覆盖预算/字段/不可变信封定义见[contracts](contracts.md)，手工示例及限制见[gcx验收](gcx/study_report_acceptance.md)。
+
+
 服务默认运行在 `http://127.0.0.1:8000`，OpenAPI 地址为 `/docs`。
 
 | 方法 | 路径 | 说明 | 状态 |
@@ -191,3 +212,7 @@ PPTX导出包括隐藏幻灯片并核对页数；GET preview与截图拒绝旧�
 ## M1 原格式预览消费
 
 PPTX/DOCX直接预览使用现有授权GET `/versions/{id}/original`，不新增公开文件URL；前端请求支持AbortSignal，卸载/切换取消。`preview_status`与GET preview仍表示原PDF或转换兼容PDF，不由客户端原格式渲染成功覆盖。无数据库变更或新业务API，原格式本地状态不代表后端解析/索引已成功。图片截图来源仍由既有PDF页校验。
+
+## 2026-10-16 报告教学结构与标签审阅补充
+
+现有study_report响应增量字段：topics[].concept_group（string/null）、related_concepts（[{target,relation}]）、breakthrough_steps（string[]），顶层review_suggestions（string[]）。省略按空值兼容，旧AIResult不重写。学习建议不是教师/历史证据，related_concepts的target必须为本报告其他知识点且不重复。前端标签审阅为独立快照，用户编辑留存于Markdown，使用现有POST /notes保存；无新端点、无AIResult更新。权威约束见contracts.md及gcx/basic_acceptance.md。

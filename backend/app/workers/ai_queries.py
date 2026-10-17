@@ -12,6 +12,11 @@ from ..models.base import utc_now
 from ..ai.providers import ZhipuProvider, ProviderFailure, PROMPT_VERSION
 from ..services.courses import owned_course
 from ..services.ai_context import validate_context
+from ..schemas.study_reports import report_envelope, REPORT_PROMPT_VERSION
+from ..ai.study_reports import generate_report
+from ..schemas.question_drafts import candidate_envelope, CANDIDATE_PROMPT_VERSION
+from ..ai.question_drafts import generate_candidates
+from ..services.remote_ai import validate_request_dependencies
 
 
 def claim(db):
@@ -90,6 +95,9 @@ def run_ai_once():
         job_id, token, user_id = job.id, job.lease_token, job.user_id
         row = db.get(RemoteQuery, job.resource_id)
         error, output, status = None, None, None
+        report = None
+        candidate = None
+        prompt_version = PROMPT_VERSION
         try:
             if (
                 not row
@@ -98,8 +106,15 @@ def run_ai_once():
                 or not row.consented_at
             ):
                 raise ProviderFailure("INVALID_CONSENT", "任务没有有效发送确认")
+            report = report_envelope(row.query)
+            candidate = candidate_envelope(row.query)
+            if report:
+                prompt_version = REPORT_PROMPT_VERSION
+            elif candidate:
+                prompt_version = CANDIDATE_PROMPT_VERSION
             owned_course(db, user_id, row.course_id, lock=True)
             validate_context(db, user_id, row.course_id, row.sources)
+            validate_request_dependencies(db, row)
             s = get_settings()
             if s.llm_provider != "zhipu" or not s.zhipu_api_key.get_secret_value():
                 raise ProviderFailure(
@@ -117,7 +132,14 @@ def run_ai_once():
             query, sources = row.query, row.sources
             db.commit()
             # No SQLite write lock is held while waiting on the remote service.
-            output, status = ZhipuProvider(s).answer(query, sources)
+            if candidate:
+                output, status = generate_candidates(
+                    ZhipuProvider(s), candidate, sources
+                )
+            elif report:
+                output, status = generate_report(ZhipuProvider(s), report, sources)
+            else:
+                output, status = ZhipuProvider(s).answer(query, sources)
         except HTTPException:
             db.rollback()
             error = ProviderFailure(
@@ -154,6 +176,7 @@ def run_ai_once():
             try:
                 owned_course(db, user_id, row.course_id)
                 validate_context(db, user_id, row.course_id, row.sources)
+                validate_request_dependencies(db, row)
             except HTTPException:
                 error = ProviderFailure(
                     "SOURCE_UNAVAILABLE", "请求中的来源已失效，远程结果未采纳"
@@ -166,17 +189,43 @@ def run_ai_once():
                     "citations": [],
                     "model": row.model,
                     "model_notice": "真实AI调用失败；不会伪装成演示答案",
+                    "provider_code": error.provider_code,
+                    "retry_after_seconds": error.retry_after_seconds,
                 }
+                if report:
+                    output.update(
+                        {
+                            "result_kind": "study_report",
+                            "coverage": report.coverage,
+                            "scope_version_ids": [
+                                str(v) for v in report.scope_version_ids
+                            ],
+                        }
+                    )
+                elif candidate:
+                    output.update(
+                        {
+                            "result_kind": "question_drafts",
+                            "question_drafts": [],
+                            "coverage": candidate.coverage,
+                            "request": candidate.request.model_dump(mode="json"),
+                            "exam_context": candidate.exam_context,
+                        }
+                    )
                 job.status, job.error = "FAILED", error.message
             else:
                 job.status, job.error, job.progress = "SUCCEEDED", None, 100
             result = AIResult(
                 user_id=user_id,
                 course_id=row.course_id,
-                query=row.query,
+                query=report.goal
+                if report
+                else candidate.request.goal
+                if candidate
+                else row.query,
                 status=status,
                 model_mode="real",
-                prompt_version=PROMPT_VERSION,
+                prompt_version=prompt_version,
                 result_json=json.dumps(output, ensure_ascii=False),
             )
             db.add(result)

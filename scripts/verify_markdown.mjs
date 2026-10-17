@@ -11,7 +11,8 @@ const React = require('react');
 const { renderToStaticMarkup } = require('react-dom/server');
 const scratch = await mkdtemp(join(frontend,'.markdown-check-'));
 try {
-  execFileSync(join(frontend,'node_modules/.bin/tsc'), [
+  // Invoke the JS entry directly; Windows .bin uses a .cmd shim.
+  execFileSync(process.execPath, [join(frontend,'node_modules/typescript/bin/tsc'),
     join(frontend,'src/components/knowledge.tsx'), join(frontend,'src/features/ai/AIAnswerPreview.tsx'), '--noCheck', '--jsx', 'react-jsx',
     '--target','es2020','--module','esnext','--moduleResolution','bundler',
     '--rootDir',join(frontend,'src'),'--outDir',scratch

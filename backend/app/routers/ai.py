@@ -186,42 +186,27 @@ def study_report(
     db: Session = Depends(get_db),
 ) -> StudyReportResponse:
     if payload.mode == "real":
-        raise HTTPException(409, "真实章节报告尚未接入，请使用预览确认的课程问答")
+        raise HTTPException(
+            409, "真实章节报告需使用courses/{id}/study-reports/preview并确认发送"
+        )
     version = active_version(db, version_id, user.id)
     document = db.get(Document, version.document_id)
     _course(document.course_id, user, db, lock=True)
     scope = payload.scope_version_ids or [version_id]
     for scoped_id in scope:
         active_version(db, scoped_id, user.id, document.course_id)
-    rows = _chunks(document.course_id, user.id, db, scope)
-    citations = [_citation(row[0], row[1]) for row in rows[:5]]
-    report = {
-        "scope_version_ids": payload.scope_version_ids or [version_id],
-        "learning_sequence": ["目标", "概念", "例子", "误区", "自测"],
-        "summary": "演示模型报告；请结合引用原文审阅。",
-        "topics": [
-            {
-                "topic_id": "demo-topic",
-                "name": "资料中的核心概念",
-                "explanation": rows[0][0].text[:240]
-                if rows
-                else "当前资料没有可提取文本",
-                "origin": "ai_suggestion",
-                "citations": citations,
-            }
-        ],
-        "self_checks": ["用自己的话解释该概念。", "指出一个适用边界。"],
-        "citations": citations,
-    }
-    row = _save(
-        user.id,
-        document.course_id,
-        "study-report:" + version_id,
-        "grounded" if citations else "insufficient_evidence",
-        "demo",
-        report,
-        db,
+    from ..schemas.study_reports import ReportPreviewRequest
+    from ..services.study_report_demo import demo_report
+
+    if len(scope) > 20:
+        raise HTTPException(422, "最多选择20个资料版本")
+    row = demo_report(
+        db, user.id, document.course_id, ReportPreviewRequest(version_ids=scope)
     )
+    body = json.loads(row.result_json)
     return StudyReportResponse(
-        id=row.id, status=row.status, model_mode=row.model_mode, report=report
+        id=row.id,
+        status=row.status,
+        model_mode=row.model_mode,
+        report=body.get("study_report", body),
     )

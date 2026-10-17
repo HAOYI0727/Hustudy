@@ -861,3 +861,11 @@ PASS: MD headings/text; DOCX paragraph-table order; PPTX slide 1/3; PDF page 1/2
 ### CR-PLATFORM-RESPONSIVE-01：全站多屏界面优化（2026-10-15）
 
 输入为用户本轮原话“优化整个网站所有界面的排布，适配电脑端、ipad端、手机端…所有字体等都可以小一点”。作为NFR-09/10展示验收补充：统一较紧凑的界面字号/间距，支持320/390/820/1024/1440px布局、窄屏导航与可折叠目录，长内容无整页横向溢出，触屏按钮至少44px、表单16px，保留文档阅读字号和来源语义。覆盖登录注册及全部工作台页面；自动尺寸/交互检查与TC-24真实用户试用分开。公共契约PLATFORM-RESPONSIVE-01，证据见docs/zhy/shared_platform/responsive_layout_acceptance.md；无新增业务实体/API/P1范围。
+
+## 2026-10-16 M2报告实施增量（不改变需求基线）
+
+用户确认gcx负责M2、xtc负责M4，含时段互换。本轮M2-STUDY-REPORT-01接入FR-16–20/FR-18.1–12的真实教学报告流程；确定性结构/来源/任务/持久历史/笔记草稿与备份往返已有证据，真实学科质量仍待人工验收。详见[gcx验收](../docs/gcx/study_report_acceptance.md)与[交接001](../collaboration/handoff.md#h-20261016-gcx-001)。没有扩大P1/P2或将FR-18全部子项和M2整体标Done。
+
+## 2026-10-16 M2候选与基础能力继续交付
+
+用户授权按依赖提前推进，不按轮换日期刻意分段。M2-CANDIDATES-01实现候选部分FR-22/23/44及FR-16–20支持能力：真实三模式/三题型、严格整批校验、固定报告/候选、精确片段、持久历史和安全错误细分。正式M4蓝图章节映射、教师标注/确认统计契约与真实学科质量验收仍待；不标父需求或全部M2完成。[验收](../docs/gcx/candidate_acceptance.md)、[公开schema](../docs/gcx/question_draft_schema.json)、[交接002](../collaboration/handoff.md#h-20261016-gcx-002)。

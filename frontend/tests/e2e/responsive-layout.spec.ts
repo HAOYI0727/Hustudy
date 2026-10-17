@@ -164,9 +164,9 @@ test('关键文字配色、工作区标识与减少动效', async ({ page, reque
   await readable(page.locator('.status-succeeded').first());
   await navigate(page, 'AI 学习');
   await expect(context).toContainText('AI 学习');
-  const primary = page.getByRole('button', { name: '本地演示检索', exact: true });
+  const primary = page.getByRole('button', { name: '资料原文检索', exact: true });
   await readable(primary);
-  await readable(page.getByRole('button', { name: '智谱真实AI · 需确认', exact: true }));
+  await readable(page.getByRole('button', { name: '资料问答', exact: true }));
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await primary.hover();
   expect(await primary.evaluate(element => getComputedStyle(element).transform)).toBe('none');

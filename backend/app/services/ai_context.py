@@ -3,11 +3,100 @@
 import hashlib
 import json
 from fastapi import HTTPException
-from sqlalchemy import select, text
+from sqlalchemy import select, text, func
 from ..models import Document, DocumentVersion, DocumentChunk
 from ..repositories.materials import active_version, indexable_source
 from .courses import owned_course
 from .search import tokenize
+
+
+def select_report_context(db, user_id, course_id, version_ids, chunk_ids=None):
+    """Read-only M1 interface: deterministic bounded material, no keyword guessing."""
+    owned_course(db, user_id, course_id)
+    if chunk_ids:
+        valid = set(
+            db.scalars(
+                select(DocumentChunk.id)
+                .join(DocumentVersion)
+                .where(
+                    DocumentChunk.id.in_(chunk_ids),
+                    DocumentChunk.version_id.in_(version_ids),
+                    DocumentChunk.user_id == user_id,
+                    DocumentVersion.user_id == user_id,
+                    indexable_source(),
+                )
+            )
+        )
+        if valid != set(chunk_ids):
+            raise HTTPException(404, "片段不存在、未就绪或超出所选版本范围")
+    sources, coverage, budget = [], [], 8000
+    for version_id in dict.fromkeys(version_ids):
+        version = active_version(db, version_id, user_id, course_id)
+        document = db.get(Document, version.document_id)
+        statement = (
+            select(DocumentChunk)
+            .join(DocumentVersion, DocumentChunk.version_id == DocumentVersion.id)
+            .where(
+                DocumentChunk.version_id == version_id,
+                DocumentChunk.user_id == user_id,
+                indexable_source(),
+                func.length(func.trim(DocumentChunk.text)) > 0,
+            )
+        )
+        total, characters = db.execute(
+            statement.with_only_columns(
+                func.count(),
+                func.coalesce(func.sum(func.length(DocumentChunk.text)), 0),
+            )
+        ).one()
+        selected, sent = 0, 0
+        if chunk_ids:
+            statement = statement.where(DocumentChunk.id.in_(chunk_ids))
+        for chunk in db.scalars(
+            statement.order_by(DocumentChunk.ordinal, DocumentChunk.id).limit(
+                max(0, 6 - len(sources))
+            )
+        ):
+            content = chunk.text[: min(2000, budget)]
+            if not content.strip():
+                continue
+            sources.append(
+                {
+                    "source_id": chunk.id,
+                    "version_id": version.id,
+                    "document_id": document.id,
+                    "document_name": document.name,
+                    "version_no": version.version_no,
+                    "locator": {
+                        "type": chunk.locator_type,
+                        "value": chunk.locator_value,
+                    },
+                    "source_kind": chunk.source_kind,
+                    "text": content,
+                    "sha256": hashlib.sha256(content.encode()).hexdigest(),
+                }
+            )
+            budget -= len(content)
+            selected += 1
+            sent += len(content)
+            if budget <= 0:
+                break
+        coverage.append(
+            {
+                "version_id": version_id,
+                "document_name": document.name,
+                "total_chunks": total,
+                "selected_chunks": selected,
+                "total_chars": characters,
+                "sent_chars": sent,
+                "truncated": sent < characters,
+            }
+        )
+    return sources, {
+        "versions": coverage,
+        "truncated": any(item["truncated"] for item in coverage),
+        "notice": "仅依据下方实际发送片段；不保证覆盖整章或整份课程。",
+    }
 
 
 def validate_context(db, user_id, course_id, sources):
