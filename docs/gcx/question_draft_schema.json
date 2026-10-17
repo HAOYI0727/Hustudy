@@ -1,0 +1,292 @@
+{
+  "$defs": {
+    "DraftCitation": {
+      "additionalProperties": false,
+      "properties": {
+        "document_id": {
+          "format": "uuid",
+          "title": "Document Id",
+          "type": "string"
+        },
+        "version_id": {
+          "format": "uuid",
+          "title": "Version Id",
+          "type": "string"
+        },
+        "chunk_id": {
+          "format": "uuid",
+          "title": "Chunk Id",
+          "type": "string"
+        },
+        "locator": {
+          "$ref": "#/$defs/DraftLocator"
+        },
+        "quote": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Quote",
+          "type": "string"
+        },
+        "quote_hash": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Quote Hash",
+          "type": "string"
+        },
+        "availability": {
+          "enum": [
+            "active",
+            "unavailable"
+          ],
+          "title": "Availability",
+          "type": "string"
+        },
+        "source_kind": {
+          "enum": [
+            "extracted",
+            "manual_transcript"
+          ],
+          "title": "Source Kind",
+          "type": "string"
+        },
+        "start_offset": {
+          "minimum": 0,
+          "title": "Start Offset",
+          "type": "integer"
+        },
+        "end_offset": {
+          "exclusiveMinimum": 0,
+          "title": "End Offset",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "document_id",
+        "version_id",
+        "chunk_id",
+        "locator",
+        "quote",
+        "quote_hash",
+        "availability",
+        "source_kind",
+        "start_offset",
+        "end_offset"
+      ],
+      "title": "DraftCitation",
+      "type": "object"
+    },
+    "DraftLocator": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "enum": [
+            "slide",
+            "page",
+            "heading",
+            "docx_block"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "value"
+      ],
+      "title": "DraftLocator",
+      "type": "object"
+    },
+    "DraftRubric": {
+      "additionalProperties": false,
+      "properties": {
+        "criterion": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Criterion",
+          "type": "string"
+        },
+        "points": {
+          "exclusiveMinimum": 0.0,
+          "maximum": 100.0,
+          "multipleOf": 0.01,
+          "title": "Points",
+          "type": "number"
+        }
+      },
+      "required": [
+        "criterion",
+        "points"
+      ],
+      "title": "DraftRubric",
+      "type": "object"
+    },
+    "Option": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 8,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "text": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "text"
+      ],
+      "title": "Option",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Public import contract for M4; final exam acceptance remains its responsibility.",
+  "properties": {
+    "question_id": {
+      "format": "uuid",
+      "title": "Question Id",
+      "type": "string"
+    },
+    "chapter_id": {
+      "format": "uuid",
+      "title": "Chapter Id",
+      "type": "string"
+    },
+    "type": {
+      "enum": [
+        "single_choice",
+        "boolean",
+        "short_answer"
+      ],
+      "title": "Type",
+      "type": "string"
+    },
+    "stem": {
+      "maxLength": 8000,
+      "minLength": 1,
+      "title": "Stem",
+      "type": "string"
+    },
+    "options": {
+      "items": {
+        "$ref": "#/$defs/Option"
+      },
+      "maxItems": 6,
+      "title": "Options",
+      "type": "array"
+    },
+    "answer": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Answer"
+    },
+    "rubric": {
+      "items": {
+        "$ref": "#/$defs/DraftRubric"
+      },
+      "maxItems": 12,
+      "title": "Rubric",
+      "type": "array"
+    },
+    "points": {
+      "exclusiveMinimum": 0.0,
+      "maximum": 100.0,
+      "multipleOf": 0.01,
+      "title": "Points",
+      "type": "number"
+    },
+    "explanation": {
+      "maxLength": 3000,
+      "minLength": 1,
+      "title": "Explanation",
+      "type": "string"
+    },
+    "topic_ids": {
+      "items": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "maxItems": 4,
+      "minItems": 1,
+      "title": "Topic Ids",
+      "type": "array"
+    },
+    "difficulty_label": {
+      "enum": [
+        "basic",
+        "application",
+        "advanced"
+      ],
+      "title": "Difficulty Label",
+      "type": "string"
+    },
+    "mode": {
+      "enum": [
+        "historical",
+        "variant",
+        "weakness"
+      ],
+      "title": "Mode",
+      "type": "string"
+    },
+    "original_past_question_ids": {
+      "items": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "maxItems": 6,
+      "title": "Original Past Question Ids",
+      "type": "array"
+    },
+    "material_citations": {
+      "items": {
+        "$ref": "#/$defs/DraftCitation"
+      },
+      "maxItems": 4,
+      "minItems": 1,
+      "title": "Material Citations",
+      "type": "array"
+    },
+    "generation_status": {
+      "const": "draft",
+      "title": "Generation Status",
+      "type": "string"
+    }
+  },
+  "required": [
+    "question_id",
+    "chapter_id",
+    "type",
+    "stem",
+    "options",
+    "answer",
+    "rubric",
+    "points",
+    "explanation",
+    "topic_ids",
+    "difficulty_label",
+    "mode",
+    "original_past_question_ids",
+    "material_citations",
+    "generation_status"
+  ],
+  "title": "QuestionDraft",
+  "type": "object"
+}

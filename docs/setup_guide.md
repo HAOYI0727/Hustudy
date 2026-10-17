@@ -1,5 +1,26 @@
 # Hustudy 环境与验收指南
 
+## Windows当前复现（2026-10-16，gcx电脑）
+
+已发现Python3.12.4位于`E:\Anaconda\python.exe`，Node24.14.1。用户要求复用现有环境、不创建venv，已手动安装backend/requirements.txt和npm ci。README历史Bash命令是其他平台路径。Windows完整锁文件含无条件uvloop，不直接照搬；复用环境安装曾提示现有Streamlit与Pillow/NumPy冲突，本轮未调整其他软件依赖。
+
+项目根目录为`E:\aa大学\大三上\软件工程\Hustudy\Hustudy-main`。三个PowerShell分别在根目录执行：
+
+```powershell
+# 终端一
+$env:PYTHONUTF8 = '1'
+& 'E:\Anaconda\python.exe' -m uvicorn app.main:app --app-dir backend --reload
+# 终端二
+$env:PYTHONUTF8 = '1'
+$env:PYTHONPATH = 'backend'
+& 'E:\Anaconda\python.exe' -m app.workers.materials
+# 终端三
+npm run dev --prefix frontend
+```
+
+浏览器访问http://localhost:5173/；改worker代码后需手动Ctrl+C并重启worker。裸python曾指向不同解释器，使用上述完整路径；若先把E:\Anaconda及Scripts加到当前终端PATH，也可使用python。没有修改系统PATH/创建环境。报告本轮测试和完整Windows限制见[验收](gcx/study_report_acceptance.md)。
+
+
 更新：2026-10-15。目标Python3.12，当前运行环境3.11.15；独立3.12.13锁依赖环境已通过101项后端测试。Node25.2.1实测，PDF.js要求Node>=22.13.0或>=24。Chrome/WebKit隔离浏览器14项通过，范围见[验收记录](zhy/shared_platform/web_base_acceptance.md)；LibreOffice26.8.1真实转换已通过，复杂版式/干净机器全量部署仍待验收。
 
 ## 安装和启动

@@ -1,5 +1,19 @@
 # Hustudy
 
+## 2026-10-16 M2候选与基础完善（gcx）
+
+AI学习新增「题目候选 · 待审阅」：单选/判断/简答，指定结构/同考点变式/自选弱项；预览设置与材料后确认生成，可查看答案/评分细则、来源和历史，导出作者审阅用JSON。报告和候选都有受自制样例约束的固定演示；问答/报告/候选可精确选择片段，课程问答有持久历史，模型错误区分余额、并发、频率等安全代码。
+
+不再按轮换日期刻意分段，详见[当前M2状态与依赖](docs/gcx/m2_plan.md)、[验收](docs/gcx/candidate_acceptance.md)、[公开候选schema](docs/gcx/question_draft_schema.json)。无新迁移/依赖/环境，重启后端和worker即可加载。M4仍需映射正式蓝图章节并集成试卷，教师/真题事实标签和真人质量验收不冒称完成。手动上传见[累计清单](docs/gcx/changed_files_2026_10_16.md)。
+
+
+## 2026-10-16 M2真实教学报告（gcx）
+
+AI学习新增「章节学习报告 · 需确认」：选择资料/学习方式 → 来源预览与覆盖提示 → 明确确认 → 后台报告 → 目标/知识点/例题/自测/引用 → 可编辑笔记草稿，报告自动保存并提供最近20条历史。请重启后端和worker加载新代码；不需要新增迁移或安装依赖。Windows现有Python启动步骤见[环境指南](docs/setup_guide.md)，使用见[用户指南](docs/user_guide.md)。
+
+成员现为gcx=M2、xtc=M4（含轮换时段互换），使用GitHub网页手动上传；旧分支/姓名描述按历史保留。模块关联回归45项、Vitest14项和Chrome2项通过；全量初次129通过/3项既有Windows权限相关失败，详情见[验收](docs/gcx/study_report_acceptance.md)。真实模型报告学科质量、WebKit/实机与M4候选仍待后续，不标全部M2/P0完成。
+
+
 Hustudy 是面向大学生的本地优先课程学习工具，围绕“资料阅读 → 知识点讲解 → 笔记与引用 → 真题分析 → 模拟练习 → 错题复习”形成学习闭环。首版采用 React/Vite 前端、FastAPI 后端、SQLite 与本地文件存储，按共享基础层加四大业务模块协作推进。
 
 ## 当前版本
@@ -21,7 +35,7 @@ Hustudy 是面向大学生的本地优先课程学习工具，围绕“资料阅
 |---|---|---|
 | 共享基础层 | FastAPI/request_id、标准 JWT、课程整理与删除隔离、SQLite/Alembic 0001–0012、原子文件存储、完整账户备份/空账户恢复 | `backend/app/core`、`backend/app/routers/auth.py`、`courses.py` |
 | M1 MaterialHub | 有界上传、hash 去重、不可变版本、独立 worker/租约/取消恢复/重试/幂等索引重建、四格式切片、中文 FTS5、分类/标签整理与版本筛选、原文关联笔记、人工补录确认/修订、图片改名/说明/标签查找与分页、后台课程资料ZIP/来源清单、PPTX/Word原格式与PDF原页阅读、独立兼容PDF、资料/笔记分页检索和删除撤权 | `backend/app/services`、`workers/materials.py`、`routers/documents.py`、`routers/assets.py` |
-| M2 AI Study | 演示检索、GLM-4.7-Flash 课程问答、片段预览/逐次确认、结构化响应与引用校验；完整真实教学报告待补 | `backend/app/routers/ai.py`、`routers/remote_ai.py`、`schemas/remote_ai.py` |
+| M2 AI Study | 演示检索、GLM-4.7-Flash 课程问答、片段预览/逐次确认、结构化响应与引用校验；问答/报告/三模式候选/固定演示/精确片段/历史；真实质量与正式M4集成待验 | `backend/app/routers/ai.py`、`routers/remote_ai.py`、`schemas/remote_ai.py` |
 | M3 NoteGraph | Markdown 安全预览、自动保存、revision 冲突、UUID 双链/反链、Citation 回源、图片嵌入/反链与解码校验 | `backend/app/routers/notes.py`、`frontend/src/components/knowledge.tsx` |
 | M4 ExamPilot | 基础 Topic、拆题草稿/确认、蓝图、演示 DRAFT 试卷、审阅、作答与客观评分、错题复习；完整映射统计/真实三模式生成待补 | `backend/app/routers/exams.py`、`backend/app/models/exams.py` |
 | 前端工作台 | Router/Query/Ant Design 基线、401原账户恢复保留草稿、统一视觉/图标/状态、电脑/iPad/手机布局、抽屉导航和可折叠目录 | `frontend/src/main.tsx`、`frontend/src/styles.css` |
@@ -96,7 +110,7 @@ npm run test:e2e --prefix frontend
 
 ### B：M2 AI Study
 
-负责Provider/RAG、教学报告、结构化校验与预算。GLM-4.7-Flash课程问答已接入，必须先预览片段并逐次确认发送；下一步完善真实教学报告、知识点讲解/自测与M4结构化题目草稿。演示检索不代表真实理解，语义检索与费曼仍是P1。
+负责Provider/RAG、教学报告、结构化校验与预算。GLM-4.7-Flash课程问答已接入，必须先预览片段并逐次确认发送；问答、报告、结构化题目候选、固定演示、精确片段与持久历史已接入；下一步为M4正式蓝图集成、外部证据契约和人工质量验收。演示检索不代表真实理解，语义检索与费曼仍是P1。
 
 只能消费 M1 已校验的 `Citation`/`ChunkRef`，不能上传文件、修改笔记正文或直接创建正式试卷。
 
@@ -114,7 +128,7 @@ npm run test:e2e --prefix frontend
 
 ## 协作与文档入口
 
-团队分工为：**zhy（A）共享基础层 + M1、xtc（B）M2 AI Study、fzk（C）M3 NoteGraph、gcx（D）M4 ExamPilot**。成员与模块映射由 [roles.md](collaboration/roles.md) 统一维护。
+团队分工为：**zhy（A）共享基础层 + M1、gcx（B）M2 AI Study、fzk（C）M3 NoteGraph、xtc（D）M4 ExamPilot**。成员与模块映射由 [roles.md](collaboration/roles.md) 统一维护。
 
 ```text
 collaboration/                    docs/
@@ -152,14 +166,14 @@ collaboration/                    docs/
 
 ## 当前限制
 
-P0仍需完成M2真实教学报告/M4题目草稿、M3标签与独立知识库ZIP、M4完整拆题校正/映射统计/证据约束三模式生成，以及跨模块最终集成、实机/真人试用和正式发布。OCR、语义检索、费曼/间隔复习为P1。旧二进制`.ppt/.doc`需先另存为`.pptx/.docx`；直接预览不保证完整Office动画与所有复杂版式。扫描PDF可看原页并人工确认补录，不能声称已有OCR。
+P0仍需完成M2真实质量验收/教师与真题证据、M4正式候选接入、M3标签与独立知识库ZIP、M4完整拆题校正/映射统计/证据约束三模式生成，以及跨模块最终集成、实机/真人试用和正式发布。OCR、语义检索、费曼/间隔复习为P1。旧二进制`.ppt/.doc`需先另存为`.pptx/.docx`；直接预览不保证完整Office动画与所有复杂版式。扫描PDF可看原页并人工确认补录，不能声称已有OCR。
 
 真实模型密钥只进后端读取的 `.env`。用户原件、数据库、依赖和构建产物不提交；`fixtures/`和文档证据仅使用自制/获授权资料。完整账户备份与课程资料包用途不同，恢复只到满足UUID/归属约束的空账户。
 协作分支建议使用 `feature/m1-material`、`feature/m2-ai`、`feature/m3-note`、`feature/m4-exam` 和 `fix/<issue>`；跨模块字段先更新 `docs/contracts.md`，再修改代码和调用方。
 
 ## GitHub同步
 
-当前配置为SSH远程 `origin = git@github.com:HAOYI0727/Hustudy.git`；按功能分支提交并推送，再评审合并到`develop`。本次文档更新没有执行提交或推送。具体步骤、现有构建缓存和个人报告删除的暂存核对见[GitHub提交指南](collaboration/github_sync.md)。GitHub源代码同步不等于网站部署，课程要求的Gitee/Wiki证据仍需另行维护。
+当前用户使用GitHub网页手动上传，本地为源码副本，没有Git历史；本轮未上传或发布。先取得团队最新版本，再按[本轮变更清单](docs/gcx/changed_files_2026_10_16.md)上传源码、测试与文档，并注明删除文件和交接ID。早期SSH/分支操作留作历史参考，见[同步说明](collaboration/github_sync.md)。GitHub源代码同步不等于网站部署，课程要求的Gitee/Wiki证据仍需另行维护。
 
 <details>
 <summary>开发历史（旧状态按日期保留，当前结论以上文为准）</summary>
@@ -230,3 +244,21 @@ PPTX/DOCX需要本机LibreOffice转PDF；本机已安装并验证真实转换，
 2026-10-16视觉细化：统一主色、文字层级、按钮/选中/禁用/焦点与语义状态，增加工作区/账户标识、功能图标与可见表单标签；保留电脑/iPad/手机布局及触控尺寸。最新42项双引擎、14Vitest、类型与构建通过，截图与实际边界见[视觉验收](docs/zhy/shared_platform/visual_polish_acceptance.md)。
 
 </details>
+
+### M2结构化响应诊断补充（2026-10-16）
+
+候选真实测试反馈：约400字仍出现结构化输出失败，不能归因为资料过长。候选提示词v2增加完整字段示例；JSON语法错误与字段错误分开显示，只展示白名单字段路径和固定原因，不保留或输出模型原文。重启worker后重新预览确认才使用更新，旧失败记录不改写。模拟HTTP回归76 passed/12.34秒；未调用真实模型，原始失败的具体字段仍待新请求验证。
+
+### M2基础完成状态纠正（2026-10-16）
+
+M2基础功能尚未全部实现和验收。报告标签缺少逐项编辑交互，教师/真题标签依据未接入；真实候选修正复验、真实质量及M4正式组卷对接待验/依赖。当前优先补基础缺口，不以长课件增强或界面美化代替基础交付。逐项依据与下一步见docs/gcx/m2_plan.md最新核查。
+
+### M2基础补齐：标签审阅与教学结构（2026-10-16）
+
+新增重点/难点/考点建议逐项增删改及理由审阅，显式转为可编辑笔记，保留原始AI建议/身份与引用；切换模式和保存失败保留草稿。报告新增知识点分层、报告内概念关系、难点突破步骤及复习建议，兼容旧结果，固定报告演示可离线复验。后端87、前端17、Chrome桌面/窄屏4项通过，未调用真实模型。真实质量、教师/真题证据和M4正式组卷仍待验/依赖。[验收与使用](docs/gcx/basic_acceptance.md)。
+
+M2-LABEL-REVIEW-01用户试用反馈（2026-10-16）：用户表示本轮新增功能尝试后没有问题；记录为本轮人工试用反馈，不代表真实AI质量或全部M2通过。详见docs/gcx/basic_acceptance.md。
+
+M2页面入口现为“资料原文检索、资料问答、学习报告、练习题生成”，入口下显示用途；发送确认在预览区域，结果保留审阅提示。此次仅前端显示调整，刷新浏览器即可，不需重启后端或worker。
+
+手动上传准备：按实际本地目录整理了[上传指南](docs/gcx/upload_guide.md)、[M2累计文件清单](docs/gcx/upload_files_m2.txt)和[完整源码清单](docs/gcx/upload_files_full.txt)。这些是路径清单，不是与远端的差异；排除.env、本机运行数据、依赖/构建/缓存。

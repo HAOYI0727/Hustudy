@@ -1,5 +1,19 @@
 # Hustudy 实施进度
 
+## 2026-10-16 M2-CANDIDATES-01（gcx，当前）
+
+用户授权不按排班日期刻意分段；Codex辅助gcx实现真实候选三模式/三题型与固定自制演示、M4只读目标/原题快照、整批结构/数量/分值/答案/引用/去重校验、审阅展示/JSON导出/历史。问答/报告/候选精确片段，问答持久历史、安全错误细分，完整固定报告替换旧简化模板。无数据库迁移/新依赖/新环境，不调用真实模型、不上传或发布。
+
+最终关联89 passed/27.77秒；全量中间版167 passed/3 failed/44.19秒，仍为Windows既有0600/执行位/符号链接前提，不删改断言。14项Vitest及Ruff/类型/构建/迁移无漂移/Markdown显示安全/PDF检查通过。Chrome及截图范围见[本轮验收](gcx/candidate_acceptance.md)。M4正式章节/蓝图/试卷接入、教师与已确认真题映射证据、真实学科质量与跨浏览器/实机和成员签收仍待。不能据自动通过标全部P0或M2完成。
+
+
+## 2026-10-16 M2-STUDY-REPORT-01（gcx）
+
+Codex辅助gcx完成真实教学报告闭环；用户指定gcx=M2/xtc=M4，沿用现有Anaconda与GitHub网页上传方式。无迁移/新依赖/密钥读取或真实模型调用，未上传或发布。权威接口先同步contracts，报告带来源/覆盖范围、15分钟预览/确认/单次任务、严格schema、逐项引用、UNREVIEWED、历史和可审阅笔记草稿。
+
+最终关联回归45 passed/14.69秒（报告17+原问答20+备份/课程撤权），Vitest14项、Chrome390/1440px共2项17.1秒、Ruff/类型/构建/迁移漂移/Markdown安全显示/PDF实渲染检查通过。全量初次129 passed/3 failed，Windows POSIX权限/执行位/符号链接前提不满足，未改这些既有安全断言。Chrome AI端使用HTTP替身，不算真实模型端到端。详见[gcx验收](gcx/study_report_acceptance.md)及[交接001](../collaboration/handoff.md#h-20261016-gcx-001)。实际学科质量、真实调用、WebKit/实机、M4候选与成员签收仍未验，不标全部P0完成。
+
+
 更新时间：2026-10-16。当前概览：共享层/M1核心自动验收通过，A01–A08 Review、A09/A10 Doing；M2–M4与正式交付仍有P0待办。功能入口见[README](../README.md)，调度见[zhy任务表](../collaboration/zhy/task_status.md)，实际日期与范围见[测试报告](test_report.md)。
 
 最近后端共享检查116项（10-15）；前端14Vitest、42项双引擎/类型构建（10-16）通过。本次DOC-PROGRESS-SYNC-01仅同步文档和GitHub操作指引，没有重跑上述测试或执行提交/推送。下文是按日期保留的历史，不将早期“未实现”当作最新状态。

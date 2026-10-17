@@ -85,7 +85,7 @@ def adapter(monkeypatch, handler):
 @pytest.mark.parametrize(
     "case,code",
     [
-        ("bad_json", "INVALID_OUTPUT"),
+        ("bad_json", "INVALID_JSON"),
         ("extra", "INVALID_OUTPUT"),
         ("empty", "INVALID_OUTPUT"),
         ("fake_id", "INVALID_CITATION"),

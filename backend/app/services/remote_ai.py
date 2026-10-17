@@ -11,8 +11,11 @@ from ..schemas.ai import AIResultResponse
 from ..schemas.material import JobResponse
 from ..schemas.remote_ai import RemoteQueryResponse
 from .courses import owned_course
-from .ai_context import select_context, validate_context
+from .ai_context import select_context, select_report_context, validate_context
 from ..repositories.materials import checked_chunk
+from ..schemas.study_reports import REQUEST_PREFIX, ReportEnvelope, report_envelope
+from ..schemas.question_drafts import CANDIDATE_PREFIX, candidate_envelope
+from .exam_ai_context import validate_candidate_context
 
 
 def provider_status():
@@ -56,10 +59,23 @@ def response(db, row):
         else None
     )
     validated = validated_result(db, result) if result else None
+    report = report_envelope(row.query)
+    candidate = candidate_envelope(row.query)
     return RemoteQueryResponse(
         id=row.id,
         course_id=row.course_id,
-        query=row.query,
+        query=report.goal
+        if report
+        else candidate.request.goal
+        if candidate
+        else row.query,
+        request_kind="study_report"
+        if report
+        else "question_drafts"
+        if candidate
+        else "qa",
+        report_scope=report.model_dump(mode="json") if report else None,
+        candidate_scope=candidate.model_dump(mode="json") if candidate else None,
         model=row.model,
         endpoint=row.endpoint,
         expires_at=row.expires_at,
@@ -73,7 +89,19 @@ def response(db, row):
 
 def validated_result(db, result):
     body = json.loads(result.result_json)
-    for citation in body.get("citations", []):
+
+    def refresh_citations(value):
+        if isinstance(value, list):
+            for item in value:
+                refresh_citations(item)
+        elif isinstance(value, dict):
+            if {"version_id", "chunk_id", "quote"} <= value.keys():
+                refresh_citation(value)
+            else:
+                for item in value.values():
+                    refresh_citations(item)
+
+    def refresh_citation(citation):
         try:
             checked_chunk(
                 db,
@@ -86,6 +114,16 @@ def validated_result(db, result):
             citation["availability"] = "active"
         except (HTTPException, KeyError):
             citation["availability"] = "unavailable"
+
+    refresh_citations(body)
+    if body.get("result_kind") == "question_drafts" and "exam_context" in body:
+        try:
+            validate_candidate_context(
+                db, result.user_id, result.course_id, body["exam_context"]
+            )
+            body["dependency_status"] = "active"
+        except HTTPException:
+            body["dependency_status"] = "stale"
     return AIResultResponse(
         id=result.id,
         course_id=result.course_id,
@@ -96,8 +134,12 @@ def validated_result(db, result):
     )
 
 
-def preview(db, user_id, course_id, payload):
+def preview(
+    db, user_id, course_id, payload, *, report_request=None, candidate_request=None
+):
     owned_course(db, user_id, course_id, lock=True)
+    if payload.query.startswith((REQUEST_PREFIX, CANDIDATE_PREFIX)):
+        raise HTTPException(422, "问题使用了系统保留前缀")
     if not provider_status()["configured"]:
         raise HTTPException(409, "后端尚未配置智谱密钥")
     db.execute(
@@ -121,28 +163,53 @@ def preview(db, user_id, course_id, payload):
         >= 20
     ):
         raise HTTPException(409, "未确认预览已达20条，请等待旧预览过期")
-    sources = select_context(
-        db,
-        user_id,
-        course_id,
-        payload.query,
-        [str(v) for v in payload.version_ids],
-        [str(c) for c in payload.chunk_ids],
-    )
+    query = payload.query
+    if candidate_request:
+        from .question_drafts import prepare, encode
+
+        sources, envelope = prepare(db, user_id, course_id, candidate_request)
+        query = encode(envelope)
+    elif report_request:
+        sources, coverage = select_report_context(
+            db,
+            user_id,
+            course_id,
+            [str(v) for v in report_request.version_ids],
+            [str(c) for c in report_request.chunk_ids],
+        )
+        envelope = ReportEnvelope(
+            goal=report_request.goal,
+            scope_version_ids=list(dict.fromkeys(report_request.version_ids)),
+            chunk_ids=report_request.chunk_ids,
+            study_mode=report_request.study_mode,
+            coverage=coverage,
+        )
+        query = REQUEST_PREFIX + envelope.model_dump_json()
+    else:
+        sources = select_context(
+            db,
+            user_id,
+            course_id,
+            payload.query,
+            [str(v) for v in payload.version_ids],
+            [str(c) for c in payload.chunk_ids],
+        )
     if not sources:
         raise HTTPException(
-            409, "当前范围没有可用关键词证据；不会发送远程请求，请选择资料或片段"
+            409,
+            {
+                "message": "所选范围没有可用原文；不会发送远程请求，请补充资料或确认补录",
+                "status": "insufficient_evidence",
+            },
         )
     s = get_settings()
     key = s.zhipu_api_key.get_secret_value()
-    if key and (
-        key in payload.query or any(key in source["text"] for source in sources)
-    ):
+    if key and (key in query or any(key in source["text"] for source in sources)):
         raise HTTPException(422, "问题或片段包含当前服务密钥，请移除后重试")
     row = RemoteQuery(
         user_id=user_id,
         course_id=course_id,
-        query=payload.query,
+        query=query,
         sources=sources,
         model=s.llm_model,
         endpoint=s.llm_endpoint,
@@ -169,6 +236,7 @@ def confirm(db, user_id, query_id):
     ):
         raise HTTPException(409, "预览已过期或配置已改变，请重新预览")
     validate_context(db, user_id, row.course_id, row.sources)
+    validate_request_dependencies(db, row)
     active = db.scalar(
         select(ProcessingJob.id)
         .join(RemoteQuery, RemoteQuery.job_id == ProcessingJob.id)
@@ -191,6 +259,14 @@ def confirm(db, user_id, query_id):
     db.commit()
     db.refresh(row)
     return response(db, row)
+
+
+def validate_request_dependencies(db, row):
+    candidate = candidate_envelope(row.query)
+    if candidate:
+        validate_candidate_context(
+            db, row.user_id, row.course_id, candidate.exam_context
+        )
 
 
 def cancel(db, user_id, query_id):

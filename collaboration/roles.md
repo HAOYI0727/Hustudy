@@ -5,9 +5,9 @@
 | 成员 | 角色与主责 | 进度入口 | 功能与优化证据 |
 |---|---|---|---|
 | zhy / 张昊轶 | A 队长：共享层 + M1 MaterialHub、最终集成 | [zhy](zhy/README.md) | [docs/zhy](../docs/zhy/README.md) |
-| xtc / 向天晨 | B：M2 AI Study | [xtc](xtc/README.md) | [docs/xtc](../docs/xtc/README.md) |
+| xtc / 向天晨 | D：M4 ExamPilot | [xtc](xtc/README.md) | [docs/xtc](../docs/xtc/README.md) |
 | fzk / 付振琨 | C：M3 NoteGraph | [fzk](fzk/README.md) | [docs/fzk](../docs/fzk/README.md) |
-| gcx / 高长鑫 | D：M4 ExamPilot | [gcx](gcx/README.md) | [docs/gcx](../docs/gcx/README.md) |
+| gcx / 高长鑫 | B：M2 AI Study | [gcx](gcx/README.md) | [docs/gcx](../docs/gcx/README.md) |
 
 持续交接统一追加到 [handoff.md](handoff.md)，个人目录不会改变下面的代码修改边界。公共契约依然只有一套。
 

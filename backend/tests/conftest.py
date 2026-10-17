@@ -12,3 +12,11 @@ os.environ["HUSTUDY_ZHIPU_API_KEY"] = "deterministic-test-key"
 
 # Deterministic tests never depend on Office being installed on the host.
 os.environ["HUSTUDY_LIBREOFFICE_PATH"] = "/nonexistent/hustudy-test-office"
+
+
+def pytest_sessionfinish(session, exitstatus):
+    # Windows cannot remove a temporary SQLite DB while the pool holds it open.
+    from app.core.database import engine
+
+    engine.dispose()
+    _test_directory.cleanup()

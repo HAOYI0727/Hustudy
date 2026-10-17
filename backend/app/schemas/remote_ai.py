@@ -49,6 +49,9 @@ class RemoteQueryResponse(BaseModel):
     id: str
     course_id: str
     query: str
+    request_kind: Literal["qa", "study_report", "question_drafts"] = "qa"
+    report_scope: dict | None = None
+    candidate_scope: dict | None = None
     model: str
     endpoint: str
     expires_at: datetime

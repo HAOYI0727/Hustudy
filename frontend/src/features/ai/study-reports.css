@@ -1,0 +1,30 @@
+.study-report { overflow-wrap: anywhere; }
+.study-report .report-section { padding: 16px 0; border-top: 1px solid #e4e9f3; }
+.study-report h4 { margin: 0 0 12px; color: #35486f; }
+.study-report ul, .study-report ol { padding-left: 22px; line-height: 1.9; }
+.study-report .report-label { padding: 12px; border-radius: 10px; background: #f2f5fc; line-height: 1.7; }
+.study-report .report-label-difficult { background: #fff6e9; }
+.study-report .report-label-exam { background: #edf7f3; }
+.study-report .report-sources { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.study-report .report-sources button { white-space: normal; text-align: left; }
+.study-report .report-exercise { padding: 12px 0; border-bottom: 1px dashed #e4e9f3; }
+.study-report summary { cursor: pointer; color: #536eac; padding: 8px 0; }
+.report-history { border-top: 1px solid #e4e9f3; margin-top: 20px; padding-top: 12px; }
+.report-history .relation-link { display: block; width: 100%; text-align: left; overflow-wrap: anywhere; }
+.real-ai-workspace .candidate-settings { display: grid; min-width: 0; gap: 12px; border: 1px solid #e4e9f3; border-radius: 10px; padding: 14px; }
+.real-ai-workspace .candidate-settings > label { display: grid; gap: 6px; }
+.real-ai-workspace .candidate-settings legend { color: #536eac; padding: 0 6px; }
+.real-ai-workspace .ai-scope-picker > label { display: grid; gap: 6px; margin: 10px 0; }
+.report-label-editor { max-width: 980px; margin: 0 auto; overflow-wrap: anywhere; }
+.report-label-editor fieldset { min-width: 0; border: 1px solid #e4e9f3; border-radius: 12px; padding: 16px; margin: 16px 0; }
+.report-label-editor legend { padding: 0 8px; color: #35486f; font-weight: 600; }
+.report-label-editor summary { cursor: pointer; padding: 10px 0; color: #536eac; }
+.report-label-editor blockquote { margin: 10px 0; padding-left: 12px; border-left: 3px solid #d4dff5; }
+.report-label-row { display: grid; grid-template-columns: minmax(110px, 150px) minmax(0, 1fr) auto; gap: 12px; align-items: start; padding: 16px 0; border-top: 1px solid #e4e9f3; }
+.report-label-row label { display: grid; gap: 8px; min-width: 0; }
+.report-label-row > button { margin-top: 24px; }
+.ai-draft .editor-footer { flex-wrap: wrap; gap: 8px; }
+@media (max-width: 760px) {
+  .report-label-row { grid-template-columns: minmax(0, 1fr); }
+  .report-label-row > button { margin-top: 0; justify-self: start; }
+}

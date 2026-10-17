@@ -1,5 +1,21 @@
 # Hustudy 当前测试报告
 
+## 2026-10-16 M2-CANDIDATES-01（当前增量）
+
+最终M2/备份/课程撤权/M1关联89 passed/27.77秒；全量中间版167 passed/3 failed/44.19秒，仍为既有Windows 0600/执行位/符号链接权限前提。此全量早于固定报告2项新增，不推算最终全量成绩。14项Vitest、Ruff/类型/构建、临时库迁移无漂移、Markdown/AI显示安全、PDF实渲染通过。
+
+候选Chrome操作使用真实临时API和固定模型，报告真实AI操作使用HTTP替身。最终浏览器补验和截图见[gcx验收](gcx/candidate_acceptance.md)。不读取用户资料或使用真实密钥；真实质量、WebKit/实机/成员签收待验，不能标全部通过。
+
+
+## 2026-10-16 M2报告 / gcx
+
+本轮Codex辅助gcx，未上传GitHub或发布。最终模块与关联回归45 passed/14.69秒，Vitest14、Chrome2（390/1440px）通过；Ruff/类型/构建/迁移漂移/Markdown安全显示/PDF实际渲染通过。证据与命令见[gcx验收](gcx/study_report_acceptance.md)。
+
+全量后端初次129 passed/3 failed，29.37秒，发生在报告备份往返用例新增之前；不与45项相加。失败均在未改动的既有测试：test_jwt_contract.py的0600断言、test_preview_recovery.py的POSIX执行位、test_storage_contract.py的符号链接特权（WinError1314）。未标记skip或删断言；需要队长后续统一平台验收。测试夹具已释放SQLite池以免Windows临时库清理错误。沙箱环境本地socket/缓存rename受限，相关验证在沙箱外以临时库/假密钥执行。
+
+Chrome真实临时账户/资料/笔记API、AI HTTP替身；未发起真实模型请求，不等于学科质量或真实模型端到端通过。人工审阅、跨浏览器/实机与团队签收待补。
+
+
 更新日期：2026-10-16；记录者：Codex（zhy队长会话辅助），本人审阅待填。报告只记录运行证据，工作区未提交/合并。
 
 最近后端共享检查（2026-10-15）`bash scripts/check.sh`：**116 pytest passed（原格式切片19.60秒）、14 Vitest**，Ruff、临时迁移/ORM漂移、安全Markdown/AI显示、PDF.js双页、TypeScript/Vite均通过。独立Python3.12.13工作区116项16.96秒；2026-10-16前端最新完整回归42项3.6分钟、14Vitest、类型/构建通过，无重试。保留1条Starlette/anyio弃用警告，主包约489.66KB/按需PDF492.56KB，原格式阅读器按需加载。运行库head0012，本轮无迁移。
@@ -66,3 +82,15 @@ M1-SEARCH-02最终边界复验：跨窗口删除15篇笔记后旧结果页为空
 最终完整Chrome/WebKit各21项共42passed3.6分钟，无重试；包含新关键配色/区域账户标识/减少动效场景及此前全部闭环和5尺寸触控布局。7处实际DOM文字/控件配色抽样≥4.5，不声称完整无障碍审计。14Vitest（397ms）、类型检查与Vite构建通过；主包489.66KB、按需PDF492.56KB。无后端/迁移改动，未在本轮重跑pytest/容量/独立3.12。
 
 首轮跨夜33passed/9超时、6.2小时，部分超时记录长达数十分钟/小时；未核实系统休眠日志，不武断归因或当性能数据。连续全量重跑42项均通过，未扩大超时/开启重试；临时caffeinate随测试结束退出。原日志/tmp/hustudy-visual-02-e2e.log，最终/tmp/hustudy-visual-02-final-e2e.log。[验收及截图](zhy/shared_platform/visual_polish_acceptance.md)。
+
+## 2026-10-16 M2结构化响应错误反馈回归
+
+命令：`E:\Anaconda\python.exe -m pytest backend/tests/test_ai_error_details.py backend/tests/test_question_drafts.py backend/tests/test_remote_ai.py backend/tests/test_study_reports.py -q`。实际：76 passed in 12.34s。新增语法/字段错误区分、未知字段和值不泄露、候选缺失必填路径及不重试验证；Ruff针对providers.py、question_drafts.py和test_ai_error_details.py通过。临时数据库/假密钥/模拟HTTP，未调用真实模型；未证明历史400字请求具体错在哪个字段，也不声明真实候选输出质量已通过。
+
+## M2-LABEL-REVIEW-01最终验证（2026-10-16）
+
+87项后端23.29秒、17项Vitest291ms、4项Chrome28.1秒，生产构建/TypeScript/Markdown安全/Ruff通过；含教学结构/非法概念关系/旧报告兼容，标签快照、保存失败恢复和真实临时笔记API引用验证。全部为临时数据/模拟HTTP或固定演示，未调用真实模型；不标全站/实机/WebKit或真实学科质量通过。[命令、结果、截图及限制](gcx/basic_acceptance.md)。
+
+## M2入口命名复验（2026-10-16）
+
+仅改前端名称及用途说明。npm run check --prefix frontend通过；既有study-reports/question-drafts的Chrome390/1440流程4 passed（25.3s）；responsive-layout的“关键文字配色、工作区标识与减少动效”单项1 passed（12.4s）。临时数据/模拟AI，未调用真实服务。本轮未重跑后端或全量测试。

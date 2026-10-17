@@ -1,5 +1,17 @@
 # Hustudy 四人协作与课程交付指南
 
+## 2026-10-16 M2继续推进（最新要求）
+
+用户授权M2不再按轮换日期刻意分段，能独立交付的P0持续提前完成；日期仅作团队协调，不作为停工条件。当前已接入真实三模式/三题型候选、固定自制报告/题目演示、精确片段、问答历史与错误细分。M4正式章节映射/试卷集成、M1教师标注和M4完整确认映射/统计契约仍为真实依赖；学科质量、实机和签收需要实际验收。当前状态见docs/gcx/m2_plan.md及candidate_acceptance.md（相对本项目根）。以下保留前一切片和历史进度，不以旧“待后续”覆盖当前结果。
+
+
+## 2026-10-16 当前协作变更
+
+用户确认：gcx=B/M2，xtc=D/M4，fzk=M3、zhy=共享层/M1。gcx开发时段为10月16–17日、10月24–25日、11月1日；xtc使用原gcx时段。11月5–6日完善网站与汇报。当前使用GitHub网页手动上传，不要求本地Git或新建Python环境；历史分支/角色描述保留为当时记录。当前唯一分工见collaboration/roles.md。
+
+本轮M2-STUDY-REPORT-01由Codex辅助gcx实现真实章节报告，覆盖预览/确认/任务/结构化讲解/例题/自测/引用/笔记草稿/历史。详见docs/gcx/m2_plan.md和docs/gcx/study_report_acceptance.md；M4真实题目候选、教师/真题标签与完整学科质量验收仍待后续，不标整个M2或P0完成。
+
+
 本文与 `AGENTS.md`、`main_idea.md`、`Hustudy_requirements.md` 一起使用，专门解决“队长搭建基础框架、三名成员并行开发、最终能够集成验收”的协作问题。
 
 ## 1. 总体组织方式
@@ -18,7 +30,7 @@ Hustudy 采用一个共享基础层和四个业务模块：
 
 ## 2. 四名成员的职责和十项任务
 
-角色 A 为 zhy（张昊轶）队长，负责共享层、M1 和最终集成；B 为 xtc（向天晨）负责 M2；C 为 fzk（付振琨）负责 M3；D 为 gcx（高长鑫）负责 M4。成员映射统一见 `collaboration/roles.md`，仓库账号/Issue/PR/Wiki 地址按实际补充。
+角色 A 为 zhy（张昊轶）队长，负责共享层、M1 和最终集成；B 为 gcx（高长鑫）负责 M2；C 为 fzk（付振琨）负责 M3；D 为 xtc（向天晨）负责 M4。成员映射统一见 `collaboration/roles.md`，仓库账号/Issue/PR/Wiki 地址按实际补充。
 
 个人协作进度放 `collaboration/<成员>/progress.md`，功能与优化放 `docs/<成员>/features.md`、`optimizations.md`；根级文件维护公共契约、规则、操作和集成状态。每个切片提交/PR 前追加 `collaboration/handoff.md`，接收人记录真实复验，队长汇总任务板/进度/追踪。模板不代表本人已完成或已接收。完整维护约束见 `AGENTS.md` 第 20 节。
 

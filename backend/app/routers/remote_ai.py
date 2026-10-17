@@ -5,8 +5,210 @@ from ..dependencies import current_user
 from ..models import User
 from ..schemas.remote_ai import PreviewRequest, ConsentRequest, RemoteQueryResponse
 from ..services import remote_ai
+from ..schemas.study_reports import (
+    ReportPreviewRequest,
+    REPORT_PROMPT_VERSION,
+    DEMO_REPORT_PROMPT_VERSION,
+)
+from ..schemas.ai import AIResultResponse
+from ..models import AIResult
+from ..services.courses import owned_course
+from sqlalchemy import select
+from fastapi import HTTPException
+from ..schemas.question_drafts import (
+    CandidateRequest,
+    CANDIDATE_PROMPT_VERSION,
+    DEMO_PROMPT_VERSION,
+)
+from ..services import question_drafts
+from ..services.exam_ai_context import candidate_context
+from ..ai.providers import PROMPT_VERSION
 
 router = APIRouter(prefix="/api/v1", tags=["ai"])
+
+
+@router.post(
+    "/courses/{course_id}/study-reports/demo",
+    response_model=AIResultResponse,
+    status_code=201,
+)
+def demo_report(
+    course_id: str,
+    payload: ReportPreviewRequest,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    from ..services.study_report_demo import demo_report as generate_demo
+
+    return remote_ai.validated_result(
+        db, generate_demo(db, user.id, course_id, payload)
+    )
+
+
+@router.get("/courses/{course_id}/question-draft-context")
+def draft_context(
+    course_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)
+):
+    return candidate_context(db, user.id, course_id)
+
+
+@router.post(
+    "/courses/{course_id}/question-drafts/preview",
+    response_model=RemoteQueryResponse,
+    status_code=201,
+)
+def preview_candidates(
+    course_id: str,
+    payload: CandidateRequest,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    return remote_ai.preview(
+        db,
+        user.id,
+        course_id,
+        PreviewRequest(
+            query=payload.goal,
+            version_ids=payload.version_ids,
+            chunk_ids=payload.chunk_ids,
+        ),
+        candidate_request=payload,
+    )
+
+
+@router.post(
+    "/courses/{course_id}/question-drafts/demo",
+    response_model=AIResultResponse,
+    status_code=201,
+)
+def demo_candidates(
+    course_id: str,
+    payload: CandidateRequest,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    return remote_ai.validated_result(
+        db, question_drafts.demo(db, user.id, course_id, payload)
+    )
+
+
+@router.get(
+    "/courses/{course_id}/question-drafts", response_model=list[AIResultResponse]
+)
+def candidate_history(
+    course_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)
+):
+    owned_course(db, user.id, course_id)
+    rows = db.scalars(
+        select(AIResult)
+        .where(
+            AIResult.user_id == user.id,
+            AIResult.course_id == course_id,
+            AIResult.prompt_version.in_(
+                [CANDIDATE_PROMPT_VERSION, DEMO_PROMPT_VERSION]
+            ),
+        )
+        .order_by(AIResult.created_at.desc(), AIResult.id.desc())
+        .limit(20)
+    )
+    return [remote_ai.validated_result(db, row) for row in rows]
+
+
+@router.get("/question-drafts/{result_id}", response_model=AIResultResponse)
+def saved_candidates(
+    result_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)
+):
+    row = db.scalar(
+        select(AIResult).where(
+            AIResult.id == result_id,
+            AIResult.user_id == user.id,
+            AIResult.prompt_version.in_(
+                [CANDIDATE_PROMPT_VERSION, DEMO_PROMPT_VERSION]
+            ),
+        )
+    )
+    if row is None:
+        raise HTTPException(404, "候选结果不存在")
+    owned_course(db, user.id, row.course_id)
+    return remote_ai.validated_result(db, row)
+
+
+@router.get("/courses/{course_id}/ai-results", response_model=list[AIResultResponse])
+def query_history(
+    course_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)
+):
+    owned_course(db, user.id, course_id)
+    rows = db.scalars(
+        select(AIResult)
+        .where(
+            AIResult.user_id == user.id,
+            AIResult.course_id == course_id,
+            AIResult.prompt_version.in_([PROMPT_VERSION, "mock-v1"]),
+            ~AIResult.query.startswith("study-report:"),
+        )
+        .order_by(AIResult.created_at.desc(), AIResult.id.desc())
+        .limit(20)
+    )
+    return [remote_ai.validated_result(db, row) for row in rows]
+
+
+@router.post(
+    "/courses/{course_id}/study-reports/preview",
+    response_model=RemoteQueryResponse,
+    status_code=201,
+)
+def preview_report(
+    course_id: str,
+    payload: ReportPreviewRequest,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    return remote_ai.preview(
+        db,
+        user.id,
+        course_id,
+        PreviewRequest(query=payload.goal, version_ids=payload.version_ids),
+        report_request=payload,
+    )
+
+
+@router.get("/courses/{course_id}/study-reports", response_model=list[AIResultResponse])
+def report_history(
+    course_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)
+):
+    owned_course(db, user.id, course_id)
+    rows = db.scalars(
+        select(AIResult)
+        .where(
+            AIResult.user_id == user.id,
+            AIResult.course_id == course_id,
+            AIResult.prompt_version.in_(
+                [REPORT_PROMPT_VERSION, DEMO_REPORT_PROMPT_VERSION]
+            ),
+        )
+        .order_by(AIResult.created_at.desc(), AIResult.id.desc())
+        .limit(20)
+    )
+    return [remote_ai.validated_result(db, row) for row in rows]
+
+
+@router.get("/study-reports/{result_id}", response_model=AIResultResponse)
+def saved_report(
+    result_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)
+):
+    row = db.scalar(
+        select(AIResult).where(
+            AIResult.id == result_id,
+            AIResult.user_id == user.id,
+            AIResult.prompt_version.in_(
+                [REPORT_PROMPT_VERSION, DEMO_REPORT_PROMPT_VERSION]
+            ),
+        )
+    )
+    if row is None:
+        raise HTTPException(404, "学习报告不存在")
+    owned_course(db, user.id, row.course_id)
+    return remote_ai.validated_result(db, row)
 
 
 @router.get("/ai/provider")

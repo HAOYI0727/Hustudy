@@ -336,3 +336,44 @@
 - SSH fetch被GitHub公钥认证拒绝；已通过连接器确认本人HAOYI0727具目标仓库写入权限，改用授权GitHub接口发布同一Git树。未修改原远程SSH设置，不输出或索取密钥。
 - 阶段测试引用既有10-15后端116项、10-16前端14Vitest/42双引擎，不重跑或冒记本次测量。首次完整暂存检查发现上游许可证保留空白及2处源码EOF空行；仅清理2处源码EOF，原许可证不改写，其余源码/文档空白检查继续执行。
 - 本人/成员评审与develop集成、全P0/实机/真实用户/正式发布仍待；本次仅发布功能分支。实际commit/远端一致性以完成后的核对记录为准。
+
+<a id="h-20261016-gcx-001"></a>
+### H-20261016-GCX-001：M2真实章节报告闭环
+
+- 日期/成员：2026-10-16，gcx=B/M2，Codex辅助实现；用户已确认与xtc交换模块和时段。
+- 状态：待接收/Review；工作区未上传GitHub、无commit/PR/发布。人工审阅待gcx本人填写，未代签其他成员。
+- 需求/任务：FR-16–20、FR-18.1–12；B02/03/05–10。功能/操作/真实证据见[gcx验收](../docs/gcx/study_report_acceptance.md)、[后续计划](../docs/gcx/m2_plan.md)。
+- 修改：M2 schema/provider/service/router/worker、AI页面及报告展示、测试与Windows验证入口；共享只读来源新增报告范围查询。无新数据库schema/迁移/依赖；不改M3/M4业务内部，不自动调用真实模型。
+- 契约：courses/{id}/study-reports/preview → 既有remote-queries确认/查询/取消 → 持久报告及历史；具体见[公共契约](../docs/contracts.md)。仅发送所见范围、预算/截断明确；教学标签仅AI建议，真实质量需人工核实。
+- 真实验证：最终关联回归45 passed/14.69秒；Vitest14、Chrome390/1440px共2 passed/17.1秒；Ruff/类型/构建/迁移漂移/Markdown显示安全/PDF实渲染通过。全量初次129通过/3个既有Windows权限前提失败；不是全站通过。Chrome AI响应为替身，真实模型端到端未验。
+- 接收人：xtc（M4候选接口后续依赖）、fzk（报告草稿到笔记）、zhy（共享来源与集成）。请各自复验，不将待接收当已验收。
+- 下一步：重启API/worker，用户自行确认发送以核对真实报告；10月24–25日统一M4枚举并实现QuestionDraft；WebKit/实机、学科质量、全站Windows测试适配待补。
+- 接收/复验：待接收人本人填写。
+
+<a id="h-20261016-gcx-002"></a>
+### H-20261016-GCX-002：M2候选、精确来源、完整演示与错误诊断
+
+- 日期/成员：2026-10-16，gcx=B/M2，Codex辅助实现。用户最新授权取消M2按日期刻意分段，按依赖持续提前交付。
+- 状态：Review/待接收；本地工作区未上传GitHub/未发布，无commit/PR。gcx本人审阅、xtc/fzk/zhy接收均待本人填写。
+- 范围：真实3模式/3题型QuestionDraft，严格整批校验、M4只读目标/已确认原题快照、完整固定报告和候选演示、精确片段、持久问答/候选历史、安全错误细分、作者审阅与JSON导出。M2 schema/provider/service/router/worker和AI页面/测试/文档；新增exam_ai_context只读桥，不commit，不改M4业务状态或共享数据库schema。
+- 输入/输出：先以courses/{id}/question-drafts/preview取得不可变设置/目标/原题/材料，再沿用remote-queries确认/查询/取消；输出永远draft候选。公开[QuestionDraft Schema](../docs/gcx/question_draft_schema.json)，只读桥的to_exam_enums提供旧模式/题型转换。完整API见[契约](../docs/contracts.md)。
+- 实际测试：最终关联89 passed/27.77秒；Chrome390/1440px报告/候选/精确选择/导出/历史/固定报告共4 passed/22.5秒；Vitest14、Ruff/类型/构建、迁移无漂移/安全显示/PDF通过。全量中间版167通过/3个既有Windows权限前提失败，44.19秒；不声称最终全量或真实学科质量通过。
+- 证据：[本轮验收](../docs/gcx/candidate_acceptance.md)、[当前B01–B10与依赖](../docs/gcx/m2_plan.md)、[人工评估空表](../docs/gcx/evaluation_checklist.md)、[累计上传清单](../docs/gcx/changed_files_2026_10_16.md)。用户此前报告基本正常，仅作操作反馈，不代填质量正确率。
+- 真实依赖：M4未提供章节UUID实体，候选chapter_id暂为DocumentVersion UUID并声明chapter_ref_kind=document_version；xtc需映射正式蓝图、重新校验全卷数量/章节/分值/状态并冻结来源，不能直接当正式试卷。M1教师标注/M4完整确认映射和统计证据契约缺失，报告teacher_mark/observed_exam仍未接入。原题确认不等于考点映射确认。
+- 接收人：xtc（候选服务/正式章节与试卷接入）、fzk（报告/问答草稿与来源）、zhy（只读桥、共享集成、Windows测试前提）。不自动外发消息，不代签。
+- 用户复验：重启API和worker，刷新AI页面；可用自制资料/“进程与线程”Topic运行固定候选/报告，或自行预览确认真实请求。真实质量/WebKit/实机/成员接收仍待。
+- 接收/复验：待接收人本人填写。
+
+## H-20261016-GCX-003
+
+2026-10-16，Codex辅助gcx，M2结构化响应诊断；工作区未提交/未上传，待接收。接收人：xtc、zhy（未签收）。用户约400字请求仍结构化输出失败，历史原始错误原因未知。Provider区分INVALID_JSON与INVALID_OUTPUT，后者message仅含schema白名单字段路径与固定原因；候选prompt v2提供完整示例，QuestionDraft与DB不变。76项回归通过/12.34秒，Ruff通过；未调用真实模型。重启worker后新确认请求使用更新，旧记录不迁移。详情见docs/gcx/optimizations.md。
+
+## H-20261016-GCX-004
+
+2026-10-16，Codex辅助gcx，M2-LABEL-REVIEW-01，工作区未提交/未上传，待接收。接收人fzk/xtc/zhy，未代签。补FR-38标签审阅→Markdown正文→现有笔记接口，保留原始AI结果/建议/引用；报告新增可选教学分层/概念关系/难点步骤/复习建议，旧JSON兼容，提示词/固定演示v2，无数据库迁移和新依赖。M3接口未改。后端87/前端17/Chrome4、构建/安全/Ruff通过；未调用真实模型。教师/真题依据、M4正式蓝图映射、真实质量与实机仍待接收复验。详情见[验收](../docs/gcx/basic_acceptance.md)。
+
+H-20261016-GCX-004用户反馈补充（2026-10-16）：gcx表示本轮新增功能试用后认为没有问题；未代签fzk/xtc/zhy接收，未关闭真实模型质量及跨模块依赖。此次仅文档更新。
+
+## H-20261016-GCX-005
+
+2026-10-16，Codex辅助gcx，M2入口命名与用途说明；工作区未提交/未上传，待接收，未代签其他成员。入口名改为资料原文检索、资料问答、学习报告、练习题生成；本地检索不调用模型，预览确认及结果审阅流程保持。修改frontend/src/features/ai/index.tsx及现有浏览器定位，测试更新不涉及其他模块行为。TypeScript检查通过，4项M2 Chrome流程通过/25.3秒。文档见gcx/features、optimizations和个人progress；无API/schema/依赖变化，不需后端/worker重启。
