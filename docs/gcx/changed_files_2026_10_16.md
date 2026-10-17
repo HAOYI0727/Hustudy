@@ -1,5 +1,9 @@
 # M2-STUDY-REPORT-01 手动上传清单
 
+2026-10-17 M2-TOPICS-REUSE：新生成练习题逐题选择/校验本次所选知识点子集并显示名称；三种真实AI预览可显式复用同用户/课程/请求/来源/模型/当前提示词下的完整成功结果，无新任务或模型调用。保留确认后重新生成；变更或失效则拒绝复用，无依赖/迁移。新增ai_result_reuse.py、ReusableResult.tsx、test_ai_topics_reuse.py、ai-topics-reuse.test.ts、ai-result-reuse.spec.ts必须一起上传；[完整本次清单](topics_reuse_2026_10_17.md)。旧83项副本不代表累计修改。
+
+2026-10-17最新增量M2-REAL-MATERIALS：[新增与修改文件、验证、重启](real_materials_2026_10_17.md)。新增ai_material_scope.py、report_batches.py、test_real_materials.py、ai-workspace.css等必须一并提交，不可仅覆盖原83项旧副本。无新依赖/迁移；旧已上传/已下载目录未自动更新，之前模型切换/引用等未提交增量也需保留。以下清单为历史记录。
+
 2026-10-16，Codex辅助gcx；本地无Git，以下按本轮实际编辑路径整理，不是git diff。不含自动生成的Office运行时、dist、缓存、用户数据或密钥。本轮没有删除业务文件，也没有新增迁移/依赖。上传前以团队最新版本对照，保留其他成员修改。
 
 ## 源码与检查入口
@@ -164,3 +168,42 @@ xtc目录仅同步用户授权的分工更正，不填写其个人成果或签�
 ## 上传文件清单整理
 
 另含docs/gcx/upload_guide.md、upload_files_full.txt、upload_files_m2.txt。按当前目录过滤出完整源码清单和累计M2去重清单，不含.env、运行数据或缓存；不代表已核对远端差异。
+
+## 2026-10-17 完整范围审计（旧上传合并后的新文档变更）
+
+新增docs/gcx/m2_remaining_audit_2026_10_17.md；更新AGENTS.md、README.md、docs/gcx/m2_plan.md、docs/gcx/README.md、collaboration/gcx/README.md、collaboration/gcx/progress.md和本清单。仅文档，尚未再次上传；旧83项上传副本保留原始已验证版本，不将新增审计伪称已包含于旧提交。
+
+## 2026-10-17 GLM-5.3-Flash切换（旧合并后的新改动）
+
+以下为此次代码与相关最新文档；不上传本机.env。旧83项清单/上传副本不改写，不伪称新内容已上传。
+
+- `backend/app/core/config.py`
+- `backend/app/ai/providers.py`
+- `backend/app/services/remote_ai.py`
+- `scripts/configure_zhipu.py`
+- `.env.example`
+- `backend/tests/conftest.py`
+- `backend/tests/test_remote_ai.py`
+- `backend/tests/test_model_switch.py`
+- `frontend/tests/e2e/study-reports.spec.ts`
+- `AGENTS.md`
+- `README.md`
+- `docs/contracts.md`
+- `docs/api.md`
+- `docs/decisions.md`
+- `docs/test_report.md`
+- `docs/setup_guide.md`
+- `docs/gcx/README.md`
+- `docs/gcx/features.md`
+- `docs/gcx/optimizations.md`
+- `docs/gcx/m2_plan.md`
+- `docs/gcx/model_switch_2026_10_17.md`
+- `docs/gcx/m2_remaining_audit_2026_10_17.md`
+- `collaboration/gcx/README.md`
+- `collaboration/gcx/progress.md`
+- `collaboration/handoff.md`
+- `docs/gcx/changed_files_2026_10_16.md`
+
+项目外diagnose_zhipu_minimal.py也增加模型参数，但不是运行必需，不包含于源码交接。
+
+本轮既有浏览器测试重新生成docs/gcx/evidence下study-report、question-drafts、label-review的390/1440截图（临时账户/模拟模型），若同步验收图片请一并上传；不上传test-results或真实运行数据。

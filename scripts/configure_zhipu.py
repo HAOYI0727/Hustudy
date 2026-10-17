@@ -9,7 +9,12 @@ import sys
 import tempfile
 
 
-def configure(root, key):
+SUPPORTED_MODELS = ("glm-4.7-flash", "glm-5.3-flash")
+
+
+def configure(root, key, model="glm-5.3-flash"):
+    if model not in SUPPORTED_MODELS:
+        raise ValueError("Unsupported model")
     if not re.fullmatch(r"[A-Za-z0-9._-]{16,512}", key):
         raise ValueError("API key format is invalid")
     path = root / ".env"
@@ -18,7 +23,7 @@ def configure(root, key):
     content = path.read_text() if path.exists() else (root / ".env.example").read_text()
     updates = {
         "HUSTUDY_LLM_PROVIDER": "zhipu",
-        "HUSTUDY_LLM_MODEL": "glm-4.7-flash",
+        "HUSTUDY_LLM_MODEL": model,
         "HUSTUDY_LLM_ENDPOINT": "https://open.bigmodel.cn/api/paas/v4/chat/completions",
         "HUSTUDY_ZHIPU_API_KEY": key,
     }
@@ -47,6 +52,7 @@ def configure(root, key):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--stdin", action="store_true")
+    parser.add_argument("--model", choices=SUPPORTED_MODELS, default="glm-5.3-flash")
     args = parser.parse_args()
     key = (
         sys.stdin.readline().strip()
@@ -54,7 +60,7 @@ if __name__ == "__main__":
         else getpass.getpass("Zhipu API key (hidden): ")
     )
     try:
-        configure(Path(__file__).resolve().parents[1], key)
+        configure(Path(__file__).resolve().parents[1], key, args.model)
     except ValueError as error:
         print(str(error), file=sys.stderr)
         sys.exit(1)

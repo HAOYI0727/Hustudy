@@ -99,10 +99,13 @@ def adapter(monkeypatch, handler):
         ("oversize", "RESPONSE_BUDGET"),
     ],
 )
-def test_provider_rejects_bad_outputs_without_exposing_bodies(case, code):
+@pytest.mark.parametrize("model", ["glm-4.7-flash", "glm-5.3-flash"])
+def test_provider_rejects_bad_outputs_without_exposing_bodies(case, code, model):
     s = source()
     settings = Settings(
-        llm_provider="zhipu", zhipu_api_key=SecretStr("synthetic-private-key")
+        llm_provider="zhipu",
+        zhipu_api_key=SecretStr("synthetic-private-key"),
+        llm_model=model,
     )
     output = payload(s)
     if case == "extra":
@@ -120,9 +123,14 @@ def test_provider_rejects_bad_outputs_without_exposing_bodies(case, code):
         assert request.url.host == "open.bigmodel.cn"
         assert request.headers["Authorization"] == "Bearer synthetic-private-key"
         body = json.loads(request.content)
-        assert body["thinking"] == {"type": "disabled"} and body["response_format"] == {
-            "type": "json_object"
-        }
+        assert body["model"] == model
+        assert body["response_format"] == {"type": "json_object"}
+        if model == "glm-5.3-flash":
+            assert body["thinking"] == {"type": "enabled", "clear_thinking": False}
+            assert body["reasoning_effort"] == "low"
+        else:
+            assert body["thinking"] == {"type": "disabled"}
+            assert "reasoning_effort" not in body
         assert "synthetic-private-key" not in request.content.decode()
         if case == "timeout":
             raise httpx.ReadTimeout("synthetic-private-key", request=request)
@@ -227,7 +235,7 @@ def test_preview_consent_replay_real_result_and_note_source(configured, monkeypa
             body = json.loads(request.content)
             sent = json.loads(body["messages"][1]["content"])
             assert "秘密资料" not in request.content.decode()
-            assert set(sent["sources"][0]) == {"source_id", "text"}
+            assert set(sent["sources"][0]) == {"source_id", "excerpts"}
             calls.append(body)
             first = sent["sources"][0]
             return httpx.Response(
@@ -239,8 +247,7 @@ def test_preview_consent_replay_real_result_and_note_source(configured, monkeypa
                             "answer": "五个苹果。",
                             "evidence": [
                                 {
-                                    "source_id": first["source_id"],
-                                    "quote": "两个苹果加三个苹果等于五个苹果。",
+                                    "excerpt_id": first["excerpts"][0]["excerpt_id"],
                                 }
                             ],
                         }

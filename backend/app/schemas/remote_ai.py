@@ -26,17 +26,27 @@ class ConsentRequest(BaseModel):
         return self
 
 
+class ReuseRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    result_id: UUID
+
+
 class Evidence(BaseModel):
     model_config = ConfigDict(extra="forbid")
     source_id: UUID
     quote: Text = Field(max_length=500)
 
 
+class ExcerptReference(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    excerpt_id: str = Field(pattern=r"^E[1-9][0-9]{0,2}$")
+
+
 class GroundedAnswer(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
     status: Literal["grounded", "insufficient_evidence"]
     answer: Text = Field(max_length=8000)
-    evidence: list[Evidence] = Field(max_length=6)
+    evidence: list[ExcerptReference | Evidence] = Field(max_length=6)
 
     @model_validator(mode="after")
     def valid_status(self):
@@ -52,6 +62,7 @@ class RemoteQueryResponse(BaseModel):
     request_kind: Literal["qa", "study_report", "question_drafts"] = "qa"
     report_scope: dict | None = None
     candidate_scope: dict | None = None
+    batch_progress: dict | None = None
     model: str
     endpoint: str
     expires_at: datetime
@@ -60,3 +71,4 @@ class RemoteQueryResponse(BaseModel):
     sources: list[dict]
     job: JobResponse | None
     result: AIResultResponse | None
+    reusable_result: AIResultResponse | None = None

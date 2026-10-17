@@ -48,6 +48,7 @@ def output(sources, spec):
     exercises = []
     for index in range(spec["count"]):
         exercise = {
+            "topic_ids": [spec["topic_ids"][index % len(spec["topic_ids"])]],
             "stem": f"第{index + 1}种情形下，两个苹果加三个苹果共有多少？",
             "options": [],
             "answer": "五个",
@@ -56,7 +57,7 @@ def output(sources, spec):
             "evidence": [
                 {
                     "source_id": sources[0]["source_id"],
-                    "quote": sources[0]["text"][:100],
+                    "quote": (sources[0]["text"] if "text" in sources[0] else "".join(e["text"] for e in sources[0]["excerpts"]))[:100],
                 }
             ],
             "original_past_question_ids": spec.get("original_past_question_ids", []),

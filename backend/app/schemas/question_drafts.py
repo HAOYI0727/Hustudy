@@ -4,10 +4,10 @@ from decimal import Decimal
 from typing import Annotated, Literal
 from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
-from .remote_ai import Text, Evidence
+from .remote_ai import Text, Evidence, ExcerptReference
 
 CANDIDATE_PREFIX = "hustudy:question-drafts:v1\n"
-CANDIDATE_PROMPT_VERSION = "zhipu-question-drafts-v2"
+CANDIDATE_PROMPT_VERSION = "zhipu-question-drafts-v5"
 DEMO_PROMPT_VERSION = "demo-question-drafts-v1"
 Money = Annotated[
     Decimal, Field(gt=0, le=100, max_digits=5, decimal_places=2, allow_inf_nan=False)
@@ -18,7 +18,7 @@ class CandidateRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     goal: Text = Field(default="依据所选资料生成练习候选题", max_length=1000)
     version_ids: list[UUID] = Field(min_length=1, max_length=20)
-    chunk_ids: list[UUID] = Field(default_factory=list, max_length=6)
+    chunk_ids: list[UUID] = Field(default_factory=list, max_length=128)
     chapter_id: UUID
     topic_ids: list[UUID] = Field(min_length=1, max_length=4)
     type: Literal["single_choice", "boolean", "short_answer"] = "single_choice"
@@ -65,6 +65,7 @@ class CandidateRequest(BaseModel):
 
 class CandidateEnvelope(BaseModel):
     model_config = ConfigDict(extra="forbid")
+    per_question_topics: bool = False
     request: CandidateRequest
     coverage: dict
     exam_context: dict
@@ -90,12 +91,13 @@ class RubricItem(BaseModel):
 
 class ModelQuestion(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
+    topic_ids: list[UUID] = Field(default_factory=list, max_length=4)
     stem: Text = Field(max_length=8000)
     options: list[Option] = Field(max_length=6)
     answer: str | bool | None
     rubric: list[RubricItem] = Field(max_length=12)
     explanation: Text = Field(max_length=3000)
-    evidence: list[Evidence] = Field(min_length=1, max_length=4)
+    evidence: list[ExcerptReference | Evidence] = Field(min_length=1, max_length=4)
     original_past_question_ids: list[UUID] = Field(max_length=6)
 
 

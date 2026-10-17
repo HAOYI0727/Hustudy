@@ -1,5 +1,12 @@
 # Hustudy 共享契约（Phase 0）
 
+## 2026-10-17 M2-TOPICS-REUSE（最新增量）
+
+- 新候选信封`per_question_topics=true`，提示词v5。模型每题返回`topic_ids`非空、无重复且属于请求所选Topic的子集；不再统一附加全部目标。按题展示知识点名称并在既有QuestionDraft JSON保留；旧信封不重写。此项只校验关联范围，学科相关性仍需人工审阅，不冒称已实现知识点题数配额。
+- 三种真实任务预览响应增加`reusable_result`（可空）：只匹配本人、同课程、相同规范化请求信封/实际来源快照、相同模型/端点及当前提示词版本，且原任务成功、结果grounded/real/完整、全部引用仍可用、考点/参考原题未变化。仅检查最近100条相同请求的成功记录，失败、部分报告、演示和旧提示词均不复用。复用不以历史列表代替依赖检查，不含密钥作为缓存键。
+- POST `/remote-queries/{id}/reuse`，请求`{result_id: UUID}`，返回既有`AIResultResponse`。仅未提交且未过期的本人预览可用；服务端重新匹配与校验来源/模型/依赖，失配409，归属不存在404。不创建Job、不改原AIResult、不调用模型。用户仍可选择勾选确认后重新生成；预览命中不自动取代生成。
+- 复用匹配包含正文hash和偏移等完整来源快照、报告学习模式、候选考点/原题快照及题型/数量/分值等约束；匹配保守，资料名称等元数据变化也可能不命中。无需数据库迁移或新共享schema表。
+
 ## 2026-10-16 M2-CANDIDATES-01（当前增量）
 
 用户取消M2按日期分段的限制，按依赖持续推进。本轮继续复用RemoteQuery/AIResult/AI_ANALYSIS，无迁移。候选请求以`hustudy:question-drafts:v1\n`加严格JSON保存，普通问答禁止此保留前缀。确认/派发/完成均复核有效来源及M4只读依赖快照。不得直接查询或写入M4业务表，使用exam_ai_context适配器；适配器只负责读取与快照校验，不commit。
@@ -293,3 +300,25 @@ POST `/courses/{id}/study-reports/demo`接受ReportPreviewRequest，固定自制
 AIResult及其中ReportLabel保持不可变，本轮不新增API或数据表。前端维护独立报告/引用快照与用户标签列表，每知识点0–3项，每项kind限key/difficult/exam、reason去空白后1–1000字符；拒绝相同kind重复标签。原始AI标签与用户整理在保存的Markdown中分段留存，用户整理不宣称teacher_mark/observed_exam或整报告已审阅。显式从标签审阅转正文编辑后，用户确认通过现有POST /notes保存，Citation按快照交由M3现有接口重新检查。切换模式或新AI结果不改变该草稿；替换/返回重建正文前确认，取消/失败不覆盖其他笔记。
 
 M2-LABEL-REVIEW-01同时补main_idea 14.1的教学结构：topic增加可选concept_group、related_concepts（目标报告知识点名与关系说明）、breakthrough_steps，report增加可选review_suggestions。旧JSON缺字段按空值兼容，不重写旧AIResult。关系指向必须属于本报告且非自身/不重复，解释依据沿用该topic经校验引用；层次与步骤为AI学习建议，不冒称课程大纲。新提示词v2要求尽可能基于证据填写，不凭空补足。固定自制示例同步提供，前端/Markdown审阅草稿均保留。无数据库迁移。
+
+## M2-MODEL-53-FLASH（2026-10-17）
+
+用户明确要求将当前运行副本Hustudy-main切为GLM-5.3-Flash。先约定再实现：配置允许旧glm-4.7-flash与新glm-5.3-flash，默认新模型；本机.env只替换HUSTUDY_LLM_MODEL，密钥等其余字节原样保留且不展示。配置脚本提供模型选项并默认新模型。新模型按官方仅支持thinking.enabled，reasoning_effort=low以控制思考预算，保持JSON模式/单次确认/超时/输出上限/引用校验，不展示reasoning_content，不自动发起真实或计费调用，不改数据库或其他模块业务。旧模型/旧历史仍兼容，切换后旧模型预览须重新生成，后台未派发旧模型任务拒绝派发。文档/测试/交接同步，原已上传83项副本不自动改写。
+# M2引用失败反馈补充（2026-10-17）
+
+M2-REPORT-CAPACITY：报告v6。取消把短展示建议当生成硬约束：learning_goals/prerequisites/review_suggestions各≤32项、learning_sequence≤64项、topics≤32项、examples≤12项、misconceptions/breakthrough_steps/related_concepts≤32项、每处证据≤64条、总去重引用≤256条；summary≤8000、explanation/answer≤12000、question≤6000，名称仍≤200，标签理由仍≤1000、关系描述≤3000。不截断/丢弃超过旧上限的内容，逐项解析与引用校验不变；来源范围/响应1MiB/token预算不变，自测3–5及标签合法来源保留。报告专属中文字段与实际/允许数量诊断，不放宽问答/候选schema。M3单篇50引用仍不变，超限报告需按更小范围整理笔记。历史v5允许读取。
+
+M2-REPORT-SELFCHECK：报告v5。严格ReportOutput/TeachingReport/ReportExercise契约不放宽；模型接收层单独DraftSelfCheck只允许缺省/空evidence被识别为无依据原题。生成时丢弃该类自测，保留有引用自测；以已逐字校验的知识点解释/原文摘录/例题作为基础自测模板补足3项，再按严格TeachingReport校验。新题generation_origin=rule_generated和validation_notices由服务端生成，页面/Markdown/笔记提示保留。不把无引用原题挂到任意引用、不解析原始供应商错误体、不额外调用模型；非法引用/其他缺字段仍失败。
+
+分批可见性补充：运行中已完成部分通过一个明确partial=true的内部AIResult中间草稿呈现（prompt_version=m2-report-progress-v1），该草稿允许随完成计数更新，不改写已发布成功/失败结果。普通历史不列内部草稿；最终/失败产生独立公开结果。前端按结果ID、状态及完成计数更新，不会因草稿ID相同漏掉新部分。取消后的已完成草稿仍可读，按部分保存笔记遵守M3原50处引用上限。
+
+M2-REAL-MATERIALS：新报告预览batched=true，最多400正文片段/240000字符，超限明确422而非隐式截断；全文保留，按8000字符/32段分批，批次计划及最多调用数在确认前显示。每次worker只处理一批，批次成功checkpoint使用内部prompt_version=m2-report-checkpoint-v1的AIResult，ID为请求/批序确定UUID，不进入普通历史。父任务有批次数/成功数/预期字符，成功批不重发；失败/取消/租约失效需POST remote-queries/{id}/resume与confirm_remote_send=true显式确认；恢复重验来源/配置，旧恢复备份不自动发送。单批总预算120秒，网络超时不自动重试；未完成报告不显示为完整成功。最终result.study_report_sections保留每批独立教学报告，result.answer为分节Markdown，不额外AI汇总调用；学习报告每节3–5自测，不虚构跨节推理。源片段超过2000字符时拆连续子段并保留chunk_start，引用偏移还原到原chunk。
+
+候选上下文最多128段/32000字符，超限提示缩小范围；普通问答仍为相关片段检索，不宣称整份课程分析。报告/候选证据支持当前请求内excerpt_id（400字符连续原文），兼容旧source_id/quote逐字检查。选项重复仅比较Unicode规范化并保留标点/大小写/空白，不再删除代码运算符。答案只有唯一精确匹配选项正文时可转为该选项ID并明确提示，其他情况不猜测；题型/标签/引用保持校验。用户资料不自动发送，BYOK/共享解析器不在本次改动。
+
+M2-REPORT-STRUCTURE：报告提示词v3。可选related_concepts只保留指向本报告其他唯一知识点的首条有效链接；自指、不存在与重复链接删除，服务器在study_report.validation_notices及Markdown中写固定提示并计数，不含被删模型内容，不猜测或重写目标。知识点重名、必填结构缺失、错误标签与引用仍整次拒绝；报告重名/顶层状态不一致提供固定安全说明。新提示不在模型JSON中接受validation_notices，该字段由服务端生成。UI将INVALID_OUTPUT/INVALID_JSON显示为“输出格式不符”，既有provider_error兼容。
+
+M2-QA-EXCERPTS：问答提示词v2将已确认的sources.text按最多400字符切成连续摘录，以sources[].excerpts[{excerpt_id,text}]发送，原文字符不增加、不改写；source_id保留，编号仅在当前请求内有效。模型evidence优先输出{excerpt_id}，服务端从本次摘录表恢复source_id/quote，再执行原文/归属/撤权校验。未知编号整次拒绝，兼容旧{source_id,quote}并严格检查，不接受两种格式混填。不改报告/候选Evidence、API预览来源或持久化引用结构，无额外请求/自动重试。编号选择仅证明引用存在，不证明答案受其支持。
+
+INVALID_CITATION仍使用provider_error兼容状态；错误消息区分片段ID不在发送范围、摘录不是对应片段连续原文，不包含模型返回值。M2结果徽标展示“引用校验失败”，不得据此宣称平台不可用。候选提示版本升v3，强调source_id与版本/Topic/原题ID不同；不改变精确引用规则、不自动修复或重发。历史失败结果不改写。
+

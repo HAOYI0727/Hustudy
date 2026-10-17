@@ -23,7 +23,7 @@ from test_remote_ai import configured as configured  # noqa: F401
 
 
 def model_report(s):
-    evidence = [{"source_id": s["source_id"], "quote": s["text"][:100]}]
+    evidence = [{"source_id": s["source_id"], "quote": (s["text"] if "text" in s else "".join(e["text"] for e in s["excerpts"]))[:100]}]
     exercise = {
         "question": "如何计算苹果数量？",
         "answer": "两个加三个等于五个。",
@@ -324,8 +324,9 @@ def test_report_budget_empty_scope_and_reserved_prefix():
         )
         pending = preview(client, owner, course, version)
         coverage = pending["report_scope"]["coverage"]
-        assert coverage["truncated"] and len(pending["sources"]) <= 6
-        assert sum(len(s["text"]) for s in pending["sources"]) <= 8000
+        assert not coverage["truncated"] and len(pending["sources"]) >= 6
+        assert sum(len(s["text"]) for s in pending["sources"]) > 8000
+        assert pending["batch_progress"]["total"] >= 2
         for body in (
             {"version_ids": []},
             {"version_ids": [version], "study_mode": "invalid"},
@@ -444,16 +445,19 @@ def test_report_teaching_structure_and_markdown_preserve_validated_sources():
 
 
 @pytest.mark.parametrize("target", ["不存在的概念", "加法"])
-def test_report_rejects_nonexistent_and_self_concept_links(target):
+def test_report_removes_nonexistent_and_self_links_with_visible_notice(target):
     s = source()
     output = model_report(s)
     output["report"]["topics"][0]["related_concepts"] = [{"target":target, "relation":"关系"}]
-    with pytest.raises(ProviderFailure) as failure:
-        generate_report(
-            provider(lambda _: httpx.Response(200, json=envelope(json.dumps(output)))),
-            request_for(s), [s],
-        )
-    assert failure.value.code == "INVALID_OUTPUT"
+    result, status = generate_report(
+        provider(lambda _: httpx.Response(200, json=envelope(json.dumps(output)))),
+        request_for(s), [s],
+    )
+    assert status == "grounded"
+    assert result["study_report"]["topics"][0]["related_concepts"] == []
+    assert "已移除1条" in result["study_report"]["validation_notices"][0]
+    assert "已移除1条" in result["answer"]
+    assert result["study_report"]["topics"][0]["citations"][0]["quote"] == s["text"]
 
 
 def test_legacy_report_without_teaching_additions_remains_compatible():

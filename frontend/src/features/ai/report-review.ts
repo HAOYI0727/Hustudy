@@ -22,7 +22,7 @@ export function reviewError(review:ReportReview):string {
 export function reviewedReportMarkdown(review:ReportReview):string {
   if (reviewError(review)) throw new Error(reviewError(review));
   const {report,labels} = review;
-  const lines = ["# 章节学习报告（AI辅助草稿，待核实）",report.summary,
+  const lines = ["# 章节学习报告（AI辅助草稿，待核实）",report.summary,...(report.validation_notices||[]).map(notice=>`> ${notice}`),
     "标签由用户整理，不代表教师要求、真题统计或报告全文已核实。"];
   for (const [items,title] of [[report.learning_goals,"学习目标"],[report.prerequisites,"前置知识"],[report.learning_sequence,"建议学习顺序"]] as const)
     lines.push(`## ${title}`, ...(items.length?items.map(item=>`- ${item}`):["资料未明确要求前置知识。"]));

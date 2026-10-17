@@ -1,12 +1,14 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { api, AIAnswer, SourceCitation } from "../../api/client";
-import { PageTitle, Status, EmptyInline, EmptyState, ModuleStats } from "../../components/workspace";
+import { PageTitle, EmptyInline, EmptyState, ModuleStats } from "../../components/workspace";
+import { AIResultStatus } from "./AIResultStatus";
 import { AIAnswerPreview } from "./AIAnswerPreview";
 import { RealQueries } from "./RealQueries";
 import { StudyReportView } from "./StudyReportView";
 import {QuestionDraftView} from "./QuestionDraftView";
 import {ReportLabelEditor} from "./ReportLabelEditor";
 import {beginReportReview, reviewedReportMarkdown, ReportReview} from "./report-review";
+import "./ai-workspace.css";
 
 type Props = {onSource: (versionId: string, chunkId: string) => void; token: string; courseId: string; onNotice: (s: string) => void; onError: (e: unknown) => void};
 
@@ -20,6 +22,7 @@ const modes = {
 export function AIStudy({token, courseId, onNotice, onError, onSource}: Props) {
   const [query, setQuery] = useState("");
   const [answer, setAnswer] = useState<AIAnswer | null>(null);
+  useEffect(()=>{if(answer&&window.innerWidth<=1100)document.getElementById("ai-result")?.scrollIntoView({block:"start"});},[answer?.id]);
   const [mode, setMode] = useState<"demo" | "real" | "report" | "candidates">("demo");
   const [remoteBusy,setRemoteBusy] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -52,14 +55,17 @@ export function AIStudy({token, courseId, onNotice, onError, onSource}: Props) {
       discardDraft(); onNotice("已保存为待核实笔记，请继续核对内容与来源");
     } catch (error) {onError(error);} finally {setSavingDraft(false);}
   };
-  const makeDraft = () => {
+  const makeDraft = (section?:{title:string;report:NonNullable<AIAnswer["result"]["study_report"]>}) => {
     if (!answer || savingDraft || (draftOpen && !window.confirm("已有未保存草稿，替换为这条AI结果？"))) return;
-    if (answer.result.citations?.some(c=>c.availability !== "active")) {onNotice("报告含失效来源，请重新生成后再创建笔记草稿");return;}
-    setDraftSources(structuredClone(answer.result.citations || []));
+    const selectedReport=section?.report||answer.result.study_report;
+    const selectedSources=section?.report.citations||answer.result.citations||[];
+    if(selectedSources.length>50){onNotice("这份报告超过单篇笔记的50处引用限制，请按报告部分分别整理笔记");return;}
+    if (selectedSources.some(c=>c.availability !== "active")) {onNotice("报告含失效来源，请重新生成后再创建笔记草稿");return;}
+    setDraftSources(structuredClone(selectedSources));
     setDraftOpen(true);
     setDraftAttribution(`AI辅助草稿 · 待核实\n\n原始结果：${answer.id}\n\n生成方式：${answer.model_mode === "real" ? answer.result.model || "真实AI" : "固定自制演示"}${answer.result.prompt_version ? `\n\n提示词版本：${answer.result.prompt_version}` : ""}`);
-    if(answer.result.study_report){
-      const review=beginReportReview(answer.result.study_report);
+    if(selectedReport){
+      const review=beginReportReview(selectedReport);
       setDraftReview(review);setReviewingLabels(true);setDraftText("");return;
     }
     setDraftReview(null);setReviewingLabels(false);
@@ -79,7 +85,7 @@ export function AIStudy({token, courseId, onNotice, onError, onSource}: Props) {
       {(Object.keys(modes) as (keyof typeof modes)[]).map(key=><button key={key} className={mode === key ? "primary" : "secondary"} aria-pressed={mode === key} disabled={loading||remoteBusy} onClick={()=>{setMode(key);setAnswer(null);}}>{modes[key].name}</button>)}
     </div>
     <p className="hint" role="status">{modes[mode].description}</p>
-    <div className="ai-grid">
+    <div className="ai-workspace-nav"><a href="#ai-controls">设置与发送</a><a href="#ai-result">查看学习结果</a></div><div className="ai-grid ai-workspace-grid">
       {mode !== "demo" ? <RealQueries key={mode} task={mode === "candidates" ? "question_drafts" : mode === "report" ? "study_report" : "qa"} token={token} courseId={courseId} onBusyChange={setRemoteBusy} onAnswer={setAnswer} onNotice={onNotice} onError={onError} onSource={onSource}/> :
         <section className="panel ai-prompt">
           <div className="mode-card"><span className="sparkle">✦</span><div><strong>资料原文检索</strong><p>展示匹配原文，不执行真实模型推理。</p></div></div>
@@ -87,16 +93,17 @@ export function AIStudy({token, courseId, onNotice, onError, onSource}: Props) {
           <form onSubmit={ask}><label>向这门课程提问<textarea maxLength={2000} rows={6} value={query} disabled={loading} onChange={e => setQuery(e.target.value)} placeholder="例如：拥塞控制和流量控制有什么区别？" required/></label><button className="primary full" disabled={loading || !query.trim()}>{loading ? "正在检索…" : "查看匹配原文"}</button></form>
           {history.length > 0 && <div className="session-history"><h4>最近提问</h4>{history.map(text => <button className="relation-link" key={text} onClick={() => setQuery(text)}>↺ {text}</button>)}</div>}
         </section>}
-      <section className="panel ai-result">
-        <div className="panel-title"><h3>学习结果</h3>{answer && <Status value={answer.status}/>}</div>
+      <section className="panel ai-result" id="ai-result" tabIndex={-1}>
+        <div className="panel-title"><h3>学习结果</h3>{answer && <AIResultStatus status={answer.status} errorCode={answer.result.error_code}/>}</div>
         {answer ? <>
           <div className="answer-box"><small>{answer.model_mode === "real" ? "真实AI · 待核实" : answer.result.question_drafts||answer.result.study_report ? "固定自制演示 · 待审阅" : "演示检索 · 原文展示"}</small>
-            {answer.result.question_drafts?.length ? <QuestionDraftView answer={answer} onSource={onSource}/> : answer.result.study_report ? <StudyReportView report={answer.result.study_report} onSource={onSource}/> : <AIAnswerPreview content={answer.result.answer || answer.result.message || ""}/>}
+            {answer.status !== "grounded" && answer.result.study_report_sections?.length ? <p role="alert">{answer.result.message} 已完成部分保留如下；当前不是完整报告。</p> : null}
+            {answer.result.study_report_sections?.length ? <div><p className="hint">按资料顺序分为{answer.result.study_report_sections.length}部分，各部分独立生成。</p>{answer.result.study_report_sections.map((section,i)=><details className="report-part" open={i===0} key={i}><summary>{section.title}</summary><StudyReportView report={section.report} onSource={onSource}/><button className="secondary" disabled={savingDraft} onClick={()=>makeDraft(section)}>将{section.title}整理为笔记</button></details>)}</div> : answer.result.question_drafts?.length ? <QuestionDraftView answer={answer} onSource={onSource}/> : answer.result.study_report ? <StudyReportView report={answer.result.study_report} onSource={onSource}/> : <AIAnswerPreview content={answer.result.answer || answer.result.message || ""}/>}
             {answer.status === "provider_error" && <p className="hint">{answer.result.provider_code&&`服务错误码：${answer.result.provider_code}。`}{answer.result.retry_after_seconds!=null&&`服务建议至少等待${answer.result.retry_after_seconds}秒。`}不会自动重发；请检查原因后重新预览并确认。</p>}
             {answer.result.coverage && <p className="hint">{answer.result.coverage.truncated ? "本结果仅覆盖部分所选原文。" : "本结果依据所选版本可用文本。"}{answer.result.coverage.notice}</p>}
-            <small>{answer.result.model_notice || "结果需人工审阅"}</small>
+            <small>{answer.status === "provider_error" && ["INVALID_CITATION", "INVALID_OUTPUT", "INVALID_JSON"].includes(answer.result.error_code||"") ? "模型已返回内容，但未通过结果校验；本次未生成可用结果" : answer.result.model_notice || "结果需人工审阅"}</small>
           </div>
-          {answer.status === "grounded" && !answer.result.question_drafts && <button className="secondary" disabled={savingDraft} onClick={makeDraft}>整理为可编辑笔记草稿</button>}
+          {answer.status === "grounded" && !answer.result.question_drafts && <button className="secondary" disabled={savingDraft} onClick={()=>makeDraft()}>整理为可编辑笔记草稿</button>}
           <h4>来源引用</h4>
           {answer.result.citations?.map((c, index) => <details className="citation-card" open key={`${c.chunk_id}-${index}`}><summary className="locator">{c.source_kind === "manual_transcript" ? "人工补录 · " : ""}定位 {c.locator?.value} · 展开/收起证据</summary><p>{c.quote}</p><button className="secondary" disabled={c.availability === "unavailable"} onClick={() => onSource(c.version_id, c.chunk_id)}>{c.availability === "unavailable" ? "来源已失效" : "回到原文 ↗"}</button></details>)}
           {!answer.result.citations?.length && <EmptyInline text="暂无可验证来源，请补充资料或查看异常原因"/>}

@@ -12,7 +12,7 @@ from test_remote_ai import source
     "vendor,expected",
     [
         ("1113", "QUOTA_EXHAUSTED"),
-        ("1302", "CONCURRENCY_LIMIT"),
+        ("1302", "RATE_LIMITED"),
         ("1303", "RATE_LIMITED"),
         ("1304", "DAILY_LIMIT"),
         ("1305", "SERVICE_BUSY"),

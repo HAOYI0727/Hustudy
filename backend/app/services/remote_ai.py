@@ -11,7 +11,8 @@ from ..schemas.ai import AIResultResponse
 from ..schemas.material import JobResponse
 from ..schemas.remote_ai import RemoteQueryResponse
 from .courses import owned_course
-from .ai_context import select_context, select_report_context, validate_context
+from .ai_context import select_context, validate_context
+from .ai_material_scope import full_context, report_batches
 from ..repositories.materials import checked_chunk
 from ..schemas.study_reports import REQUEST_PREFIX, ReportEnvelope, report_envelope
 from ..schemas.question_drafts import CANDIDATE_PREFIX, candidate_envelope
@@ -26,8 +27,12 @@ def provider_status():
         and bool(s.zhipu_api_key.get_secret_value()),
         "model": s.llm_model,
         "endpoint": s.llm_endpoint,
-        "checked_at": "2026-10-14",
-        "documentation_url": "https://docs.bigmodel.cn/cn/guide/models/free/glm-4.7-flash",
+        "checked_at": "2026-10-17" if s.llm_model == "glm-5.3-flash" else "2026-10-14",
+        "documentation_url": (
+            "https://docs.bigmodel.cn/cn/guide/models/vlm/glm-5.3-flash"
+            if s.llm_model == "glm-5.3-flash"
+            else "https://docs.bigmodel.cn/cn/guide/models/free/glm-4.7-flash"
+        ),
         "policy_status": "保留期限、训练用途和远程删除能力未核实；请在智谱控制台核对适用协议",
         "policy_entry_url": "https://open.bigmodel.cn/console",
         "max_context_chars": 8000,
@@ -48,6 +53,9 @@ def owned_query(db, user_id, query_id):
 
 
 def response(db, row):
+    from .report_batches import progress
+    from .ai_result_reuse import find_reusable
+
     job = db.get(ProcessingJob, row.job_id) if row.job_id else None
     result = (
         db.scalar(
@@ -76,6 +84,7 @@ def response(db, row):
         else "qa",
         report_scope=report.model_dump(mode="json") if report else None,
         candidate_scope=candidate.model_dump(mode="json") if candidate else None,
+        batch_progress=progress(db, row),
         model=row.model,
         endpoint=row.endpoint,
         expires_at=row.expires_at,
@@ -84,6 +93,7 @@ def response(db, row):
         sources=row.sources,
         job=JobResponse.model_validate(job, from_attributes=True) if job else None,
         result=validated,
+        reusable_result=find_reusable(db, row) if not row.job_id else None,
     )
 
 
@@ -170,19 +180,21 @@ def preview(
         sources, envelope = prepare(db, user_id, course_id, candidate_request)
         query = encode(envelope)
     elif report_request:
-        sources, coverage = select_report_context(
+        sources, coverage = full_context(
             db,
             user_id,
             course_id,
             [str(v) for v in report_request.version_ids],
             [str(c) for c in report_request.chunk_ids],
         )
+        coverage["batch_count"] = len(report_batches(sources))
         envelope = ReportEnvelope(
             goal=report_request.goal,
             scope_version_ids=list(dict.fromkeys(report_request.version_ids)),
             chunk_ids=report_request.chunk_ids,
             study_mode=report_request.study_mode,
             coverage=coverage,
+            batched=True,
         )
         query = REQUEST_PREFIX + envelope.model_dump_json()
     else:
@@ -202,6 +214,13 @@ def preview(
                 "status": "insufficient_evidence",
             },
         )
+    if not report_request and not candidate_request:
+        # Persist the explicit QA selection as well as retrieved text. Two different
+        # filters can yield identical evidence; they are still different requests.
+        sources[0]["request_scope"] = {
+            "version_ids": [str(v) for v in payload.version_ids],
+            "chunk_ids": [str(c) for c in payload.chunk_ids],
+        }
     s = get_settings()
     key = s.zhipu_api_key.get_secret_value()
     if key and (key in query or any(key in source["text"] for source in sources)):
@@ -250,7 +269,14 @@ def confirm(db, user_id, query_id):
     if active:
         raise HTTPException(409, "当前课程已有排队或运行中的真实AI任务")
     job = ProcessingJob(
-        user_id=user_id, type="AI_ANALYSIS", resource_id=row.id, max_attempts=1
+        user_id=user_id,
+        type="AI_ANALYSIS",
+        resource_id=row.id,
+        max_attempts=(
+            len(report_batches(row.sources))
+            if (report_envelope(row.query) and report_envelope(row.query).batched)
+            else 1
+        ),
     )
     db.add(job)
     db.flush()

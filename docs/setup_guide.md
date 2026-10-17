@@ -1,5 +1,7 @@
 # Hustudy 环境与验收指南
 
+2026-10-17 M2真实课件更新：需停止并重启后端与worker，前端运行时Ctrl+F5即可；无新依赖/迁移，无需重设密钥。报告新预览纳入完整有界正文并分批，旧预览范围不变。重启命令、普通python与Anaconda完整路径见[本轮说明](gcx/real_materials_2026_10_17.md#重启与人工验收)。
+
 ## Windows当前复现（2026-10-16，gcx电脑）
 
 已发现Python3.12.4位于`E:\Anaconda\python.exe`，Node24.14.1。用户要求复用现有环境、不创建venv，已手动安装backend/requirements.txt和npm ci。README历史Bash命令是其他平台路径。Windows完整锁文件含无条件uvloop，不直接照搬；复用环境安装曾提示现有Streamlit与Pillow/NumPy冲突，本轮未调整其他软件依赖。
@@ -118,3 +120,7 @@ HUSTUDY_E2E_CHROME_CHANNEL=chrome npm run test:e2e
 ## 本地原格式阅读运行时
 
 新增直接PPTX/DOCX预览后，`npm run dev --prefix frontend` 和 `npm run build --prefix frontend` 的pre钩子自动执行build:office；若开发服务器早已运行，可先 `npm run build:office --prefix frontend` 再刷新。源码在features/materials/office，生成public/native-office被Git忽略，正式构建会复制runtime.js/notices.txt。不要删除钩子或改为远程CDN。LibreOffice仅供Office兼容PDF/截图，不是原格式入口前置条件。新增依赖按package-lock安装，旧干净环境记录是新增依赖前快照，非本轮重新安装成绩。
+
+## 当前默认模型切换（2026-10-17）
+
+当前默认glm-5.3-flash，旧glm-4.7-flash可配置。密钥新配置：项目根执行python scripts/configure_zhipu.py，默认新模型；如需旧模型，加--model glm-4.7-flash。此次用户现有.env已仅更新模型，不需重输密钥。配置修改后手动重启API和worker，前端刷新并新建预览确认；新模型不是沿用旧免费权益，费用/权限以控制台为准。[完整重启命令](gcx/model_switch_2026_10_17.md)。

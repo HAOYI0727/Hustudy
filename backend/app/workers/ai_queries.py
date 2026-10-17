@@ -132,6 +132,10 @@ def run_ai_once():
             query, sources = row.query, row.sources
             db.commit()
             # No SQLite write lock is held while waiting on the remote service.
+            if report and report.batched:
+                from ..services.report_batches import run_step
+
+                return run_step(db, job, row, token, ZhipuProvider(s), report)
             if candidate:
                 output, status = generate_candidates(
                     ZhipuProvider(s), candidate, sources
@@ -188,7 +192,7 @@ def run_ai_once():
                     "error_code": error.code,
                     "citations": [],
                     "model": row.model,
-                    "model_notice": "真实AI调用失败；不会伪装成演示答案",
+                    "model_notice": "本次未生成可用结果，请查看具体原因；不会伪装成演示答案",
                     "provider_code": error.provider_code,
                     "retry_after_seconds": error.retry_after_seconds,
                 }

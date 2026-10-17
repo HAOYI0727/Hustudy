@@ -1,5 +1,15 @@
 # Hustudy API（Phase 0）
 
+2026-10-17 M2-TOPICS-REUSE：RemoteQueryResponse增加可空reusable_result；POST /remote-queries/{id}/reuse请求{result_id: UUID}，返回已有AIResultResponse，不创建任务或模型调用，失配409/预览归属404。三种任务预览均提供命中信息；新候选信封per_question_topics=true、提示词v5，逐题topic_ids仅允许本次所选非空不重复子集。QA在首个sources元素保存request_scope（version_ids/chunk_ids）区分检索相同但选择范围不同；此元数据不发送给模型。旧v4历史仍可读。[契约](contracts.md)、[实现](gcx/topics_reuse_2026_10_17.md)。
+
+## 2026-10-17 M2真实资料增量（优先于旧6段说明）
+
+报告preview保留原路径，version_ids≤20、chunk_ids≤400；完整正文≤240000字符，超限422且不截断。report_scope.batched=true、coverage.batch_count/warnings，RemoteQueryResponse新增可选batch_progress={total,completed,max_calls,chars}。每批≤8000字符/32子段，确认覆盖整份分批计划，worker一次处理一批。
+
+新增`POST /api/v1/remote-queries/{id}/resume`，Bearer与严格`{confirm_remote_send:true}`，202；仅停止的分批报告，重验来源/模型，跳过成功批。无确认422、跨账户404、配置变化/已有任务/任务不允许恢复409。取消/丢失租约不自动重发。内部checkpoint与中间草稿不进入普通历史；中间草稿通过RemoteQuery.result可见，partial=true/error_code=PARTIAL_REPORT，不是完整成功。
+
+最终result.study_report_sections=[{title,report}]，每节独立报告/证据；仅一批仍兼容study_report。部分失败保留已完成sections，status仍失败并明确partial。候选preview最多128段/32000字符，不再截去每段2000字符后的正文；超限422。来源子段带chunk_start，Citation偏移仍相对原chunk。输出/引用格式与旧历史兼容，细节见[本轮契约与验证](gcx/real_materials_2026_10_17.md)。
+
 ## 2026-10-16 M2候选/演示/精确范围
 
 - GET `/api/v1/courses/{id}/question-draft-context`：可用Topic/已确认原题摘要，不含原题答案。
@@ -216,3 +226,7 @@ PPTX/DOCX直接预览使用现有授权GET `/versions/{id}/original`，不新增
 ## 2026-10-16 报告教学结构与标签审阅补充
 
 现有study_report响应增量字段：topics[].concept_group（string/null）、related_concepts（[{target,relation}]）、breakthrough_steps（string[]），顶层review_suggestions（string[]）。省略按空值兼容，旧AIResult不重写。学习建议不是教师/历史证据，related_concepts的target必须为本报告其他知识点且不重复。前端标签审阅为独立快照，用户编辑留存于Markdown，使用现有POST /notes保存；无新端点、无AIResult更新。权威约束见contracts.md及gcx/basic_acceptance.md。
+
+## 2026-10-17 智谱模型配置兼容
+
+/api/v1/ai/provider根据当前配置返回glm-5.3-flash（新默认）或glm-4.7-flash及对应模型文档。端点/业务schema不变，预览继续冻结model/endpoint，配置变化拒绝确认/派发旧请求。新模型thinking.enabled+reasoning_effort.low，最终JSON仍经原结构和引用校验，reasoning_content不返回。
