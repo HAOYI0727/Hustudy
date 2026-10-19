@@ -1,0 +1,5 @@
+.image-upload-status { overflow-wrap: anywhere; min-width: 0; }
+.image-upload-status ul { padding-left: 20px; max-height: 180px; overflow-y: auto; }
+.image-upload-status li { margin: 6px 0; }
+.image-upload-status .note-upload-error { color: var(--danger, #b42318); }
+.image-upload-actions { display: flex; flex-wrap: wrap; gap: 8px; }

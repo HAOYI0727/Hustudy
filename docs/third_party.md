@@ -46,3 +46,36 @@ Node PDF 渲染验证使用包的可选 @napi-rs/canvas（MIT），已核对安�
 - 完整[许可归档](licenses/native-office-notices-2026-10-15.txt)；build:office根据实际安装包重建浏览器`/native-office/notices.txt`，现有third-party-notices增加入口，生产构建包含该文件。生成runtime和notice不提交重复二进制包，由package-lock和构建脚本重现。
 
 曾考察501351981/pptx-preview，其README含源码再分发/修改限制，未引入，不把npm元数据中的许可简称当作已核实许可。原格式预览的复杂动画、字体/图表兼容不作为第三方或本项目已全量验证成果。
+
+## M3 本地识别与凭据加密（2026-10-18）
+
+仅调用公开Python接口，不复制上游源码；运行依赖保留wheel自带完整许可证。发行打包时须同时保留以下包及其依赖的许可/NOTICE，模型权重与应用源码分别记录。
+
+| 组件 | 锁定版本 | 作者/许可 | 核实来源与用途 |
+|---|---|---|---|
+| rapidocr-onnxruntime | 1.4.4 | RapidOCR Authors，Apache-2.0 | [上游许可](https://github.com/RapidAI/RapidOCR/blob/v1.4.4/LICENSE)，使用随包提供的PaddleOCR转换ONNX模型进行本地OCR |
+| pypdfium2 | 4.30.0 | pypdfium2团队，Apache-2.0/BSD-3-Clause；PDFium及第三方许可随wheel附带 | [上游](https://github.com/pypdfium2-team/pypdfium2)，只渲染扫描页，非排版重建 |
+| faster-whisper | 1.2.1 | SYSTRAN，MIT | [上游许可](https://github.com/SYSTRAN/faster-whisper/blob/v1.2.1/LICENSE)，可选本地CPU语音转写 |
+| Whisper base转换模型 | 安装时记录仓库commit | OpenAI/SYSTRAN，MIT（模型卡） | [模型卡](https://huggingface.co/Systran/faster-whisper-base)，模型单独下载，不在任务中自动联网 |
+| cryptography | 46.0.3 | Python Cryptographic Authority，Apache-2.0或BSD-3-Clause | [版本](https://pypi.org/project/cryptography/46.0.3/)，Fernet/HKDF，个人API凭据加密 |
+| Web Speech API | 浏览器内置 | 无新增可再分发依赖 | [MDN](https://developer.mozilla.org/en-US/docs/Web/API/SpeechRecognition)，浏览器可依赖在线服务，页面明确确认；非全离线识别 |
+
+Windows Python3.11本地CPU组件安装和图片/扫描PDF实测；依赖闭包见backend/requirements-capture.lock。可选本地Whisper模型与真实音频质量未验收。浏览器语音交互测试为模拟，不能声称实际浏览器服务或麦克风已验证。
+
+## M3 Markdown 公式（2026-10-18）
+
+| 组件 | 精确版本 | 作者/许可 | 用途与来源 |
+|---|---|---|---|
+| KaTeX | 0.19.0 | Khan Academy and other contributors，MIT | [上游](https://github.com/KaTeX/KaTeX)，本地公式排版与随包字体；许可证以安装包 LICENSE 为准 |
+| remark-math | 6.0.0 | Junyoung Choi，MIT | [上游完整许可](https://github.com/remarkjs/remark-math/blob/main/license)，数学 Markdown 语法。发布包未携带完整 license，按其 readme 指向补存 frontend/licenses/remark-math-MIT.txt |
+| remark-parse / unified | 11.0.0 / 11.0.5 | Titus Wormer，MIT | [remark](https://github.com/remarkjs/remark)、[unified](https://github.com/unifiedjs/unified)，原有间接依赖显式声明，用 AST 定位公式及排除代码/转义文本 |
+
+复用公开 API，不复制第三方编辑器 UI 源码；工具栏图标为本项目自绘 SVG。数学依赖闭包的完整许可由 `npm run build:math --prefix frontend` 从实际安装包生成到 `/math-notices.txt`（58 包，包括类型依赖）；predev/prebuild 保留原 Office 构建并增加数学许可生成，生产分发包含许可。KaTeX 版本覆盖消除 micromark-extension-math 的旧嵌套 KaTeX，具体闭包由 package-lock.json 锁定；当前 npm install 审计 0 漏洞。运行关闭 trust、限制长度/宏展开/尺寸，不从 CDN 获取渲染器、字体或公式图片。
+
+## 2026-10-18 M3 公式工作区扩展
+
+本轮没有新增第三方依赖或拷贝编辑器源码。用户指定[LaTeX速查页](https://blog.somnus.wiki/latex/)仅作为分类覆盖参考；符号命令、标准数学例式及中文帮助由本项目整理编写，使用既有KaTeX逐项验证，许可生成链保持。
+
+## 2026-10-19 M3 图形符号与结构填写
+
+本轮参考[AxMath官方手册](https://www.axsoft.co/AxMath_Help.pdf)的分类符号面板和结构子字段交互，自行实现数据、扫描器、按钮与样式。没有复制AxMath代码、图标、安装包或文档正文；没有新增第三方依赖。图形按钮使用既有本地KaTeX输出，完整许可生成流程不变。

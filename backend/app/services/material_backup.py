@@ -28,7 +28,9 @@ MODELS = [
     MaterialExport,
 ]
 FILTERS = {
-    "processing_jobs": ProcessingJob.type.not_in(["ACCOUNT_BACKUP", "ACCOUNT_RESTORE"])
+    "processing_jobs": ProcessingJob.type.not_in(
+        ["ACCOUNT_BACKUP", "ACCOUNT_RESTORE", "NOTE_EXPORT", "NOTE_CAPTURE", "NOTE_ORGANIZE"]
+    )
 }
 
 
@@ -174,6 +176,7 @@ def validate(db, user_id, source_user, tables, all_ids, paths):
         if job["status"] not in {"SUCCEEDED", "FAILED", "CANCELLED"} or job["type"] in {
             "ACCOUNT_BACKUP",
             "ACCOUNT_RESTORE",
+            "NOTE_EXPORT",
         }:
             raise ValueError("备份不能恢复活动任务或控制任务")
         job["lease_token"], job["lease_until"] = None, None

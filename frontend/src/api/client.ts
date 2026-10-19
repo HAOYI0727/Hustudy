@@ -1,3 +1,4 @@
+export type NoteAIConfig = {provider: string; model: string; configured: boolean; has_personal_key: boolean; revision: number; source: "personal" | "server" | "none"; reason: string | null; endpoint: string};
 import { queryClient, sessionPartition, sessionGeneration, advanceSessionGeneration } from "./query";
 const API_BASE = import.meta.env?.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
 
@@ -37,9 +38,15 @@ export type DocumentBrowse = {q: string; category: string; tag: string; state: s
 export type DocumentPage = {items: DocumentItem[]; total: number; offset: number; limit: number; stats: Record<string, number>; categories: string[]; tags: string[]};
 export type JobPage = {items: Job[]; total: number; offset: number; limit: number; pending_count: number};
 export type AccountArchive = {id: string; purpose: "export" | "restore"; created_at: string; sha256: string | null; size_bytes: number; counts: Record<string, number>; job: {id:string;status:string;progress:number;error:string | null}};
-export type SourceCitation = { source_kind?: string; id?: string; document_id?: string; version_id: string; chunk_id: string; locator?: { type: string; value: string }; locator_type?: string; locator_value?: string; quote: string; availability: string };
+export type SourceCitation = { document_name?: string | null; version_no?: number | null; source_kind?: string; id?: string; document_id?: string | null; version_id: string; chunk_id: string; locator?: { type: string; value: string }; locator_type?: string; locator_value?: string; quote: string; availability: string };
 export type Chunk = { source_kind?: string; transcript_id?: string | null; transcript_status?: string | null; confirmed_at?: string | null; id: string; version_id: string; locator_type: string; locator_value: string; text: string };
-export type Note = { id: string; title: string; content: string; course_id?: string | null; revision: number; updated_at: string };
+export type Note = { id: string; title: string; content: string; tags: string[]; course_id?: string | null; folder_id?: string | null; revision: number; updated_at: string };
+export type NoteFolder = {id: string; name: string; parent_id: string | null; course_id: string; revision: number};
+export type NoteTrashEntry = Pick<Note, 'id' | 'title' | 'tags' | 'course_id' | 'folder_id' | 'revision'> & {course_name: string; deleted_at: string; purge_after: string | null; restore_requires_course: boolean};
+export type NoteTrashPage = {items: NoteTrashEntry[]; total: number; snapshot: string};
+export type NoteTrashPolicy = {retention_days: number | null; revision: number};
+export type NoteBatchChange = {add_tags?: string[]; remove_tags?: string[]; folder_id?: string | null};
+export type NoteExport = Omit<MaterialExport, "course_id"> & {filename: string; layout: "simple" | "legacy"};
 export type Topic = { id: string; name: string; aliases: string[] };
 export type Paper = { id: string; title: string; year?: number | null; review_status: string; questions: PastQuestion[] };
 export type PastQuestion = { id: string; number: string; stem: string; question_type: string; points?: number | null; answer?: string | null; answer_source: string; status: string; topic_id?: string | null };
@@ -100,7 +107,17 @@ async function request<T>(path: string, options: RequestInit = {}, token?: strin
   return result;
 }
 
+export type NoteCapture = {id: string; filename: string; course_id: string; status: string; kind: string; error: string | null; result: {text?: string; parts?: {location: string; text: string; method: string}[]; warnings?: string[]}; ai_result: {markdown?: string; warnings?: string[]}};
 export const api = {
+  noteAIConfig: (token: string) => request<NoteAIConfig>('/note-ai/config', {}, token),
+  saveNoteAIConfig: (token: string, payload: {revision: number; model: string; api_key?: string}) => request<NoteAIConfig>('/note-ai/config', {method: 'PUT', body: JSON.stringify(payload)}, token),
+  clearNoteAIConfig: (token: string, revision: number) => request<NoteAIConfig>(`/note-ai/config?revision=${revision}`, {method: 'DELETE'}, token),
+  captureCapabilities: (token: string) => request<{ocr: boolean; speech: boolean; ai: boolean; model: string; ai_unavailable_reason?: string | null}>("/note-captures/capabilities", {}, token),
+  captures: (token: string, courseId: string) => request<NoteCapture[]>(`/note-captures?course_id=${encodeURIComponent(courseId)}`, {}, token),
+  uploadCapture: (token: string, file: File, courseId: string, id: string) => {const body = new FormData(); body.append('file', file); body.append('course_id', courseId); body.append('request_id', id); return request<NoteCapture>('/note-captures', {method: 'POST', body}, token);},
+  organizeCapture: (token: string, id: string, payload: {request_id: string; text: string; mode: 'format' | 'summary' | 'outline'; model: string; confirmed: true}) => request<NoteCapture>(`/note-captures/${id}/organize`, {method: 'POST', body: JSON.stringify(payload)}, token),
+  removeCapture: (token: string, id: string) => request<void>(`/note-captures/${id}`, {method: 'DELETE'}, token),
+  captureFile: (token: string, id: string) => fileRequest(`/note-captures/${id}/file`, token),
   materialCapabilities: (token:string) => request<PreviewCapabilities>("/material-capabilities",{},token),
   requestPreview: (token:string,id:string) => request<Job>(`/versions/${id}/preview-jobs`,{method:"POST"},token),
   accountArchives: (token: string) => request<AccountArchive[]>("/backups", {}, token),
@@ -157,10 +174,28 @@ export const api = {
   original: (token: string, id: string, signal?:AbortSignal) => fileRequest(`/versions/${id}/original`, token,signal),
   preview: (token: string, id: string) => fileRequest(`/versions/${id}/preview`, token),
   citations: (token: string, id: string) => request<SourceCitation[]>(`/notes/${id}/citations`, {}, token),
+  removeCitation: (token: string, noteId: string, citationId: string) => request<void>(`/notes/${noteId}/citations/${citationId}`, {method: "DELETE"}, token),
   completeReviewTask: (token: string, id: string) => request(`/review-tasks/${id}/complete`, {method: "POST"}, token),
   note: (token: string, id: string) => request<Note>(`/notes/${id}`, {}, token),
+  noteFolders: (token: string, courseId: string) => request<NoteFolder[]>(`/note-folders?course_id=${encodeURIComponent(courseId)}`, {}, token),
+  createNoteFolder: (token: string, payload: {course_id: string; parent_id: string | null; name: string}) => request<NoteFolder>("/note-folders", {method: "POST", body: JSON.stringify(payload)}, token),
+  updateNoteFolder: (token: string, id: string, payload: {revision: number; parent_id?: string | null; name?: string}) => request<NoteFolder>(`/note-folders/${id}`, {method: "PATCH", body: JSON.stringify(payload)}, token),
+  deleteNoteFolder: (token: string, id: string, revision: number) => request<void>(`/note-folders/${id}?revision=${revision}`, {method: "DELETE"}, token),
+  batchNotes: (token: string, notes: {id: string; revision: number}[], change: NoteBatchChange) => request<Note[]>("/notes/batch", {method: "POST", body: JSON.stringify({notes, ...change})}, token),
+  importMarkdown: (token: string, file: File, options: {request_id: string; course_id: string; folder_id: string | null; tags: string[]}) => {const body = new FormData(); body.append("file", file); body.append("request_id", options.request_id); body.append("course_id", options.course_id); body.append("tags", JSON.stringify(options.tags)); if (options.folder_id) body.append("folder_id", options.folder_id); return request<Note>("/notes/import-markdown", {method: "POST", body}, token);},
   backlinks: (token: string, id: string) => request<Note[]>(`/notes/${id}/backlinks`, {}, token),
   exportNote: (token: string, id: string) => request<string>(`/notes/${id}/export`, {}, token),
+  deleteNote: (token: string, id: string, revision: number) => request<void>(`/notes/${id}?revision=${revision}`, {method: "DELETE"}, token),
+  noteTrash: (token: string, offset = 0) => request<NoteTrashPage>(`/notes/trash?offset=${offset}&limit=50`, {}, token),
+  noteTrashPolicy: (token: string) => request<NoteTrashPolicy>('/notes/trash/policy', {}, token),
+  updateNoteTrashPolicy: (token: string, policy: NoteTrashPolicy) => request<NoteTrashPolicy>('/notes/trash/policy', {method: 'PUT', body: JSON.stringify(policy)}, token),
+  trashNotes: (token: string, action: 'trash' | 'restore' | 'purge', notes: {id: string; revision: number}[], fallback_course_id?: string) => request<{affected: number}>('/notes/trash/batch', {method: 'POST', body: JSON.stringify({action, notes, fallback_course_id})}, token),
+  emptyNoteTrash: (token: string, snapshot: string) => request<{affected: number}>('/notes/trash/empty', {method: 'POST', body: JSON.stringify({snapshot})}, token),
+  noteExports: (token: string) => request<NoteExport[]>("/note-exports", {}, token),
+  createNoteExport: (token: string, requestId: string, noteIds: string[], includeImages: boolean) => request<NoteExport>("/note-exports", {method: "POST", body: JSON.stringify({request_id: requestId, note_ids: noteIds, include_images: includeImages})}, token),
+  retryNoteExport: (token: string, id: string) => request<NoteExport>(`/note-exports/${id}/retry`, {method: "POST"}, token),
+  removeNoteExport: (token: string, id: string) => request<void>(`/note-exports/${id}`, {method: "DELETE"}, token),
+  downloadNoteExport: (token: string, id: string) => fileRequest(`/note-exports/${id}/download`, token),
 
   createReviewTask: (token: string, payload: { mistake_id: string; title: string; due_date: string }) => request("/review-tasks", { method: "POST", body: JSON.stringify(payload) }, token),
   register: (username: string, password: string) => request<{ access_token: string; user: { id: string; username: string } }>("/auth/register", { method: "POST", body: JSON.stringify({ username, password }) }),
@@ -177,8 +212,8 @@ export const api = {
   noteSearch: (token:string,courseId:string,query:string,offset=0,limit=12) => request<NoteSearchPage>(`/courses/${courseId}/note-search?${new URLSearchParams({q:query,offset:String(offset),limit:String(limit)})}`,{},token),
   search: (token: string, courseId: string, query: string, filters: MaterialFilters = {}) => { const params = new URLSearchParams({q: query}); if (filters.category) params.set("category", filters.category); if (filters.tag) params.set("tag", filters.tag); if (filters.latestOnly !== undefined) params.set("latest_only", String(filters.latestOnly)); return request<SearchHit[]>(`/courses/${courseId}/search?${params}`, {}, token); },
   notes: (token: string, courseId?: string) => request<Note[]>(`/notes${courseId ? `?course_id=${courseId}` : ""}`, {}, token),
-  createNote: (token: string, payload: { title: string; content: string; course_id?: string; citations?: {version_id: string; chunk_id: string; quote: string}[] }) => request<Note>("/notes", { method: "POST", body: JSON.stringify(payload) }, token),
-  updateNote: (token: string, id: string, payload: { title: string; content: string; course_id?: string; revision: number }) => request<Note>(`/notes/${id}`, { method: "PATCH", body: JSON.stringify(payload) }, token),
+  createNote: (token: string, payload: { title: string; content: string; tags?: string[]; course_id?: string; folder_id?: string | null; request_id?: string; citations?: {version_id: string; chunk_id: string; quote: string}[] }) => request<Note>("/notes", { method: "POST", body: JSON.stringify(payload) }, token),
+  updateNote: (token: string, id: string, payload: { title: string; content: string; tags?: string[]; course_id?: string; folder_id?: string | null; revision: number }) => request<Note>(`/notes/${id}`, { method: "PATCH", body: JSON.stringify(payload) }, token),
   citation: (token: string, noteId: string, payload: { version_id: string; chunk_id: string; quote: string }) => request(`/notes/${noteId}/citations`, { method: "POST", body: JSON.stringify(payload) }, token),
   aiQuery: (token: string, courseId: string, query: string) => request<AIAnswer>(`/courses/${courseId}/ai-queries`, { method: "POST", body: JSON.stringify({ query, mode: "demo" }) }, token),
   topics: (token: string, courseId: string) => request<Topic[]>(`/courses/${courseId}/topics`, {}, token),

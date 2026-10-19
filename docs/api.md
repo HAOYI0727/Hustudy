@@ -1,5 +1,82 @@
 # Hustudy API（Phase 0）
 
+## M3-TRASH-01（2026-10-18）
+
+下列路径均在`/api/v1`下。回收站为当前账户全部课程，GET不触发清理。单篇DELETE /notes/{id}?revision=N仍返回204，现记录删除时间和到期时间，允许恢复。
+
+| 接口 | 请求/响应与约束 |
+|---|---|
+| GET /notes/trash?offset=0&limit=50 | limit1–200；返回items（无正文）、total、全部id/revision的snapshot；包含course_name、deleted_at、purge_after、restore_requires_course |
+| POST /notes/trash/batch | action=trash/restore/purge；notes为1–200个不重复{id,revision}；fallback_course_id为原课程不可用时显式恢复目标；全部归属/状态/revision先校验，成功{affected} |
+| POST /notes/trash/empty | {snapshot}；与当前账户全部回收站快照一致才原子清空，成功{affected}；新删除/恢复/策略变化使旧快照失效，409且无部分删除 |
+| GET /notes/trash/policy | {retention_days,revision}；无自定义策略返回30/0，null代表关闭 |
+| PUT /notes/trash/policy | {retention_days:1–365整数或null,revision}；账户写锁内校验旧revision，重算已有删除记录的到期时间并递增各note.revision；返回新策略 |
+
+批量状态/版本冲突409，越权或对象缺失404，重复/超限/无效天数422。彻底删除不会删除图片或资料。原目录不存在时恢复未归档；原课程不可用而未指定本人有效fallback_course_id则422/404。UTC期限、worker清理与0016备份兼容详见[共享契约](contracts.md#m3-trash-01)。
+
+## M3-ORGANIZE-IMPORT-EDITOR-01（2026-10-18）
+
+所有接口在`/api/v1`下并检查当前用户归属：
+
+| 接口 | 请求/响应与约束 |
+|---|---|
+| GET /note-folders?course_id=… | 返回本人有效课程的文件夹；id/name/course_id/parent_id/revision/时间字段。 |
+| POST /note-folders | `{course_id, name, parent_id?: null或UUID}`；201；每课500个、最多6级、同级名称不区分大小写去重。 |
+| PATCH /note-folders/{id} | `{revision, name?, parent_id?}`；parent_id未传保留、null移到根；200，旧版本409，循环/过深/重名422。 |
+| DELETE /note-folders/{id}?revision=N | 仅空文件夹204；含有效笔记/子文件夹或版本冲突409；越权404。 |
+| POST/PATCH /notes | 追加可空folder_id；创建默认未归档，更新未传保留、null移出；同账户同课程校验，和正文共用revision。NoteResponse及409详情包含folder_id/server_folder_id。 |
+| POST /notes/batch | `{notes:[{id,revision}], add_tags?:[], remove_tags?:[], folder_id?:null或UUID}`；1–200个不重复笔记；成功返回更新后的NoteResponse数组。先移除再添加标签、去重且总数≤12；先校验全部条目再原子更新，409/404/422均不部分写入。 |
+| POST /notes/import-markdown | multipart `file,course_id,request_id,tags(JSON字符串),folder_id(可省略)`；201 NoteResponse。仅.md/.markdown，UTF-8/BOM、≤2MiB；NUL/非UTF-8/非法标题或标签422，过大413。标题为文件名去扩展名；相同UUID/内容复用原笔记，已变化409，不覆写。 |
+
+选择ZIP自动按文件夹树分配安全路径，根images保留给图片，未归档笔记根目录导出；跨目录图片与双链转换为相对路径。不增加外部AI接口，分类建议在浏览器本地计算。0015 NoteFolder/Note.folder_id与账户备份兼容见[契约](contracts.md#m3-organize-import-editor-01)、[验证与操作](fzk/note_organization_acceptance.md)。
+
+## M3-CITATION-LIFECYCLE-01（2026-10-18）
+
+GET `/api/v1/notes/{note_id}/citations`追加可空`document_id`、`document_name`、`version_no`，来源经M1授权重查；失效来源保留原摘录/定位及不可用状态，不补造名称。POST同路径仍201，同笔记相同version_id/chunk_id/quote返回既有引用，最多50条，超限422；创建笔记中的citations也去重。重复提交在笔记写锁内判断，引用不改变正文revision。
+
+新增DELETE `/api/v1/notes/{note_id}/citations/{citation_id}`，本人有效笔记+本笔记引用才允许移除，成功204，不存在/越权404。只移除该关联，原资料/笔记正文/其他引用保留；来源反查更新，旧导出包引用该ID时下载404要求重建。失效引用仍可移除，无新迁移。[契约](contracts.md#m3-citation-lifecycle-01)、[M3审计及验证](fzk/m3_completion_audit.md)。
+
+## M3-BATCH-IMAGES-01（2026-10-18，当前行为）
+
+POST `/api/v1/note-exports`：`{request_id: UUID, note_ids?: UUID[], include_images?: boolean}`。note_ids省略为当前全部有效笔记，显式数组须1–2000个不重复ID；include_images默认true，页面始终true，API显式false保留兼容。创建冻结所选ID，部分不存在/越权整体404，非法参数422；同request_id不同选择/图片选项409。重试沿用原范围，之后新增笔记不自动加入。
+
+响应在既有字段上新增`layout: simple | legacy`。新包根目录为所选标题命名Markdown，无sources/manifest/README；仅这些笔记实际引用的有效图片进入images，按Asset ID去重，不递归加入链接笔记或其他图库图片。没有图片时不创建空目录。相对链接URL编码，完整解压后阅读。旧记录/旧排队任务保留原参数与字节。请求参数存既有sources_json.request，不需要新迁移；下载内部hash/权限和撤权校验保持。GET `/notes/{id}/export`的Content-Disposition改为UTF-8标题文件名，页面保持一致。
+
+图片管理复用原M1分页/元数据PATCH/DELETE/引用查询；两处批量上传入口每批1–20张、单张非空≤10MiB，逐张顺序调用既有POST `/courses/{id}/assets`。部分失败保留成功，网络/认证/限流/服务错误停止队列，无自动重放；未完成项显式重试。未新增M1后端行为。[契约](contracts.md#m3-batch-images-01)、[证据](fzk/note_batch_images_acceptance.md)。下面复杂包布局仅用于历史说明；新创建请求以上述规则为准。
+
+## M3-IMAGE-NAMING-01（2026-10-17，验收反馈修复）
+
+NoteExport响应新增`filename`，由创建时间和账户时区生成`Hustudy-笔记知识库-YYYY-MM-DD_HH-mm-ss-SSS.zip`；下载接口的Content-Disposition与此一致。新包按课程/标题命名，原路径字段和hash语义保持，以manifest为准；旧包内布局须重新导出才更新。无新迁移或新接口。
+
+笔记编辑器直接上传复用`POST /api/v1/courses/{id}/assets`，PNG/JPEG/WebP、最大10MiB；服务端仍验证实际图片内容与归属。上传成功才插入asset引用。规则见[公共契约](contracts.md#m3-image-naming-01)，本轮证据见[验收反馈修复](fzk/note_batch_images_acceptance.md)。
+
+## M3-PORTABLE-NOTES-01（2026-10-17，本地待集成）
+
+下列路径均以`/api/v1`开头，需Bearer认证。知识库ZIP独立于单篇.md和账户备份；范围为本人全部有效已保存笔记/引用图片，不受当前课程筛选影响。
+
+| 方法 | 路径 | 输入/输出 |
+|---|---|---|
+| POST | `/note-exports` | 严格`{request_id: UUID}`；202返回NoteExport，幂等重发返回同一记录 |
+| GET | `/note-exports` | 最近20条本人导出记录 |
+| GET | `/note-exports/{id}` | 单条记录和任务状态 |
+| POST | `/note-exports/{id}/retry` | 202，仅失败且未达尝试上限；活动任务重复重试返回当前状态 |
+| GET | `/note-exports/{id}/download` | ZIP附件；未成功409，来源撤回/越权404，文件hash不符409 |
+| DELETE | `/note-exports/{id}` | 204，移除派生文件/记录；活动任务取消并撤销租约 |
+
+NoteExport响应为`{id,created_at,snapshot_at,filename,sha256,size_bytes,counts,availability,job}`。counts含notes/assets/citations/files；availability为pending/active/unavailable；job复用JobResponse（NOTE_EXPORT、QUEUED/RUNNING/SUCCEEDED/FAILED/CANCELLED、尝试次数/错误/进度）。每账户同时1个活动任务，最多20条记录，3次尝试；预算与来源清单见[契约](contracts.md#m3-portable-notes-01)。派生zip_path、内部来源索引不暴露。
+
+DELETE `/notes/{id}?revision=N`：当前UI发送保存版本；并发变化409.details包含server_revision/server_title/server_content/server_tags，原数据保留。旧无revision调用兼容；删除不存在/越权404。POST `/notes`新增可选request_id UUID以防网络重试重复创建；同账户、未变化且初始内容/标签/来源完全相同时返回原笔记，已变化409含server_id，删除/越权404，旧调用可省略。更新跨课程关联笔记时客户端不发送页面course_id。
+
+新账户备份schema_revision为0014_note_exports，显式兼容0012/0013；NOTE_EXPORT控制任务/派生表不进入完整业务备份。其余版本拒绝；0012仍由M3适配器补空tags。本轮验证见[fzk验收](fzk/m3_completion_audit.md)。下面0013说明保留为上一切片历史。
+
+## M3-NOTE-TAGS-01（2026-10-17，功能分支待集成）
+
+- 所有Note响应新增 `tags: string[]`。POST `/notes` 可传 `tags`，缺省[]；PATCH `/notes/{id}` 可传tags，与title/content共用revision原子保存，省略保留、[]清空、null返回422。
+- 规范：最多12项，每项trim后1–32字符，拒绝控制字符，精确去重并保序。冲突409的details新增 `server_tags`，原 `server_title/server_content/server_revision` 保留。
+- GET `/notes?course_id=…&q=…&tag=…`：q最多200字符，匹配标题/正文/标签的字面子串；tag最多32字符，精确匹配一个标签。参数可组合；本人归属/课程有效性/删除过滤不变。GET `/courses/{id}/note-search?q=…` 也匹配标签，返回结构与分页不变。
+- 例：`PATCH /notes/{id}` 请求 `{"revision":1,"tags":[" 期末 ","期末","重点"]}`，成功标签为 `["期末","重点"]`，revision递增。非法更新不修改正文或标签。
+- 完整账户备份schema_revision为0013_note_tags；旧0012由M3适配补空标签后继续严格校验。参见[公共契约](contracts.md)、[fzk验收](fzk/note_tags_acceptance.md)。
+
 2026-10-17 M2-TOPICS-REUSE：RemoteQueryResponse增加可空reusable_result；POST /remote-queries/{id}/reuse请求{result_id: UUID}，返回已有AIResultResponse，不创建任务或模型调用，失配409/预览归属404。三种任务预览均提供命中信息；新候选信封per_question_topics=true、提示词v5，逐题topic_ids仅允许本次所选非空不重复子集。QA在首个sources元素保存request_scope（version_ids/chunk_ids）区分检索相同但选择范围不同；此元数据不发送给模型。旧v4历史仍可读。[契约](contracts.md)、[实现](gcx/topics_reuse_2026_10_17.md)。
 
 ## 2026-10-17 M2真实资料增量（优先于旧6段说明）
@@ -230,3 +307,11 @@ PPTX/DOCX直接预览使用现有授权GET `/versions/{id}/original`，不新增
 ## 2026-10-17 智谱模型配置兼容
 
 /api/v1/ai/provider根据当前配置返回glm-5.3-flash（新默认）或glm-4.7-flash及对应模型文档。端点/业务schema不变，预览继续冻结model/endpoint，配置变化拒绝确认/派发旧请求。新模型thinking.enabled+reasoning_effort.low，最终JSON仍经原结构和引用校验，reasoning_content不返回。
+
+## 2026-10-19 M3 识别文本插入与AI整理停用
+
+识别GET/POST/DELETE归属和预算保持，result.text改为parts.text以空行连接，不注入页号/时间Markdown标题；parts保留定位。识别流程不调用POST /notes，前端将确认文本交给当前笔记编辑器。
+
+POST /api/v1/note-captures/{id}/organize在登录/归属检查后返回410；capabilities.ai恒false，model为空，ai_unavailable_reason明确停用。worker取消QUEUED/RUNNING NOTE_ORGANIZE并清除租约，旧结果不删。PUT /api/v1/note-ai/config返回410；GET仍脱敏返回旧凭据元数据、configured:false和停用原因，DELETE仍按revision清除。无有效M3凭据解析/Provider派发或服务器密钥回退，不改M2接口。请求结构不合法仍由原schema返回422。
+
+[共享契约](contracts.md#m3-capture-text-01)、[验收](fzk/capture_text_acceptance.md)。

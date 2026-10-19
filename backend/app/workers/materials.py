@@ -17,6 +17,9 @@ from ..models import Document, DocumentChunk, DocumentVersion, ProcessingJob
 from ..models.base import utc_now
 from ..services.search import index_version
 from .material_exports import run_export_once
+from .note_exports import run_note_export_once
+from .note_trash import run_trash_cleanup
+from .note_capture import run_capture_once
 from .ai_queries import run_ai_once
 
 LEASE_SECONDS = 180
@@ -390,8 +393,11 @@ def drain_jobs(limit=100):
     from .account_archives import run_archive_once
 
     for _ in range(limit):
+        run_trash_cleanup()
         if (
             not run_once()
+            and not run_note_export_once()
+            and not run_capture_once()
             and not run_export_once()
             and not run_ai_once()
             and not run_archive_once()
@@ -408,14 +414,18 @@ if __name__ == "__main__":
     args = parser.parse_args()
     init_db()
     if args.once:
-        if not run_once():
+        run_trash_cleanup(force=True)
+        if not run_once() and not run_note_export_once() and not run_capture_once():
             if not run_export_once():
                 if not run_ai_once():
                     run_archive_once()
     else:
         while True:
+            run_trash_cleanup()
             if (
                 not run_once()
+                and not run_note_export_once()
+                and not run_capture_once()
                 and not run_export_once()
                 and not run_ai_once()
                 and not run_archive_once()

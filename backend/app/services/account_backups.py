@@ -20,7 +20,8 @@ from . import material_backup, note_backup, ai_backup, exam_backup
 
 ADAPTERS = [material_backup, note_backup, ai_backup, exam_backup]
 MODELS = [Course]
-REVISION = "0012_account_archives"
+REVISION = "0016_note_trash"
+LEGACY_REVISION = "0012_account_archives"
 MAX_ZIP = 256 * 1024 * 1024
 MAX_CONTENT = 512 * 1024 * 1024
 MAX_MEMBERS = 70000
@@ -303,7 +304,14 @@ def inspect_package(path):
                 "omitted",
             }
             or manifest["format"] != "hustudy-account-v1"
-            or manifest["schema_revision"] != REVISION
+            or manifest["schema_revision"]
+            not in (
+                LEGACY_REVISION,
+                "0013_note_tags",
+                "0014_note_exports",
+                "0015_note_folders",
+                REVISION,
+            )
         ):
             raise ValueError("备份格式或数据库版本不兼容")
         if not isinstance(manifest["tables"], dict) or not isinstance(
@@ -315,8 +323,18 @@ def inspect_package(path):
         expected = {model.__tablename__ for model in MODELS}
         for adapter in ADAPTERS:
             expected.update(model.__tablename__ for model in adapter.MODELS)
+        if manifest["schema_revision"] not in ("0015_note_folders", REVISION):
+            expected.remove("note_folders")
+        if manifest["schema_revision"] != REVISION:
+            expected.remove("note_trash_policies")
         if set(manifest["tables"]) != expected:
             raise ValueError("备份模块集合不完整或包含未知表")
+        if manifest["schema_revision"] == LEGACY_REVISION:
+            note_backup.upgrade_legacy_tags(manifest["tables"])
+        if manifest["schema_revision"] not in ("0015_note_folders", REVISION):
+            note_backup.upgrade_legacy_folders(manifest["tables"])
+        if manifest["schema_revision"] != REVISION:
+            note_backup.upgrade_legacy_trash(manifest["tables"])
         all_ids = contract.ids(manifest["tables"])
         members, file_ids = {"manifest.json"}, set()
         for item in manifest["files"]:

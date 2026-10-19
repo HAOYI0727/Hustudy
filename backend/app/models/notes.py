@@ -1,9 +1,37 @@
 from typing import Optional
+from datetime import datetime
 
-from sqlalchemy import ForeignKey, Integer, String, Text, JSON
+from sqlalchemy import ForeignKey, Integer, String, Text, JSON, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
-from .base import Base, OwnedResourceMixin
+from .base import Base, OwnedResourceMixin, UTCDateTime
+
+
+class NoteTrashPolicy(Base, OwnedResourceMixin):
+    __tablename__ = "note_trash_policies"
+    __table_args__ = (UniqueConstraint("user_id"),)
+    retention_days: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    revision: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+
+
+class NoteFolder(Base, OwnedResourceMixin):
+    __tablename__ = "note_folders"
+    course_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("courses.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    parent_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("note_folders.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
+    name: Mapped[str] = mapped_column(String(64), nullable=False)
+    revision: Mapped[int] = mapped_column(
+        Integer, default=1, server_default="1", nullable=False
+    )
 
 
 class Note(Base, OwnedResourceMixin):
@@ -15,9 +43,22 @@ class Note(Base, OwnedResourceMixin):
         index=True,
     )
     title: Mapped[str] = mapped_column(String(240), nullable=False)
+    folder_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("note_folders.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     content: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    tags: Mapped[list[str]] = mapped_column(
+        JSON, default=list, server_default="[]", nullable=False
+    )
     revision: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     deleted: Mapped[bool] = mapped_column(default=False, nullable=False)
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(UTCDateTime(), nullable=True)
+    purge_after: Mapped[Optional[datetime]] = mapped_column(
+        UTCDateTime(), nullable=True, index=True
+    )
 
 
 class NoteLink(Base, OwnedResourceMixin):

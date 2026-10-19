@@ -43,7 +43,7 @@ test('历史来源深链接刷新、前后退与离开草稿确认',async({page,
   await page.reload();await expect(page.locator('.chunk-highlight')).toContainText('暂存传输');
   await page.getByRole('button',{name:'知识笔记',exact:true}).click();await expect(page).toHaveURL(/\/notes\?course=/);
   await page.goBack();await expect(page.locator('.chunk-highlight')).toContainText('暂存传输');
-  await page.goForward();await expect(page.getByLabel('笔记标题')).toBeVisible();
+  await page.goForward();await page.getByRole('button',{name:'新建笔记',exact:true}).click();await expect(page.getByLabel('笔记标题')).toBeVisible();
   // An untitled draft does not autosave and must survive a cancelled route change.
   await page.getByLabel('Markdown 正文').fill('尚未保存的正文');
   page.once('dialog',dialog=>dialog.dismiss());await page.getByRole('button',{name:'资料阅读',exact:true}).click();
