@@ -1,0 +1,9 @@
+.note-math { max-width: 100%; }
+.note-math-block { display: block; overflow-x: auto; padding: 4px 2px; }
+.note-math-block .katex-display { margin: .8em 0; }
+.note-math-block .katex-display > .katex { white-space: nowrap; }
+.markdown-preview .note-math .katex { font-size: 1.12em; }
+.markdown-preview .math-block { background: transparent; padding: 0; margin: 1em 0; min-width: 0; }
+.math-error { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 8px; max-width: 100%; color: #a43d30; }
+.math-error > span { font-size: 12px; }
+.math-error code { white-space: pre-wrap; overflow-wrap: anywhere; }

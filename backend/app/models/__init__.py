@@ -9,7 +9,16 @@ from .material import (
     ManualTranscript,
     MaterialExport,
 )
-from .notes import Asset, AssetReference, Citation, Note, NoteLink
+from .notes import (
+    Asset,
+    AssetReference,
+    Citation,
+    Note,
+    NoteLink,
+    NoteFolder,
+    NoteTrashPolicy,
+)
+from .note_exports import NoteExport
 from .ai import AIResult, RemoteQuery
 from .backup import AccountArchive
 from .exams import (
@@ -24,7 +33,12 @@ from .exams import (
     Topic,
 )
 
+from .note_capture import NoteCapture
+from .note_ai_config import NoteAIConfig
+
 __all__ = [
+    "NoteAIConfig",
+    "NoteCapture",
     "AccountArchive",
     "AIResult",
     "RemoteQuery",
@@ -44,6 +58,9 @@ __all__ = [
     "Feedback",
     "Mistake",
     "Note",
+    "NoteFolder",
+    "NoteTrashPolicy",
+    "NoteExport",
     "NoteLink",
     "PastPaper",
     "PastQuestion",

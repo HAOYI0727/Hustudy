@@ -20,6 +20,11 @@ from .routers import (
     exams,
     health,
     notes,
+    note_exports,
+    note_organization,
+    note_trash,
+    note_capture,
+    note_ai_config,
     transcripts,
     material_exports,
     remote_ai,
@@ -44,6 +49,11 @@ def create_app() -> FastAPI:
     settings = get_settings()
     app = FastAPI(title="Hustudy API", version="0.1.0", lifespan=lifespan)
     app.include_router(backups.router)
+    app.include_router(note_exports.router)
+    app.include_router(note_organization.router)
+    app.include_router(note_trash.router)
+    app.include_router(note_capture.router)
+    app.include_router(note_ai_config.router)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origin_list,
@@ -105,7 +115,8 @@ def create_app() -> FastAPI:
                     "message": "请求参数校验失败",
                     "details": {
                         "errors": jsonable_encoder(
-                            exc.errors(), custom_encoder={ValueError: str}
+                            [{"type": item["type"], "loc": ["body"], "msg": "配置参数不合法"} for item in exc.errors()]
+                            if request.url.path == "/api/v1/note-ai/config" else exc.errors(), custom_encoder={ValueError: str}
                         )
                     },
                     "request_id": rid,

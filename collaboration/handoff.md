@@ -1,5 +1,62 @@
 # Hustudy 持续交接日志
 
+<a id="h-20261019-fzk-001"></a>
+## H-20261019-FZK-001：M3功能与验收整理提交（待团队接收）
+
+2026-10-19，Codex辅助fzk；分支codex/fzk-m3-note-tags。用户授权提交GitHub，确认第1–8项及编辑/识别流程通过，第9项暂缓。包含笔记目录/导入/标签、图片/导出、引用/保存、回收站、公式及识别插入，0013–0018迁移和备份/worker适配。82后端、58前端单元、22Chrome及构建通过，[验证与限制](../docs/fzk/m3_completion_audit.md)、[人工反馈](../docs/fzk/manual_recheck.md)。已清理停用功能旧指南与重复导出说明，保留必要兼容契约；未提交密钥/运行数据/无关文件。zhy接收迁移与共享层，gcx/xtc核对消费端，不代签团队验收。下方历史切片的“待本人复验/未提交”以本条最新状态为准。
+
+2026-10-19人工反馈补充：用户确认M3-CAPTURE-TEXT-01验收通过（M3-EDITOR-MATH-03此前已通过）。本条更新下方相应历史“待本人复验”状态，不代替团队接收；后续按[逐项复验队列](../docs/fzk/manual_recheck.md)补验回收站等未明确反馈项目，继续不提交/推送。
+
+## M3-CAPTURE-TEXT-01 · fzk（2026-10-19，Review / 待接收，未提交）
+
+用户确认M3-EDITOR-MATH-03验收通过。按新要求完成M3 AI整理/配置启用停用、旧整理任务取消和识别文本插入当前笔记；先记录[契约](../docs/contracts.md#m3-capture-text-01)，历史笔记/识别保留，无新迁移，M2不受影响。13项后端、58项前端单元、12项Chrome/WebKit、类型/构建/Ruff通过，[证据与复验](../docs/fzk/capture_text_acceptance.md)。已确认本机队列为空后重启旧worker，保存笔记后刷新前端即可；其他环境需更新后台进程。本轮本人新增行为复验和团队接收待进行，继续不提交推送。
+
+## M3-EDITOR-MATH-03 · fzk（2026-10-19，Review / 待接收，未提交）
+
+用户确认M3-EDITOR-MATH-02验收通过。本轮完成五组图形符号、12种结构快捷输入、参数直接填写/嵌套/恢复、窗口最近使用与末尾续写，参考AxMath交互，约束见[共享契约](../docs/contracts.md#m3-editor-math-03)。56项前端单元、22项Chrome/WebKit回归、类型检查和生产构建通过；修复双引擎连续输入及源码切换选区问题，[证据与复验步骤](../docs/fzk/formula_graphic_input_acceptance.md)。无新依赖/API/schema，保存草稿后刷新前端即可。新增功能待本人手动复验及团队接收，未提交推送。
+
+## M3-EDITOR-MATH-02 · fzk（2026-10-18，Review / 待接收，未提交）
+
+M3-EDITOR-MATH-01收到用户“本轮手动复验通过”。本轮已实现357项/16分类符号模板、跨类搜索、嵌套参数、11种表格结构、窗口撤销和12节本地速查。52项前端单元、16项Chrome/WebKit及生产构建通过；[证据与手动步骤](../docs/fzk/formula_workspace_acceptance.md)、[共享契约](../docs/contracts.md#m3-editor-math-02)。无新依赖/API/schema，保留原安全和草稿边界。新增能力仍待用户复验与共享层评审，不替其他成员签收，未提交推送。
+
+<a id="h-20261018-fzk-006"></a>
+## H-20261018-FZK-006 · M3-TRASH-01（Review / 待接收，未提交）
+
+用户确认M3-LAYOUT-DRAG-01本轮复验全部通过；本轮新增笔记回收站与原子批量删除/恢复/清空、30天默认可配置自动清理。先记录[共享契约](../docs/contracts.md#m3-trash-01)，0016迁移、备份升级和worker整合待zhy评审；不代签其他成员。69个不同后端、41前端单元、22个不同Chrome用例最终通过，Ruff/类型/构建通过；[使用、启动与验证明细](../docs/fzk/note_trash_acceptance.md)。不使用真实用户数据测试，不提交/推送。新功能本人复验待进行；启动需后端及worker重启，0016保留旧删除记录完整30天窗口。
+
+<a id="h-20261018-fzk-005"></a>
+## H-20261018-FZK-005：笔记工作区布局与拖动整理（Review / 待接收）
+
+2026-10-18，Codex辅助fzk。用户确认004验收1–5通过；本轮C01/C02/C08/C10、FR-09/10/11界面改进，先记录[交互契约](../docs/contracts.md#m3-layout-drag-01)，再实施中央管理列表、简洁侧栏、模态工具和目录拖动。复用原API/revision，无迁移/依赖或其他模块行为改动。保留当前分支未提交工作，不commit/push/合并，不代签团队接收。
+
+41前端单元、38个不同Chrome用例最终通过，类型/生产构建通过；首次拖动落点/按钮名称、测试GET连接重置和复验情况见[当前验收](../docs/fzk/note_workspace_acceptance.md)。覆盖中央选择预填导出、弹窗状态/登录恢复、实际拖动及循环/超深/冲突、原图片/引用/标签/目录ZIP/草稿保护。仅用隔离账户/数据库和自制资料，未调用真实模型；无全量后端重测声明。已运行0015的环境保存草稿后刷新前端即可。zhy接收UI与既有迁移整合、fzk本轮实测、实机/WebKit试用仍待。
+
+<a id="h-20261018-fzk-004"></a>
+## H-20261018-FZK-004：笔记文件夹、批量导入与整理、编辑器（Review / 待接收）
+
+用户确认上一轮引用/回源、刷新/移除保留正文、前后台自动保存复验2/3/4成功；其余未反馈项不推定通过。M3-ORGANIZE-IMPORT-EDITOR-01先记录[公共契约](../docs/contracts.md#m3-organize-import-editor-01)及0015迁移提案，现已实现6级文件夹、保留目录ZIP/未归档根目录、批量MD导入/统一标签文件夹、批量标签/移动、分类建议及编辑器增强。分类建议采用本地可解释规则，经确认才移动；未调用真实模型。
+
+56项相关后端、41项前端单元、32个不同Chrome用例最终通过；Ruff/TypeScript/Office/Vite构建及文档链接检查通过。浏览器首次回归有1项旧导出提示断言，更新后定向通过；首存焦点、批量期间锁定编辑区和深层ZIP离线图片已验证。[详细范围、实际命令与截图](../docs/fzk/note_organization_acceptance.md)。0015为M3派生组织模型，兼容旧0012–0014账户备份，待zhy评审整合；先重启API完成迁移再重启worker、刷新前端。新功能待fzk本人复验，不代签团队接收。工作区仍未提交/推送。
+
+<a id="h-20261018-fzk-003"></a>
+## H-20261018-FZK-003：M3余项审计、引用管理与保存恢复（Review / 待接收）
+
+Codex辅助fzk，C06/C08/C09/C10、FR-11/13。用户明确确认图片上传/笔记导出成功，范围不扩大为全部边界或团队签收。先写AGENTS及[契约](../docs/contracts.md#m3-citation-lifecycle-01)，已实现引用去重/50条上限/移除/授权来源名与版本/失败重试、前后台自动保存恢复；无新迁移/依赖。仅M3及消费端兼容字段，M1/M2/M4业务不重写。
+
+相关后端45个不同用例、36项Vitest、27项Chrome最终通过，Ruff/构建通过；初次新测试fixture、显示名断言与模拟时钟假设修正后定向复验，详细命令及390/1440截图见[M3审计与验证](../docs/fzk/m3_completion_audit.md)。新界面本人复验、zhy整合仍待，审阅笔记供M2/M4消费及P1图谱如实单列。后端自动重载或重启后刷新页面，含已移除引用的旧ZIP须重新导出；无本轮worker变更。工作区未提交/推送，不代签接收。
+
+<a id="h-20261018-fzk-002"></a>
+## H-20261018-FZK-002：所选笔记离线图片与批量上传（Review）
+
+Codex辅助fzk；M3-BATCH-IMAGES-01、C05/C07/C09/C10、FR-09/14。先记录[契约](../docs/contracts.md#m3-batch-images-01)与AGENTS意图后实现：导出自动带所选笔记引用图片，批量上传复用M1单文件接口及AssetLibrary前端，无新迁移/依赖。18项相关后端、36项Vitest、17项Chrome最终通过，Ruff/构建通过；新增后端测试断言和浏览器总时限问题已修正复验，见[详细证据](../docs/fzk/note_batch_images_acceptance.md)。解压后断网file页面实际图片加载、精确范围/去重、部分失败仅重试未完成、旧功能回归已验证；重启API/worker并重新导出。仍不提交/推送，待fzk复验与zhy接收，不代签成员。
+
+<a id="h-20261018-fzk-001"></a>
+## H-20261018-FZK-001：简洁选择导出与笔记图片管理（Review）
+
+Codex辅助fzk，M3-SIMPLE-EXPORT-01，C05/C07/C09/C10。用户反馈上传已成功但缺管理、单篇和ZIP笔记命名不直观、包结构冗余、不能选择范围、CMD校验不适合日常使用。本轮复用M1图库组件，单篇标题命名、勾选导出、默认仅Markdown及可选图片；内部安全校验保留。先更新[契约](../docs/contracts.md#m3-simple-export-01)，无新迁移，继续不提交/不推送，不代签成员。
+
+17项相关后端、28项Vitest、15项Chrome及Ruff/构建通过；Chrome首次2项图片管理测试定位失败，修正后复验通过，非产品功能失败。范围/命令/截图见[验收](../docs/fzk/note_batch_images_acceptance.md)。新请求在sources_json.request冻结选择，旧包标legacy且不改写；重启API/worker再重新生成。同步需求FR-14、README、使用指南和fzk文档；fzk人工复验及zhy此前迁移/共享worker整合待接收，实机/WebKit/真实材料联调未宣称完成。
+
 四名成员每完成一个可交接切片，或出现会影响下游的接口/阻塞时，在提交或 PR 前追加记录。这里记录变更交接；环境安装见 [project_handoff.md](project_handoff.md)，任务总览见 [task_board.md](task_board.md)，权威接口见 [contracts](../docs/contracts.md) 与 [API](../docs/api.md)。
 
 ## 维护方式
@@ -392,3 +449,40 @@ Codex辅助gcx，M2-MODEL-53-FLASH，用户指定GLM-5.3-Flash。原Hustudy-main
 - 验证：165项关联后端、25项Vitest、Chrome390/1440px共6项及Ruff/类型/构建通过；临时数据与模拟AI，无真实质量或完整全量通过声明。
 - 重启：worker须重启；API --reload自动加载否则重启；网页刷新，前端dev不用重启。普通Python与Anaconda完整路径命令、人工验收及新增上传文件见[交付记录](../docs/gcx/topics_reuse_2026_10_17.md)。旧上传副本/下载版未更新。
 - 接收：zhy集成、xtc候选消费；M4正式章节/试卷约束不在此次修改中。知识点配额、跨批去重、预算及学科质量仍待后续，不宣称整个M2完成。接收与实际复验待本人填写。
+
+<a id="h-20261017-fzk-001"></a>
+## H-20261017-FZK-001：M3笔记标签与搜索整理
+
+- 日期/实际实现者：2026-10-17，Codex在fzk会话辅助；C02/C08/C09、FR-09/10/11。分支codex/fzk-m3-note-tags，基线f789a6b；工作区未提交/未推送，Review/待接收，人工审阅未填写。
+- 先提出[Note.tags与0013迁移契约](../docs/contracts.md#m3-note-tags-01)，再实现存储/标签校验/搜索筛选/冲突与备份兼容。接收人zhy（迁移、备份整合）、gcx（M2草稿兼容）、xtc（后续笔记消费）；不修改其他成员个人记录。
+- 实际后端全量264通过/3个既有Windows权限前提失败，含14项新增M3；27Vitest、12Chrome集成、Ruff/类型/构建/迁移漂移通过，详见[fzk验收记录](../docs/fzk/note_tags_acceptance.md)。保留原uvloop修复并补Windows专用tzdata。独立附件ZIP仍待后续，不宣称全部M3完成。
+- 重启：先安装requirements.lock，再停止旧worker，重启API完成0013迁移后启动worker、刷新前端。旧0012备份可恢复；新备份需0013程序。没有实际用户库测试或真实模型调用。
+- 接收/复验：待成员本人填写；自动测试不替代人工签收或main合并。
+<a id="h-20261017-fzk-002"></a>
+## H-20261017-FZK-002：M3便携导出与笔记生命周期
+
+2026-10-17，fzk会话Codex辅助；用户已明确“以上功能验收均成功”，对应上一轮标签功能，不扩展为本轮功能或团队集成验收。C01/C03/C07/C08/C09/C10，FR-10/11/12/14/37；Review/待接收，分支codex/fzk-m3-note-tags，基线f789a6b，按用户要求不commit/push/合并。
+
+- 实现：全账户有效笔记/引用图片知识库ZIP及来源/hash清单；持久任务、重试/取消/租约迟到保护、来源撤回后拒绝旧包；删除确认与revision冲突；网络恢复/创建请求幂等；跨课程双链及保存保留归属。先定义[公共契约](../docs/contracts.md#m3-portable-notes-01)，实际结果和复验步骤见[fzk验收](../docs/fzk/m3_completion_audit.md)。
+- 共享影响：新增0014_note_exports派生表；worker分派NOTE_EXPORT；账户备份排除此控制表/任务，manifest升级0014并兼容0012/0013。未改M1解析、M2模型调用或M4考试业务。zhy评审0013/0014及共享备份/worker；gcx复验报告草稿（旧POST可不传request_id），xtc后续按原Note/Citation消费。
+- 实际验证：275后端通过/3个既有Windows权限前提失败（非新增M3）；27Vitest、17Chrome、Ruff/类型/构建/迁移漂移通过。新增后端10项导出生命周期与0013兼容案例，浏览器含M2→M3/平台回归，无真实模型调用。照片/数据均自制临时样例。
+- 启动顺序：停止旧worker → API启动升级0014（既有预迁移备份）→ 启动worker → 刷新前端。新增包由worker生成；离线校验脚本scripts/verify_note_package.py。待本轮fzk人工验收、zhy集成和实机/跨浏览器/真实材料联调；不代签其他成员。
+
+<a id="h-20261017-fzk-003"></a>
+## H-20261017-FZK-003：M3图片上传与导出命名
+
+2026-10-17，Codex辅助fzk；M3-IMAGE-NAMING-01，C05/C07/C09/C10、FR-14/37。先记录AGENTS、[契约](../docs/contracts.md#m3-image-naming-01)和本条意图后实施；同一codex/fzk-m3-note-tags，基线f789a6b，仍未提交/推送/合并，Review/待接收。
+
+- 用户确认双链插入/改名后链接、ZIP校验、后端停止后未保存正文保留；未确认的删除/冲突等场景不代填人工验收。反馈缺少图片上传入口及UUID命名难管理。
+- 修改：笔记编辑器复用M1上传接口，成功插图并预览；失败/上传中输入保留，401不自动重传。新ZIP下载名带账户时区日期时间，成员按课程/标题/图片名称分配唯一名称，转换实际相对链接；保留来源、UUID身份和hash校验。
+- 兼容：NoteExport新增filename响应，无新表/迁移/依赖；已有包不改写，须重新导出使用新目录。API/worker均需加载新代码，前端刷新。
+- 验证：12项相关后端、12项Chrome、27项Vitest、Ruff/构建通过；390/1440宽度截图已检查，含真实临时上传/worker打包/离线校验。无用户数据修改或真实AI调用；本轮没有重跑全部后端，上一轮3个Windows环境失败不据此宣称已解决。[详细证据与复测步骤](../docs/fzk/note_batch_images_acceptance.md)。
+- 待办：fzk复验新入口/命名，zhy整合共享API/worker及此前0013/0014；实机/WebKit和真实材料联调仍待。不代签其他成员接收。
+
+## M3-EDITOR-MATH-01（2026-10-18，fzk）
+
+用户暂时搁置AI识别开发，本轮只优化Markdown编辑器。参考用户截图改为分组线性图标工具栏，保留中文悬浮说明/aria-label、键盘操作及触屏热区；不复制截图素材，不引入另一套图标体系。新增本地LaTeX公式编辑弹窗，行内/独立公式、常用模板/符号、即时预览与错误提示、选区插入和原公式修改；标准$...$/$$...$$保存，笔记预览真实渲染公式。渲染禁用可信HTML/外部资源，限制公式长度及宏展开，不改变UUID双链/图片/安全Markdown。保留撤销、草稿/冲突保护、分屏和专注；只有用户确认插入才修改正文。更新依赖许可与锁文件，覆盖390/1440布局、公式插入编辑撤销及安全回归；同步fzk文档，不提交推送，不继续AI识别功能开发。
+
+## 2026-10-18 M3 图标工具栏与公式编辑器
+
+M3-EDITOR-MATH-01 已在工作区实现。用户暂缓 AI 识别后续开发；此次只改 Markdown 编辑器、公式渲染、依赖与相关测试/文档。zhy 评审公共 Icon/NotePreview、精确依赖锁与许可生成钩子；fzk 按[五步复验](../docs/fzk/note_math_editor_acceptance.md)核对。无新迁移或 API，不改变 UUID 链接/图片授权/正文 revision；未提交推送，未代签其他成员。

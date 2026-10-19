@@ -1,10 +1,11 @@
 import hashlib
 import re
+from urllib.parse import quote
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import Response
-from sqlalchemy import delete, select, update
+from sqlalchemy import delete, select, update, func
 from sqlalchemy.orm import Session
 
 from ..repositories.materials import checked_chunk
@@ -28,6 +29,13 @@ from ..schemas.notes import (
 )
 
 from ..services.courses import owned_course
+from ..services.note_export_names import safe_name
+from ..services.note_filters import tag_matches, text_matches
+from ..services.note_citations import citation_response, lock_note
+from ..services.note_folders import check_placement, lock_owner
+from ..services.note_trash import retention
+from ..models.base import utc_now
+from datetime import timedelta
 
 router = APIRouter(prefix="/api/v1", tags=["notes"])
 LINK_RE = re.compile(r"\[\[note:([0-9a-fA-F-]{36})(?:\|([^\]]+))?\]\]")
@@ -60,9 +68,7 @@ def _sync_links(note: Note, user: User, db: Session) -> None:
         if target_id == note.id:
             continue
         target = db.scalar(
-            select(Note).where(
-                Note.id == target_id, Note.user_id == user.id, Note.deleted.is_(False)
-            )
+            select(Note).where(Note.id == target_id, Note.user_id == user.id)
         )
         if target:
             db.add(
@@ -92,6 +98,8 @@ def _sync_links(note: Note, user: User, db: Session) -> None:
 @router.get("/notes", response_model=List[NoteResponse])
 def list_notes(
     course_id: str | None = None,
+    q: str = Query(default="", max_length=200),
+    tag: str | None = Query(default=None, min_length=1, max_length=32),
     user: User = Depends(current_user),
     db: Session = Depends(get_db),
 ) -> List[NoteResponse]:
@@ -99,9 +107,13 @@ def list_notes(
     if course_id:
         owned_course(db, user.id, course_id)
         statement = statement.where(Note.course_id == course_id)
+    if q.strip():
+        statement = statement.where(text_matches(q.strip()))
+    if tag is not None:
+        statement = statement.where(tag_matches(tag.strip()))
     return [
         NoteResponse.model_validate(n, from_attributes=True)
-        for n in db.scalars(statement.order_by(Note.updated_at.desc())).all()
+        for n in db.scalars(statement.order_by(Note.updated_at.desc(), Note.id)).all()
     ]
 
 
@@ -125,16 +137,58 @@ def create_note(
     user: User = Depends(current_user),
     db: Session = Depends(get_db),
 ) -> NoteResponse:
+    lock_owner(db, user.id)
     _check_course(payload.course_id, user, db)
+    check_placement(db, user.id, payload.folder_id, payload.course_id)
+    if payload.request_id:
+        db.execute(update(User).where(User.id == user.id).values(id=User.id))
+        previous = db.get(Note, str(payload.request_id))
+        if previous:
+            if previous.user_id != user.id or previous.deleted:
+                raise HTTPException(404, "笔记请求标识不可用")
+            saved_sources = db.scalars(
+                select(Citation).where(
+                    Citation.note_id == previous.id, Citation.user_id == user.id
+                )
+            ).all()
+            same_sources = sorted(
+                (c.version_id, c.chunk_id, c.quote) for c in saved_sources
+            ) == sorted((c.version_id, c.chunk_id, c.quote) for c in payload.citations)
+            if (
+                previous.revision != 1
+                or previous.course_id != payload.course_id
+                or previous.title != payload.title
+                or previous.content != payload.content
+                or previous.tags != payload.tags
+                or previous.folder_id != payload.folder_id
+                or not same_sources
+            ):
+                raise HTTPException(
+                    409,
+                    {
+                        "message": "此前创建的笔记已变化，请核对服务端版本",
+                        "server_id": previous.id,
+                        "server_revision": previous.revision,
+                        "server_title": previous.title,
+                        "server_content": previous.content,
+                        "server_tags": previous.tags,
+                        "server_folder_id": previous.folder_id,
+                    },
+                )
+            db.commit()
+            return NoteResponse.model_validate(previous, from_attributes=True)
     chunks = [
         checked_chunk(db, c.version_id, c.chunk_id, c.quote, user.id, payload.course_id)
         for c in payload.citations
     ]
     note = Note(
+        **({"id": str(payload.request_id)} if payload.request_id else {}),
         user_id=user.id,
         course_id=payload.course_id,
         title=payload.title,
         content=payload.content,
+        tags=payload.tags,
+        folder_id=payload.folder_id,
     )
     db.add(note)
     db.flush()
@@ -172,11 +226,21 @@ def update_note(
     user: User = Depends(current_user),
     db: Session = Depends(get_db),
 ) -> NoteResponse:
+    lock_owner(db, user.id)
+    current = _note(note_id, user, db)
     _check_course(payload.course_id, user, db)
+    check_placement(
+        db,
+        user.id,
+        payload.folder_id
+        if "folder_id" in payload.model_fields_set
+        else current.folder_id,
+        payload.course_id or current.course_id,
+    )
     values = {
         key: value
         for key, value in payload.model_dump(exclude={"revision"}).items()
-        if value is not None
+        if value is not None or (key == "folder_id" and key in payload.model_fields_set)
     }
     values["revision"] = payload.revision + 1
     result = db.execute(
@@ -199,6 +263,8 @@ def update_note(
                 "server_revision": note.revision,
                 "server_title": note.title,
                 "server_content": note.content,
+                "server_tags": note.tags,
+                "server_folder_id": note.folder_id,
             },
         )
     note = _note(note_id, user, db)
@@ -216,16 +282,51 @@ def export_note(
     return Response(
         content=f"# {note.title}\n\n{note.content}\n",
         media_type="text/markdown",
-        headers={"Content-Disposition": f'attachment; filename="note-{note.id}.md"'},
+        headers={
+            "Content-Disposition": "attachment; filename*=UTF-8''"
+            + quote(safe_name(note.title, "未命名笔记") + ".md", safe="")
+        },
     )
 
 
 @router.delete("/notes/{note_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_note(
-    note_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)
+    note_id: str,
+    revision: int | None = Query(default=None, ge=1),
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
 ) -> None:
-    note = _note(note_id, user, db)
-    note.deleted = True
+    lock_owner(db, user.id)
+    now, days = utc_now(), retention(db, user.id)
+    result = db.execute(
+        update(Note)
+        .where(
+            Note.id == note_id,
+            Note.user_id == user.id,
+            Note.deleted.is_(False),
+            Note.revision == revision if revision is not None else True,
+        )
+        .values(
+            deleted=True,
+            revision=Note.revision + 1,
+            deleted_at=now,
+            purge_after=now + timedelta(days=days) if days is not None else None,
+        )
+    )
+    if result.rowcount != 1:
+        db.rollback()
+        note = _note(note_id, user, db)
+        raise HTTPException(
+            409,
+            {
+                "message": "笔记已有新版本，请核对后再删除",
+                "server_revision": note.revision,
+                "server_title": note.title,
+                "server_content": note.content,
+                "server_tags": note.tags,
+                "server_folder_id": note.folder_id,
+            },
+        )
     db.commit()
 
 
@@ -256,12 +357,13 @@ def note_citations(
     note_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)
 ) -> List[CitationResponse]:
     _note(note_id, user, db)
+    cache = {}
     return [
-        CitationResponse.model_validate(c, from_attributes=True)
+        citation_response(db, user.id, c, cache)
         for c in db.scalars(
-            select(Citation).where(
-                Citation.note_id == note_id, Citation.user_id == user.id
-            )
+            select(Citation)
+            .where(Citation.note_id == note_id, Citation.user_id == user.id)
+            .order_by(Citation.created_at, Citation.id)
         ).all()
     ]
 
@@ -277,10 +379,35 @@ def add_citation(
     user: User = Depends(current_user),
     db: Session = Depends(get_db),
 ) -> CitationResponse:
-    note = _note(note_id, user, db)
+    note = lock_note(db, user.id, note_id)
     chunk = checked_chunk(
         db, payload.version_id, payload.chunk_id, payload.quote, user.id, note.course_id
     )
+    existing = db.scalar(
+        select(Citation)
+        .where(
+            Citation.note_id == note.id,
+            Citation.user_id == user.id,
+            Citation.version_id == payload.version_id,
+            Citation.chunk_id == chunk.id,
+            Citation.quote == payload.quote,
+        )
+        .order_by(Citation.created_at, Citation.id)
+    )
+    if existing:
+        result = citation_response(db, user.id, existing)
+        db.commit()
+        return result
+    count = db.scalar(
+        select(func.count())
+        .select_from(Citation)
+        .where(
+            Citation.note_id == note.id,
+            Citation.user_id == user.id,
+        )
+    )
+    if count >= 50:
+        raise HTTPException(422, "每篇笔记最多50条资料引用，请先移除不需要的引用")
     citation = Citation(
         user_id=user.id,
         note_id=note.id,
@@ -295,7 +422,27 @@ def add_citation(
     db.add(citation)
     db.commit()
     db.refresh(citation)
-    return CitationResponse.model_validate(citation, from_attributes=True)
+    return citation_response(db, user.id, citation)
+
+
+@router.delete("/notes/{note_id}/citations/{citation_id}", status_code=204)
+def remove_citation(
+    note_id: str,
+    citation_id: str,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+) -> None:
+    lock_note(db, user.id, note_id)
+    changed = db.execute(
+        delete(Citation).where(
+            Citation.id == citation_id,
+            Citation.note_id == note_id,
+            Citation.user_id == user.id,
+        )
+    )
+    if changed.rowcount != 1:
+        raise HTTPException(404, "引用不存在或不属于这篇笔记")
+    db.commit()
 
 
 @router.get("/assets/{asset_id}/references", response_model=List[NoteResponse])

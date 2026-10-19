@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { api, ApiError, Asset, AssetFilters, AssetPage, Note } from "../../api/client";
 import { AssetImage } from "../../components/knowledge";
 import { Icon } from "../../components/Icon";
+import {uploadImages, imageLabel, MAX_IMAGE_BATCH, type ImageFailure, type ImageProgress} from "./uploadImages";
+import {ImageUploadStatus} from "./ImageUploadStatus";
 
 const defaults: AssetFilters = {q: "", tag: "", origin: "all", sort: "newest", offset: 0, limit: 12};
 type Props = {
@@ -15,7 +17,11 @@ export function AssetLibrary({token, courseId, onError, onNotice, refreshKey = 0
   const [filters, setFilters] = useState(defaults);
   const [query, setQuery] = useState("");
   const [reload, setReload] = useState(0);
-  const [file, setFile] = useState<File>();
+  const [files, setFiles] = useState<File[]>([]);
+  const [uploadFailures, setUploadFailures] = useState<ImageFailure[]>([]);
+  const [uploadProgress, setUploadProgress] = useState<ImageProgress | null>(null);
+  const [uploadSummary, setUploadSummary] = useState("");
+  const uploadLock = useRef(false);
   const fileInput = useRef<HTMLInputElement>(null);
   const editor = useRef<HTMLDivElement>(null);
   const [alt, setAlt] = useState("");
@@ -83,16 +89,22 @@ export function AssetLibrary({token, courseId, onError, onNotice, refreshKey = 0
       onError(error);
     } finally {setBusy(false);}
   };
-  const upload = async () => {
-    if (!file || busy) return;
-    if (file.size > 10 * 1024 * 1024) {onError(new Error("图片不能超过10 MiB")); return;}
-    setBusy(true);
+  const upload = async (batch = files) => {
+    if (!batch.length || busy || uploadLock.current) return;
+    if (batch.length > MAX_IMAGE_BATCH) {onError(new Error(`每批最多选择 ${MAX_IMAGE_BATCH} 张图片，请分批上传。`)); return;}
+    uploadLock.current = true; setBusy(true); setUploadFailures([]); setUploadSummary("");
     try {
-      await api.uploadAsset(token, courseId, file, alt);
-      setFile(undefined); setAlt(""); if (fileInput.current) fileInput.current.value = "";
-      setFilters({...defaults, limit: filters.limit}); setQuery(""); refresh(); onChanged?.();
-      onNotice("图片已导入，可整理标签或从笔记工具栏插入");
-    } catch (error) {onError(error);} finally {setBusy(false);}
+      const result = await uploadImages(batch, file => api.uploadAsset(token, courseId, file, alt.trim() || imageLabel(file)), setUploadProgress);
+      setFiles([]); if (fileInput.current) fileInput.current.value = "";
+      setUploadFailures(result.failures);
+      const summary = `已导入 ${result.assets.length} 张图片${result.failures.length ? `，${result.failures.length} 张未完成` : ""}。`;
+      setUploadSummary(summary);
+      if (!result.failures.length) setAlt("");
+      if (result.assets.length) {
+        setFilters({...defaults, limit: filters.limit}); setQuery(""); refresh(); onChanged?.();
+        onNotice(summary + "可整理标签或从笔记工具栏插入。");
+      }
+    } catch (error) {onError(error);} finally {setBusy(false); uploadLock.current = false; setUploadProgress(null);}
   };
   const openSource = async (asset: Asset) => {
     if (!onSource || busy || !discard()) return;
@@ -126,11 +138,12 @@ export function AssetLibrary({token, courseId, onError, onNotice, refreshKey = 0
   return <section className="panel asset-library">
     <div className="panel-title"><h3><Icon name="image"/>课程图片 <span className="count-pill">{page.total}</span></h3><span className="hint">整理图表，让每一张图都能找到出处</span></div>
     <form className="asset-upload" onSubmit={event => {event.preventDefault(); void upload();}}>
-      <label>选择图片<input ref={fileInput} disabled={busy} type="file" accept="image/png,image/jpeg,image/webp" onChange={event => setFile(event.target.files?.[0])}/></label>
-      <label>图片说明<input disabled={busy} maxLength={500} value={alt} onChange={event => setAlt(event.target.value)} placeholder="例如：进程状态转换图"/></label>
-      <button className="primary" disabled={!file || busy}><Icon name="upload" size={16}/>导入图片</button>
+      <label>选择图片<input ref={fileInput} disabled={busy} type="file" multiple accept="image/png,image/jpeg,image/webp" onChange={event => {setFiles(Array.from(event.target.files ?? [])); setUploadFailures([]); setUploadSummary("");}}/></label>
+      <label>图片说明<input disabled={busy} maxLength={500} value={alt} onChange={event => setAlt(event.target.value)} placeholder="选填；多张共用说明，留空使用文件名"/></label>
+      <button className="primary" disabled={!files.length || busy}><Icon name="upload" size={16}/>导入图片</button>
     </form>
-    <p className="asset-search-hint"><Icon name="info" size={14}/>PNG / JPEG / WebP · ≤10 MiB。查找仅匹配名称、说明与标签，图片内文字不会自动被识别。</p>
+    <p className="asset-search-hint"><Icon name="info" size={14}/>可多选 PNG / JPEG / WebP，每批最多20张、每张≤10 MiB{files.length ? ` · 已选 ${files.length} 张` : ""}。查找仅匹配名称、说明与标签，图片内文字不会自动被识别。</p>
+    <ImageUploadStatus progress={uploadProgress} failures={uploadFailures} summary={uploadSummary} busy={busy} retry={() => void upload(uploadFailures.map(item => item.file))} clear={() => {setUploadFailures([]); setUploadSummary("");}}/>
     <form className="asset-filters" aria-label="图片查找与筛选" onSubmit={event => {event.preventDefault(); filter({q: query});}}>
       <label className="asset-search"><span>查找图片</span><div><input maxLength={200} value={query} onChange={event => setQuery(event.target.value)} placeholder="搜索名称、说明、标签…"/><button className="secondary" disabled={busy}><Icon name="search" size={16}/>查找</button></div></label>
       <label>标签<select value={filters.tag} disabled={busy} onChange={event => filter({tag: event.target.value})}><option value="">全部标签</option>{[...new Set([...page.tags, ...(filters.tag ? [filters.tag] : [])])].map(tag => <option key={tag} value={tag}>{tag}</option>)}</select></label>

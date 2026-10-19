@@ -32,6 +32,21 @@ const drawings = {
   logout: <path d="M10 4H4v16h6M9 12h12m-5-5 5 5-5 5"/>,
   filter: <path d="M3 4h18l-7 8v7l-4 2v-9L3 4Z"/>,
   plus: <path d="M12 5v14M5 12h14"/>,
+  bold: <path d="M7 4h6a4 4 0 0 1 0 8H7V4Zm0 8h7a4 4 0 0 1 0 8H7v-8Z"/>,
+  italic: <path d="M10 4h8M6 20h8M14 4l-4 16"/>,
+  heading: <path d="M6 4v16M18 4v16M6 12h12"/>,
+  strike: <path d="M17 6c-1-2-8-3-10 1-1 2 1 4 5 5M7 18c2 3 10 3 10-2M3 12h18"/>,
+  ordered: <path d="M10 6h11M10 12h11M10 18h11M3 4h1v4M2 11c0-2 4-2 4 0l-4 3h4M2 17h3l-2 2h2v2H2"/>,
+  task: <><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m7 12 3 3 7-7"/></>,
+  quote: <path d="M10 6H4v7h5c0 3-1 4-4 5M21 6h-6v7h5c0 3-1 4-4 5"/>,
+  code: <path d="m7 7-5 5 5 5M17 7l5 5-5 5M14 4l-4 16"/>,
+  braces: <path d="M9 3H7v6c0 2-2 3-4 3 2 0 4 1 4 3v6h2M15 3h2v6c0 2 2 3 4 3-2 0-4 1-4 3v6h-2"/>,
+  table: <><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></>,
+  rule: <path d="M4 12h16"/>,
+  formula: <path d="M18 4H5l7 8-7 8h13M18 4v3M18 17v3"/>,
+  undo: <path d="m8 4-5 5 5 5M3 9h11a6 6 0 0 1 0 12"/>,
+  redo: <path d="m16 4 5 5-5 5M21 9H10a6 6 0 0 0 0 12"/>,
+  split: <><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 3v18M6 8h3M6 12h3M15 8h3M15 12h3"/></>,
 } satisfies Record<string, ReactNode>;
 
 export type IconName = keyof typeof drawings;

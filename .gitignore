@@ -25,3 +25,4 @@ frontend/.vitest/
 
 # Generated isolated Office preview runtime
 frontend/public/native-office/
+frontend/public/math-notices.txt

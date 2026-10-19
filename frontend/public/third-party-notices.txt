@@ -7474,3 +7474,5 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 Native Office preview uses pinned @aiden0z/pptx-renderer 1.3.0 and docx-preview 0.4.1 (Apache-2.0), JSZip under MIT, and bundled notices including unmodified MPL-2.0 mtx-decompressor. Full shipped notices and corresponding-source links: native-office/notices.txt
+
+Markdown math uses KaTeX 0.19.0, remark-math 6.0.0, remark-parse 11.0.0 and unified 11.0.5 (MIT). Full shipped notices including their dependency closure: math-notices.txt

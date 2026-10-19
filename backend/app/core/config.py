@@ -12,6 +12,7 @@ class Settings(BaseSettings):
         hide_input_in_errors=True,
     )
     env: str = "development"
+    speech_model_path: str = Field(default="./data/models/faster-whisper-base", max_length=1024, repr=False)
     database_url: str = "sqlite:///./data/hustudy.db"
     storage_root: str = "./data/storage"
     storage_reserve_bytes: int = Field(default=64 * 1024 * 1024, ge=1024 * 1024)

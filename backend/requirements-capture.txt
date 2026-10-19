@@ -1,0 +1,4 @@
+# Optional local CPU recognition. Models never download during a user job.
+rapidocr-onnxruntime==1.4.4
+pypdfium2==4.30.0
+faster-whisper==1.2.1

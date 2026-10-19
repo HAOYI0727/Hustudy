@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
+import { Children, isValidElement, useEffect, useState } from "react";
 import Markdown, { defaultUrlTransform } from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import {MathFormula} from './MathFormula';
 import { api, Note } from "../api/client";
 
 export function AssetImage({ token, id, alt }: { token: string; id: string; alt: string }) {
@@ -21,7 +23,15 @@ export function NotePreview({ content, token, notes, onNote }: { content: string
     (_match, id, label) => `![${String(label || "课程图片").replace(/[\[\]\n]/g, " ")}](asset://${id})`)
     .replace(/\[\[note:([0-9a-fA-F-]{36})(?:\|([^\]]*))?\]\]/g,
     (_match, id, label) => `[${String(label || notes.find(n=>n.id===id)?.title || "笔记").replace(/[\[\]\n]/g, " ")}](note://${id})`);
-  return <div className="markdown-preview"><Markdown skipHtml remarkPlugins={[remarkGfm]} urlTransform={url => /^(asset|note):\/\/[0-9a-fA-F-]{36}$/.test(url) ? url : defaultUrlTransform(url)} components={{
+  return <div className="markdown-preview"><Markdown skipHtml remarkPlugins={[remarkGfm, remarkMath]} urlTransform={url => /^(asset|note):\/\/[0-9a-fA-F-]{36}$/.test(url) ? url : defaultUrlTransform(url)} components={{
+    code: ({className, children}) => /\bmath-(inline|display)\b/.test(className || '')
+      ? <MathFormula source={String(children).replace(/\n$/, '')} display={className?.includes('math-display')}/>
+      : <code className={className}>{children}</code>,
+    pre: ({children}) => {
+      const child = Children.toArray(children)[0];
+      return isValidElement<{className?: string}>(child) && child.props.className?.includes('math-display')
+        ? <div className="math-block">{children}</div> : <pre>{children}</pre>;
+    },
     img: ({ src, alt }) => src?.startsWith("asset://") ? <AssetImage token={token} id={src.slice(8)} alt={alt || "课程图片"}/> : <span className="missing-asset">外部图片请先上传到课程资料库 · {alt}</span>,
     a: ({ href, children }) => {
       if (href?.startsWith("note://")) { const target = notes.find(n=>n.id===href.slice(7)); return target ? <button className="link-button" onClick={()=>onNote(target)}>{target.title} ↗</button> : <span className="missing-asset">目标笔记已删除</span>; }

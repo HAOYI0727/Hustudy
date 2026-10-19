@@ -2,12 +2,13 @@
 
 from ..core.database import begin_read_snapshot
 
-from sqlalchemy import select, func, or_
+from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 
 from ..core.search_excerpt import excerpt
 from ..models import Note
 from .courses import owned_course
+from .note_filters import text_matches
 
 
 def search_notes(
@@ -28,10 +29,7 @@ def search_notes(
         Note.user_id == user_id,
         Note.course_id == course_id,
         Note.deleted.is_(False),
-        or_(
-            Note.title.icontains(query, autoescape=True),
-            Note.content.icontains(query, autoescape=True),
-        ),
+        text_matches(query),
     )
     page["total"] = db.scalar(select(func.count()).select_from(Note).where(*predicate))
     # Only a page is loaded; full note bodies never leave this adapter.
