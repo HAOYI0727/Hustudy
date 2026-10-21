@@ -1,10 +1,10 @@
+from ..services.topic_tree import active_clause
 import hashlib
 import json
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from zoneinfo import ZoneInfo
 from typing import Any, Dict, List
-from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select, update
@@ -37,12 +37,16 @@ from ..schemas.exams import (
     PastQuestionResponse,
     ReviewTaskCreate,
     ReviewTaskResponse,
+    ReviewReschedule,
     TopicCreate,
     TopicResponse,
 )
 
 from ..services.exam_retirement import check_attempt_course, check_mistake_course
 from ..services.courses import owned_course
+from ..services import question_bank as bank
+from ..services import topic_tree
+from ..services.mistake_progress import mastered_since
 
 router = APIRouter(prefix="/api/v1", tags=["exams"])
 
@@ -53,7 +57,12 @@ def _course(course_id: str, user: User, db: Session, *, lock=False) -> Course:
 
 def _topic_response(topic: Topic) -> TopicResponse:
     return TopicResponse(
-        id=topic.id, name=topic.name, aliases=json.loads(topic.aliases_json)
+        id=topic.id,
+        name=topic.name,
+        aliases=json.loads(topic.aliases_json),
+        revision=topic.revision,
+        merged_into_id=topic.merged_into_id,
+        parent_id=topic_tree.parent_id(topic),
     )
 
 
@@ -66,7 +75,12 @@ def list_topics(
         _topic_response(x)
         for x in db.scalars(
             select(Topic)
-            .where(Topic.course_id == course_id, Topic.user_id == user.id)
+            .where(
+                Topic.course_id == course_id,
+                active_clause(),
+                Topic.user_id == user.id,
+                Topic.merged_into_id.is_(None),
+            )
             .order_by(Topic.name)
         ).all()
     ]
@@ -89,6 +103,17 @@ def create_topic(
         aliases_json=json.dumps(payload.aliases, ensure_ascii=False),
     )
     db.add(topic)
+    db.flush()
+    topic_tree.check_parent(
+        db,
+        user.id,
+        course_id,
+        topic.id,
+        str(payload.parent_id) if payload.parent_id else None,
+    )
+    topic_tree.write_parent(
+        topic, str(payload.parent_id) if payload.parent_id else None
+    )
     db.commit()
     db.refresh(topic)
     return _topic_response(topic)
@@ -106,6 +131,7 @@ def create_paper(
     db: Session = Depends(get_db),
 ) -> PastPaperResponse:
     _course(course_id, user, db, lock=True)
+    bank.no_active_attempt(db, user.id, course_id)
     digest = hashlib.sha256(payload.content.encode()).hexdigest()
     existing = db.scalar(
         select(PastPaper).where(
@@ -141,10 +167,7 @@ def _paper_response(paper: PastPaper, db: Session) -> PastPaperResponse:
         title=paper.title,
         year=paper.year,
         review_status=paper.review_status,
-        questions=[
-            PastQuestionResponse.model_validate(q, from_attributes=True)
-            for q in questions
-        ],
+        questions=[PastQuestionResponse(**bank.question_payload(q)) for q in questions],
     )
 
 
@@ -153,6 +176,7 @@ def list_papers(
     course_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)
 ) -> List[PastPaperResponse]:
     _course(course_id, user, db)
+    bank.no_active_attempt(db, user.id, course_id)
     return [
         _paper_response(p, db)
         for p in db.scalars(
@@ -173,6 +197,11 @@ def extract_paper(
     if not paper:
         raise HTTPException(status_code=404, detail="试卷不存在")
     _course(paper.course_id, user, db, lock=True)
+    bank.no_active_attempt(db, user.id, paper.course_id)
+    if db.scalar(
+        select(PastQuestion.id).where(PastQuestion.paper_id == paper.id).limit(1)
+    ):
+        return _paper_response(paper, db)
     if not paper.content.strip():
         raise HTTPException(status_code=422, detail="试卷没有可拆分文本")
     for old in db.scalars(
@@ -213,11 +242,30 @@ def confirm_paper(
         raise HTTPException(status_code=404, detail="试卷不存在")
     _course(paper.course_id, user, db, lock=True)
     questions = db.scalars(
-        select(PastQuestion).where(PastQuestion.paper_id == paper.id)
+        select(PastQuestion).where(
+            PastQuestion.paper_id == paper.id, PastQuestion.status != "SUPERSEDED"
+        )
     ).all()
     if not questions:
         raise HTTPException(status_code=422, detail="请先拆分题目")
+    bank.no_active_attempt(db, user.id, paper.course_id)
+    errors = {
+        q.id: bank.validate_question(q, json.loads(q.bank_data_json))
+        for q in questions
+        if q.bank_data_json != "{}"
+    }
+    errors = {qid: value for qid, value in errors.items() if value}
+    if errors:
+        raise HTTPException(422, {"message": "题库仍有待校正题目", "questions": errors})
+    from ..services.bank_images import check_images
+
     for q in questions:
+        check_images(
+            db,
+            user.id,
+            paper.course_id,
+            json.loads(q.bank_data_json).get("illustrations", []),
+        )
         q.status = "CONFIRMED"
     paper.review_status = "CONFIRMED"
     db.commit()
@@ -269,14 +317,7 @@ def create_blueprint(
 def _paper_payload(paper: ExamPaper, include_answers: bool = False) -> PaperResponse:
     questions = json.loads(paper.questions_json)
     if not include_answers:
-        questions = [
-            {
-                k: v
-                for k, v in question.items()
-                if k not in {"answer", "rubric", "explanation"}
-            }
-            for question in questions
-        ]
+        questions = [bank.public_question(q) for q in questions]
     return PaperResponse(
         id=paper.id,
         title=paper.title,
@@ -302,75 +343,7 @@ def generate_paper(
     if not blueprint:
         raise HTTPException(status_code=404, detail="蓝图不存在")
     _course(blueprint.course_id, user, db, lock=True)
-    config = json.loads(blueprint.config_json)
-    topic_names = [
-        x["name"] for x in config.get("topics", []) for _ in range(x["count"])
-    ] or ["综合"]
-    questions = []
-    index = 0
-    for item in config["question_types"]:
-        kind, count, points = (
-            item.get("type", "short_answer"),
-            int(item["count"]),
-            int(item["points"]),
-        )
-        for _ in range(count):
-            index += 1
-            qid = str(uuid4())
-            topic = topic_names[(index - 1) % len(topic_names)]
-            if kind in {"single_choice", "choice"}:
-                question = {
-                    "id": qid,
-                    "type": "single_choice",
-                    "stem": f"【演示题】请结合“{topic}”选择最符合课件的表述。",
-                    "options": [
-                        "定义与条件均符合",
-                        "只符合名称",
-                        "与资料无关",
-                        "无法判断",
-                    ],
-                    "answer": "A",
-                    "explanation": "演示模型题目，需由用户结合课件审阅。",
-                }
-            elif kind == "true_false":
-                question = {
-                    "id": qid,
-                    "type": "true_false",
-                    "stem": f"【演示题】“{topic}”中的概念需要结合资料中的条件判断。",
-                    "answer": True,
-                    "explanation": "演示模型题目，需由用户审阅。",
-                }
-            else:
-                question = {
-                    "id": qid,
-                    "type": "short_answer",
-                    "stem": f"请用自己的话解释“{topic}”，并给出一个应用场景。",
-                    "rubric": ["概念准确", "解释条件", "应用示例"],
-                    "answer": "参考要点需由用户结合课程资料审阅。",
-                    "explanation": "主观题仅提供 rubric 和演示参考。",
-                }
-            question.update(
-                {
-                    "points": points,
-                    "topic": topic,
-                    "difficulty_label": item.get("difficulty", "基础"),
-                    "material_citation_ids": [],
-                    "generation_status": "AI_DRAFT",
-                }
-            )
-            questions.append(question)
-    paper = ExamPaper(
-        user_id=user.id,
-        course_id=blueprint.course_id,
-        blueprint_id=blueprint.id,
-        title=blueprint.name + "（草稿）",
-        mode=config.get("mode", "history_blueprint"),
-        questions_json=json.dumps(questions, ensure_ascii=False),
-    )
-    db.add(paper)
-    db.commit()
-    db.refresh(paper)
-    return _paper_payload(paper, include_answers=True)
+    return _paper_payload(bank.generate_blueprint(db, user.id, blueprint))
 
 
 @router.get("/exam-papers/{paper_id}", response_model=PaperResponse)
@@ -387,6 +360,7 @@ def get_paper(
         raise HTTPException(status_code=404, detail="试卷不存在")
     _course(paper.course_id, user, db)
     if include_answers:
+        bank.no_active_attempt(db, user.id, paper.course_id)
         active = db.scalar(
             select(ExamAttempt.id).where(
                 ExamAttempt.paper_id == paper.id,
@@ -409,10 +383,20 @@ def review_paper(
     if not paper:
         raise HTTPException(status_code=404, detail="试卷不存在")
     _course(paper.course_id, user, db, lock=True)
+    bank.no_active_attempt(db, user.id, paper.course_id)
+    if paper.status not in {"DRAFT", "REVIEWED", "READY"}:
+        raise HTTPException(409, "当前试卷不能审阅")
+    bank.require_source_valid(
+        db, user.id, paper.course_id, json.loads(paper.questions_json)
+    )
+    if paper.status == "READY":
+        return _paper_payload(paper)
+    paper.status = "REVIEWED"
+    db.flush()
     paper.status = "READY"
     paper.title = paper.title.replace("（草稿）", "")
     db.commit()
-    return _paper_payload(paper, include_answers=True)
+    return _paper_payload(paper)
 
 
 def _attempt_response(attempt: ExamAttempt) -> AttemptResponse:
@@ -422,6 +406,7 @@ def _attempt_response(attempt: ExamAttempt) -> AttemptResponse:
         status=attempt.status,
         answers=json.loads(attempt.answers_json),
         score=attempt.score,
+        grading=json.loads(attempt.grading_json),
     )
 
 
@@ -441,20 +426,8 @@ def start_attempt(
     if not paper:
         raise HTTPException(status_code=404, detail="可作答试卷不存在")
     _course(paper.course_id, user, db, lock=True)
-    existing = db.scalar(
-        select(ExamAttempt).where(
-            ExamAttempt.paper_id == paper_id,
-            ExamAttempt.user_id == user.id,
-            ExamAttempt.status == "IN_PROGRESS",
-        )
-    )
-    if existing:
-        return _attempt_response(existing)
-    attempt = ExamAttempt(user_id=user.id, paper_id=paper_id, answers_json="{}")
-    db.add(attempt)
-    db.commit()
-    db.refresh(attempt)
-    return _attempt_response(attempt)
+    blueprint = db.get(ExamBlueprint, paper.blueprint_id)
+    return _attempt_response(bank.new_attempt(db, user.id, paper, blueprint))
 
 
 @router.put(
@@ -488,18 +461,10 @@ def save_answer(
     db.refresh(attempt)
     paper = db.get(ExamPaper, attempt.paper_id)
     blueprint = db.get(ExamBlueprint, paper.blueprint_id)
-    started = (
-        attempt.created_at.replace(tzinfo=timezone.utc)
-        if attempt.created_at.tzinfo is None
-        else attempt.created_at
-    )
-    if datetime.now(timezone.utc) >= started + timedelta(
-        minutes=json.loads(blueprint.config_json)["duration_minutes"]
-    ):
+    snapshot = bank.attempt_snapshot(attempt, paper, blueprint)
+    if bank.is_expired(attempt, snapshot):
         raise HTTPException(409, "作答时限已到，请提交已保存答案")
-    question = next(
-        (q for q in json.loads(paper.questions_json) if q["id"] == question_id), None
-    )
+    question = next((q for q in snapshot["questions"] if q["id"] == question_id), None)
     if not question:
         raise HTTPException(404, "题目不属于此试卷")
     if question["type"] == "single_choice" and payload.answer not in [
@@ -508,10 +473,27 @@ def save_answer(
         raise HTTPException(422, "选择题答案必须为合法选项")
     if question["type"] == "true_false" and not isinstance(payload.answer, bool):
         raise HTTPException(422, "判断题答案必须为布尔值")
-    if question["type"] == "short_answer" and (
+    if question["type"] in {"short_answer", "solution"} and (
         not isinstance(payload.answer, str) or len(payload.answer) > 20000
     ):
         raise HTTPException(422, "简答题答案需为不超过 20000 字符的文本")
+    if question["type"] == "fill_blank":
+        expected = question["blank_count"]
+        actual = (
+            [payload.answer]
+            if isinstance(payload.answer, str) and expected == 1
+            else payload.answer
+        )
+        if (
+            not isinstance(actual, list)
+            or len(actual) != expected
+            or any(not isinstance(v, str) or len(v) > 20000 for v in actual)
+        ):
+            raise HTTPException(422, "填空答案应与空位数量一致，每空不超过20000字符")
+    if question["type"] == "fill_blank" and question.get("unique_answer"):
+        grades = json.loads(attempt.grading_json)
+        grades[question_id] = bank.grade(question, payload.answer)
+        attempt.grading_json = bank.encode(grades)
     answers = json.loads(attempt.answers_json)
     answers[question_id] = payload.answer
     attempt.answers_json = json.dumps(answers, ensure_ascii=False)
@@ -545,30 +527,9 @@ def submit_attempt(
         return _attempt_response(attempt)
     db.refresh(attempt)
     paper = db.get(ExamPaper, attempt.paper_id)
-    questions = json.loads(paper.questions_json)
-    answers = json.loads(attempt.answers_json)
-    score = 0
-    for question in questions:
-        if question["id"] not in answers:
-            continue
-        correct = question.get("answer")
-        given = answers[question["id"]]
-        ok = str(given).strip().upper() == str(correct).strip().upper()
-        if ok:
-            score += int(question.get("points", 0))
-        elif question["type"] in {"single_choice", "true_false"}:
-            db.add(
-                Mistake(
-                    user_id=user.id,
-                    attempt_id=attempt.id,
-                    question_id=question["id"],
-                    detail_json=json.dumps(
-                        {"question": question, "given": given}, ensure_ascii=False
-                    ),
-                )
-            )
-    attempt.score = score
-    attempt.status = "SCORED"
+    blueprint = db.get(ExamBlueprint, paper.blueprint_id)
+    questions = bank.submitted_questions(attempt, paper, blueprint)
+    bank.finish_grading(db, attempt, questions)
     db.commit()
     db.refresh(attempt)
     return _attempt_response(attempt)
@@ -588,21 +549,98 @@ def attempt_result(
         raise HTTPException(404, "作答记录不存在")
     if attempt.status == "IN_PROGRESS":
         raise HTTPException(409, "提交后才能查看答案")
-    return _paper_payload(db.get(ExamPaper, attempt.paper_id), include_answers=True)
+    paper = db.get(ExamPaper, attempt.paper_id)
+    blueprint = db.get(ExamBlueprint, paper.blueprint_id)
+    questions = bank.submitted_questions(attempt, paper, blueprint)
+    return PaperResponse(
+        id=paper.id,
+        title=paper.title,
+        mode=paper.mode,
+        status=paper.status,
+        questions=questions,
+    )
 
 
 @router.get("/mistakes")
 def list_mistakes(
-    user: User = Depends(current_user), db: Session = Depends(get_db)
+    topic_id: str | None = None,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
 ) -> List[Dict[str, Any]]:
-    return [
-        {"id": m.id, "question_id": m.question_id, **json.loads(m.detail_json)}
-        for m in db.scalars(
-            select(Mistake)
-            .where(Mistake.user_id == user.id)
-            .order_by(Mistake.created_at.desc())
+    topics = {
+        t.id: t
+        for t in db.scalars(
+            select(Topic).where(active_clause(), Topic.user_id == user.id)
         ).all()
-    ]
+    }
+
+    def resolve(tid):
+        seen = set()
+        while tid in topics and topics[tid].merged_into_id and tid not in seen:
+            seen.add(tid)
+            tid = topics[tid].merged_into_id
+        return topics.get(tid)
+
+    selected = {topic_id} if topic_id else set()
+    if topic_id in topics:
+        selected = topic_tree.expand(db, user.id, topics[topic_id].course_id, selected)
+    result = []
+    for m in db.scalars(
+        select(Mistake)
+        .join(ExamAttempt, Mistake.attempt_id == ExamAttempt.id)
+        .join(ExamPaper, ExamAttempt.paper_id == ExamPaper.id)
+        .join(Course, ExamPaper.course_id == Course.id)
+        .where(Mistake.user_id == user.id, Course.user_id == user.id, Course.deleted_at.is_(None))
+        .order_by(Mistake.created_at.desc())
+    ).all():
+        detail = json.loads(m.detail_json)
+        if detail.get("removed_from_bank"):
+            continue
+        mastered_at = mastered_since(detail)
+        detail.pop("redoes", None)
+        detail.pop("relapses", None)
+        q = detail.get("question", {})
+        labels = {}
+        for tid in q.get("topic_ids", []) or (
+            [q["topic_id"]] if q.get("topic_id") else []
+        ):
+            t = resolve(tid)
+            if t:
+                labels[t.id] = {
+                    "id": t.id,
+                    "name": t.name,
+                    "aliases": json.loads(t.aliases_json),
+                    "revision": t.revision,
+                    "parent_id": topic_tree.parent_id(t),
+                }
+        ancestors = list(labels.values())
+        for label in ancestors:
+            current = topics.get(label["id"])
+            seen = set()
+            while current and topic_tree.parent_id(current) and current.id not in seen:
+                seen.add(current.id)
+                current = resolve(topic_tree.parent_id(current))
+                if current:
+                    labels[current.id] = {
+                        "id": current.id,
+                        "name": current.name,
+                        "aliases": json.loads(current.aliases_json),
+                        "revision": current.revision,
+                        "parent_id": topic_tree.parent_id(current),
+                    }
+        if topic_id and not selected.intersection(labels):
+            continue
+        result.append(
+            {
+                "id": m.id,
+                "question_id": m.question_id,
+                **detail,
+                "topics": list(labels.values()),
+                "mastered": mastered_at is not None,
+                "mastered_at": mastered_at.isoformat() if mastered_at else None,
+            }
+        )
+    return sorted(result, key=lambda item: item["mastered"])
 
 
 @router.post("/review-tasks", response_model=ReviewTaskResponse, status_code=201)
@@ -626,12 +664,21 @@ def create_review_task(
             ReviewTask.status == "PENDING",
         )
     ):
-        raise HTTPException(status_code=409, detail="该错题已有待复习任务")
+        existing = db.scalar(
+            select(ReviewTask).where(
+                ReviewTask.mistake_id == payload.mistake_id,
+                ReviewTask.user_id == user.id,
+                ReviewTask.status == "PENDING",
+            )
+        )
+        return ReviewTaskResponse.model_validate(existing, from_attributes=True)
     task = ReviewTask(
         user_id=user.id,
         mistake_id=payload.mistake_id,
         title=payload.title,
-        due_date=payload.due_date.isoformat(),
+        due_date=(
+            payload.due_date or datetime.now(ZoneInfo(user.timezone)).date()
+        ).isoformat(),
     )
     db.add(task)
     db.commit()
@@ -672,6 +719,39 @@ def complete_task(
     if task.mistake_id:
         check_mistake_course(db, user.id, task.mistake_id, lock=True)
     task.status = "COMPLETED"
+    db.commit()
+    db.refresh(task)
+    return ReviewTaskResponse.model_validate(task, from_attributes=True)
+
+
+@router.patch("/review-tasks/{task_id}", response_model=ReviewTaskResponse)
+def reschedule_review(
+    task_id: str,
+    payload: ReviewReschedule,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    task = db.scalar(
+        select(ReviewTask).where(
+            ReviewTask.id == task_id, ReviewTask.user_id == user.id
+        )
+    )
+    if not task:
+        raise HTTPException(404, "复习任务不存在")
+    if task.mistake_id:
+        check_mistake_course(db, user.id, task.mistake_id, lock=True)
+    changed = db.execute(
+        update(ReviewTask)
+        .where(
+            ReviewTask.id == task.id,
+            ReviewTask.user_id == user.id,
+            ReviewTask.due_date == payload.expected_due_date.isoformat(),
+        )
+        .values(due_date=payload.due_date.isoformat(), status="PENDING")
+    )
+    if changed.rowcount != 1:
+        db.rollback()
+        raise HTTPException(409, "复习日期已变化，请刷新后重新安排")
     db.commit()
     db.refresh(task)
     return ReviewTaskResponse.model_validate(task, from_attributes=True)

@@ -9,6 +9,8 @@ export const navigationItems: { id: Section; label: string; icon: IconName }[] =
   { id: "ai", label: "AI 学习", icon: "ai" },
   { id: "exam", label: "真题与模拟卷", icon: "exam" },
   { id: "review", label: "错题复习", icon: "review" },
+  { id: "feedback", label: "使用反馈", icon: "edit" },
+  { id: "api-connect", label: "API接入", icon: "ai" },
   { id: "search", label: "课程查找", icon: "search" },
   { id: "backup", label: "备份与恢复", icon: "download" },
 ];

@@ -137,7 +137,7 @@ def list_documents(
     db: Session = Depends(get_db),
 ):
     _course(course_id, user, db)
-    statement = select(Document)
+    statement = select(Document).where(Document.library_scope == "material")
     if category is not None:
         statement = statement.where(Document.category == category.strip())
     if tag is not None:
@@ -460,6 +460,7 @@ def list_jobs(
         .where(
             Document.course_id == course_id,
             Document.deleted_at.is_(None),
+            Document.library_scope == "material",
             Document.user_id == user.id,
             DocumentVersion.user_id == user.id,
             ProcessingJob.user_id == user.id,
@@ -511,6 +512,12 @@ def delete_document(
     document_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)
 ) -> None:
     document = active_document(db, document_id, user.id)
+    if document.library_scope == "question_bank":
+        from ..services.courses import owned_course
+        from ..services.question_bank import no_active_attempt
+
+        owned_course(db, user.id, document.course_id, lock=True)
+        no_active_attempt(db, user.id, document.course_id)
     document.deleted_at = utc_now()
     from ..services.ai_retirement import cancel_source_queries
 

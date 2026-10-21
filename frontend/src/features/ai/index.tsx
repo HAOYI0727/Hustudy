@@ -9,6 +9,7 @@ import {QuestionDraftView} from "./QuestionDraftView";
 import {ReportLabelEditor} from "./ReportLabelEditor";
 import {beginReportReview, reviewedReportMarkdown, ReportReview} from "./report-review";
 import "./ai-workspace.css";
+import {AIActivity} from "../../components/AIActivity";
 
 type Props = {onSource: (versionId: string, chunkId: string) => void; token: string; courseId: string; onNotice: (s: string) => void; onError: (e: unknown) => void};
 
@@ -16,14 +17,13 @@ const modes = {
   demo: {name:"资料原文检索", description:"按关键词查找资料中的相关原文，不调用 AI。"},
   real: {name:"资料问答", description:"结合课程资料，向 AI 提问并查看来源。"},
   report: {name:"学习报告", description:"将所选资料整理为知识讲解、例题与自测。"},
-  candidates: {name:"练习题生成", description:"依据资料和目标知识点，生成可供审阅的练习草稿。"},
 };
 
 export function AIStudy({token, courseId, onNotice, onError, onSource}: Props) {
   const [query, setQuery] = useState("");
   const [answer, setAnswer] = useState<AIAnswer | null>(null);
   useEffect(()=>{if(answer&&window.innerWidth<=1100)document.getElementById("ai-result")?.scrollIntoView({block:"start"});},[answer?.id]);
-  const [mode, setMode] = useState<"demo" | "real" | "report" | "candidates">("demo");
+  const [mode, setMode] = useState<"demo" | "real" | "report">("demo");
   const [remoteBusy,setRemoteBusy] = useState(false);
   const [loading, setLoading] = useState(false);
   const [history, setHistory] = useState<string[]>([]);
@@ -78,7 +78,8 @@ export function AIStudy({token, courseId, onNotice, onError, onSource}: Props) {
     catch (error) {onError(error);} finally {setLoading(false);}
   };
   return <div className="page">
-    <PageTitle eyebrow="AI STUDY" title="带着问题学习，带着证据理解" text="查找课程原文，结合资料提问、整理学习报告或生成练习题。"/>
+    <PageTitle eyebrow="AI STUDY" title="带着问题学习，带着证据理解" text="查找课程原文，结合资料提问或整理学习报告。"/>
+    <AIActivity/>
     <ModuleStats items={[{label: "本页模式", value: modes[mode].name, hint: mode !== "demo" ? "真实调用每次确认" : "不发送远程资料"},
       {label: "本地提问", value: history.length, hint: "最近提问，仅当前页面保留"}, {label: "当前结果引用", value: answer?.result.citations?.length || 0, hint: "原文校验不等于解释正确"}]}/>
     <div className="ai-mode-tabs" role="group" aria-label="AI模式">
@@ -86,7 +87,7 @@ export function AIStudy({token, courseId, onNotice, onError, onSource}: Props) {
     </div>
     <p className="hint" role="status">{modes[mode].description}</p>
     <div className="ai-workspace-nav"><a href="#ai-controls">设置与发送</a><a href="#ai-result">查看学习结果</a></div><div className="ai-grid ai-workspace-grid">
-      {mode !== "demo" ? <RealQueries key={mode} task={mode === "candidates" ? "question_drafts" : mode === "report" ? "study_report" : "qa"} token={token} courseId={courseId} onBusyChange={setRemoteBusy} onAnswer={setAnswer} onNotice={onNotice} onError={onError} onSource={onSource}/> :
+      {mode !== "demo" ? <RealQueries key={mode} task={mode === "report" ? "study_report" : "qa"} token={token} courseId={courseId} onBusyChange={setRemoteBusy} onAnswer={setAnswer} onNotice={onNotice} onError={onError} onSource={onSource}/> :
         <section className="panel ai-prompt">
           <div className="mode-card"><span className="sparkle">✦</span><div><strong>资料原文检索</strong><p>展示匹配原文，不执行真实模型推理。</p></div></div>
           <div className="prompt-presets"><p className="hint">选择方向，再补充课程概念</p>{["请解释这个概念：", "这两个概念有什么区别：", "请从原文查找以下知识点："].map(text => <button className="secondary" key={text} onClick={() => setQuery(text)}>{text.replace(/：$/, "")}</button>)}</div>

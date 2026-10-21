@@ -1,5 +1,27 @@
 # Hustudy API（Phase 0）
 
+## M4-BANK-01 用户题库（2026-10-19）
+
+完整补齐接口：PATCH /topics/{id}（revision/name/aliases）、POST /topics/{id}/merge（revision/target_id/target_revision）、PUT /topics/{id}/sources（revision/version_id/chunk_id/quote）；POST/GET /courses/{id}/exam-analyses、GET /exam-analyses/{id}及/gaps；POST /past-questions/{id}/split（revision/parts）、POST /courses/{id}/question-bank/merge（question_ids/revisions/stem）、GET /courses/{id}/question-bank/papers、PATCH /past-papers/{id}/metadata（expected_revision/year/variant/provenance/duplicate_of），PATCH /review-tasks/{id}（expected_due_date/due_date）。所有变更仍检查归属/课程，校正冲突409；拆合只对同卷当前题目，父题历史不重复计分。新迁移/备份版本为0020，显式兼容0019及此前版本。统计报告返回输入样本/修订、未知值和真实分母；资料/笔记/图片候选不等于已确认匹配，掌握度只从已判定作答计算。
+
+以下均在 `/api/v1`，本人课程资源；404归属不可访问，409并发/状态冲突，422字段/题量不足。
+
+| 方法/路径 | 行为 |
+|---|---|
+| POST /courses/{id}/question-bank/import | 201；title、content或version_id（二选一）、可空year、provenance；自动规则识别并持久化草稿，重复内容返回原题库身份 |
+| GET /courses/{id}/question-bank?offset=0&limit=50 | items/total/offset/limit；校正管理DTO含答案，进行中作答禁止访问 |
+| PATCH /past-questions/{id} | revision、stem、question_type、options、answer、blank_answers、unique_answer、topic_ids、points、explanation；保存后题目/所属卷回DRAFT，冲突409 |
+| POST /past-papers/{id}/confirm | 对整份题库校验；四选项/正确键/标签/填空唯一性及逐空答案齐全后确认，缺失返回逐题原因 |
+| POST /courses/{id}/question-bank/draw | 201；request_id(UUID)、topic_ids、count(1–100)、可选question_type、duration_minutes、title；匹配任一标签，不重复；相同request_id/条件返回原卷，不同条件409；不足422 |
+| GET /courses/{id}/question-bank/statistics | 可抽题数/题型/标签涉及数、已确认题库数、未知年份/分值、已知分值；仅描述已导入样本，不预测考试 |
+| GET /courses/{id}/exam-papers | 最近100套元数据及本人作答ID/状态；不含答案 |
+| GET /attempts/{id} | 恢复本人已保存答案、冻结题目、deadline_at、grading；题目为考生白名单 |
+| POST /attempts/{id}/self-grades/{qid} | 提交后对非唯一填空传correct布尔；返回自评状态，相同自评请求幂等，不混入自动得分 |
+
+现有蓝图generate改为从题库满足题型/标签数量/分值配额，失败不落半套试卷。原include_answers与review进行中阻断，通用响应剔除答案/源题ID/引用原文等。唯一填空保存作答后在grading返回对错；答案只在提交后result返回。grading状态correct/incorrect/unanswered、pending_self_review/self_correct/self_incorrect、submitted；解答不设正确性，score仅自动题小计。新快照冻结题目、选项顺序与时长。
+
+旧 /courses/{id}/question-drafts/preview、/demo 返回410；旧预览不能确认，旧已排队生成任务在worker派发前FAILED，不调用Provider。历史候选查询保留；AI问答/报告接口保持。账户备份格式0020，旧0012–0019包显式补M4新增默认字段。
+
 ## M3-TRASH-01（2026-10-18）
 
 下列路径均在`/api/v1`下。回收站为当前账户全部课程，GET不触发清理。单篇DELETE /notes/{id}?revision=N仍返回204，现记录删除时间和到期时间，允许恢复。
@@ -315,3 +337,90 @@ PPTX/DOCX直接预览使用现有授权GET `/versions/{id}/original`，不新增
 POST /api/v1/note-captures/{id}/organize在登录/归属检查后返回410；capabilities.ai恒false，model为空，ai_unavailable_reason明确停用。worker取消QUEUED/RUNNING NOTE_ORGANIZE并清除租约，旧结果不删。PUT /api/v1/note-ai/config返回410；GET仍脱敏返回旧凭据元数据、configured:false和停用原因，DELETE仍按revision清除。无有效M3凭据解析/Provider派发或服务器密钥回退，不改M2接口。请求结构不合法仍由原schema返回422。
 
 [共享契约](contracts.md#m3-capture-text-01)、[验收](fzk/capture_text_acceptance.md)。
+
+## M4-IMPORT-IMAGE-02
+
+POST /courses/{id}/question-bank/import新增default_topic_ids；响应bank_data新增content_profile/import_warnings。POST /courses/{id}/question-bank/images（request_id/title/asset_ids/layout:single|double/default_topic_ids/year）202显式排队，按内容hash去重；GET /courses/{id}/question-bank/image-jobs恢复任务。PATCH /past-questions/{id}新增illustrations（asset_id/box:[x,y,w,h]/alt）与images_reviewed；坐标规范化0–1，未审核不能确认。GET /question-bank/illustrations/{asset_id}?course_id=…&box=x,y,w,h 返回经授权、实际裁剪的PNG、no-store。DELETE /past-questions/{id}?revision=…软删除；POST /courses/{id}/question-bank/batch使用question_ids/revisions/action:delete|tag/topic_ids，原子校验。source_images只在审核返回，考生白名单仅增加审核后的illustrations；不返原图或答案。后台BANK_OCR独立租约/限时，失败仅显式重试；无新迁移。
+
+## M4-PDF-ZIP-03 / AI-EXTRACT-04
+
+POST /courses/{id}/question-bank/archives：multipart ZIP，201返回entries（path/kind/status/version_id或asset_id/error），文档供自动轮询后import，图片不自动OCR。GET question-bank增加paper_id；自然题号排序。GET /question-bank/ai-capabilities返回固定模型/配置状态；POST /courses/{id}/question-bank/ai-preview使用BankImport版本范围，201返回paper_id/model/endpoint/expires_at/sources；GET /past-papers/{id}/ai-preview读取有效预览；POST /past-papers/{id}/ai-confirm使用confirm_remote_send:true，202单次任务；GET /courses/{id}/question-bank/ai-jobs仅状态元数据，不轮询返回整篇原文。源失效状态SOURCE_UNAVAILABLE且不返回正文，配置变化/过期拒绝派发。BANK_EXTRACT与AI_ANALYSIS并发互斥，模型固定glm-4.7-flash，不影响原M2问答/报告配置。
+# M4-TOPIC-INDEX-01
+
+无新路由。`POST /courses/{id}/question-bank/import` 及共用导入服务产生的 `bank_data.topic_index` 包含 `version`、`existing[{topic_id,name,method,reason}]`、`candidates[string]`、`auto_topic_id`、`auto_assigned`。`method=name` 表示名称/别名命中，`sample` 表示已确认题干的关键词相似；数值排序依据不作为正确概率返回。自动匹配只填充没有人工/默认标签的新题草稿。
+
+`GET /courses/{id}/question-bank` 在账户/课程授权和进行中考试限制下重新计算当前页建议，以反映题干和词表变化；只读，不修改历史数据。创建备选沿用 `POST /courses/{id}/topics`，本题选择沿用带 revision 的 `PATCH /past-questions/{id}`。修改后清除历史自动分配标记。分析最多取同账户同课程2000道已确认题干作参考，不读取答案；单题最多返回8个已有推荐和3个新标签备选。
+# M4-TOPIC-AI-02（覆盖本地索引）
+
+题库上传不再进行短语推荐/自动分类。`POST /past-papers/{id}/topic-ai-preview` 接收 `question_ids`（1–32个），返回 `preview_id`、`input.questions[{question_id,revision,stem,options}]`、`input.topics[{id,name,aliases,revision}]`、模型/端点/过期时间；不会发模型请求。`GET`同路径读取持久预览或任务状态，来源撤销时不返回输入。`POST /past-papers/{id}/topic-ai-confirm` 需要 `confirm_remote_send:true` 和 `preview_id`，返回202，创建BANK_EXTRACT；相同预览重复确认返回既有任务，跨窗口更换预览返回409。
+
+完成后每题 `bank_data.topic_index` 版本为 `bank-topic-ai-v2`，包含 `existing[{topic_id,name,method:"ai",reason}]`、`candidates` 和 `reason`。不自动选用/创建标签。结果增加题目revision，题库回到草稿；修改题干/选项清除建议，人工标签选择沿用既有PATCH乐观锁。详细边界见 docs/m4/topic_ai_acceptance.md。
+# M4-PDF-OCR-04
+
+`GET /courses/{course_id}/question-bank/pdf/{version_id}`：只读授权版本，返回页数、疑似扫描/空白页号 `ocr_pages` 及本地组件状态 `ocr_available`；不OCR、不建题。PDF检测在30秒子进程中进行。
+
+`POST /courses/{course_id}/question-bank/pdf/{version_id}/ocr`：明确用户操作，接收 `request_id,title,year?,default_topic_ids,layout(single/double),force_ocr`，返回202的BANK_OCR任务；同请求不同范围409，重复有效范围复用既有任务。`force_ocr:false` 保留正常文字页，仅OCR缺文字页；true整份OCR。
+
+既有image-jobs接口增加 `pdf_version_id`、`force_ocr`，图片保存来源版本/页号；题目 `bank_data.source_version_id` 及新试卷快照保留来源ID。抽题/新作答/AI标签预览验证该来源仍有效，旧快照不重写。备份验证PDF源版本、任务、图片与课程，兼容历史无该字段备份。识别不更改M1解析/索引状态。
+# M4-LIBRARY-DELETE-05
+
+专用文件库：`POST /courses/{id}/question-bank/files` 上传原件，返回202的原解析Job；`GET`同路径返回题库文件和关联旧来源（附library_scope）；`POST .../files/{document_id}/move`显式将旧来源划入question_bank，不改变UUID/版本。原件下载继续使用同一授权版本接口，资料阅读列表/分页/搜索/导出排除question_bank。
+
+单题DELETE及原batch接口增加响应revisions映射；`POST /courses/{id}/question-bank/restore`接收revisions，整库撤销另带paper_id/paper_revision。仅允许撤销人为删除、revision完全匹配的题目，恢复草稿。`POST /past-papers/{id}/delete`要求revision与question_snapshot（当前题目id/revision集合SHA-256），原子软删除整份题库并取消识别任务，响应changed/revisions/paper_id/paper_revision供撤销。题库列表新增question_count/question_snapshot；旧试卷/作答快照不变。0021迁移与旧备份兼容见docs/m4/library_delete_acceptance.md。
+
+
+### M4 视觉与ZIP选择增量（2026-10-20）
+- POST /courses/{id}/question-bank/archives/inspect：multipart ZIP，返回经预算/路径/CRC校验的中文成员目录，不保存成员或发模型；archives上传可附selected_paths JSON字符串，只保存选中成员，空/越界/重复列表422。
+- PDF OCR请求与BankImageImport新增engine local|ai、confirm_remote_send、questions_only（默认true）、classify_topics。ai必须显式确认且配置就绪；仍用BANK_OCR持久任务。图片/PDF的图片顺序和配置不可在同request_id重放时改变。
+- POST /past-papers/{id}/vision-resume：{confirm_remote_send:true}；仅本人同课程失败AI识别、原配置且尚无题目时续跑；成功页不重发。
+- POST /past-papers/{id}/recognition-cancel：取消本人尚未完成的识别/归类租约，不删已入库题目/原件/历史。
+- image-jobs新增engine/completed_pages/auto_topic_status，1305按服务繁忙展示。公开题库元数据不含视觉检查点、配置指纹或内部原文信封。完整备份验证检查点页的原图顺序/归属/结构，只恢复终态任务。
+
+
+### M4 Markdown / GLM5.3增量（2026-10-20）
+图文转写、文本拆题、标签归类模型统一glm-5.3-flash；模型/提示词身份进入发送指纹，旧预览拒绝切换模型后继续发送。新题/校正bank_data.content_format=markdown；题干、选项、解析为Markdown，简单HTML/TSV/矩形分列表格转换GFM，原始来源引用偏移不变。
+GET /past-questions/{id}/markdown：本人有效题目的UTF-8 text/markdown附件，仅题干/选项，不带答案；拒绝跨用户/来源失效及进行中考试读取，未保存内容不导出。归类v3允许最多8项合法候选（建议1–3），完整展示不截断，已有标签优先/用户确认仍保留。
+
+
+### M4 标签检索与批量核验（2026-10-20）
+GET /mistakes 可传 topic_id，响应 topics 含 id/name/aliases/revision，旧题快照不变，名称按本人当前词表及合并链解析。GET /courses/{id}/question-bank 支持 topic_id，过滤后分页/total。POST /courses/{id}/question-bank/batch 新增 action=confirm，沿用 question_ids/revisions；全选校验后原子确认，422问题映射、409修订冲突均不部分写入。整份有效题全部确认后题库才CONFIRMED。
+
+2026-10-20 抽题范围增量：topic_ids可省略或为空，空选从当前课程全部合格确认题中抽取；多选按任一标签匹配，不再限制最多12个抽题标签。单题标签上限不变。保持题型筛选、去重、题库不足显式失败和课程归属校验。
+
+
+### 2026-10-21 M4 标签层级与自动分离
+TopicCreate/TopicEdit支持parent_id（UUID或null；旧PATCH省略则保留），TopicResponse返回parent_id。层级保存在既有sources_json.hierarchy.parent_id，6级/同课程/无环/revision保护；备份验证层级，引用和合并保留元数据，合并迁移直属子节点。无迁移。父标签过滤、抽题、错题包含后代，原始题目标签快照不冗余改写。
+PDF Request / BankImageImport的questions_only默认false表示自动识别与答案分离，true显式仅题目；旧任务持久配置不回写。每页自动模式2次有界调用，第二次前重新验证任务/来源/配置/取消租约，失败无自动网络重试。输出支持逐空blank_answers、content_profile，核验source_status=absent候选不入库，控制字符/错误选项/重复题号/缺题干拒绝。局部OCR仅辅助，不作为语义结论。
+
+
+2026-10-21：DELETE /api/v1/topics/{id}?revision=N 删除本人同课程空标签（200 status=deleted）；revision必填≥1，无归属404、修订冲突/子标签/题目/历史合并或试卷引用/资料依据409，失败不改数据。同课程写锁，不重写旧快照。已有文件导入直接复用版本的规则/AI预览/PDF-OCR接口，无上传副本或新增识别API。
+
+
+2026-10-21 M4-TOPIC-DELETE-SELFREVIEW-03覆盖前述空标签删除限制：DELETE /topics/{id}?revision=N 允许有效非空标签，软删除并返回affected_questions，当前有效题解除关联/子标签提升，历史快照不变；仍检查归属、修订和活动作答。POST /attempts/{id}/self-grades/{qid} 支持提交后所有非自动判分题（包括历史解答、缺标准答案题），自动判分题422、未交卷409、自评冲突409、同值幂等；错误写入Mistake且不修改自动score。
+
+
+2026-10-21：POST /api/v1/courses/{course_id}/question-bank/save，items含1–100个BankQuestionEdit+question_id。沿用单题校正协议与权限/图片检查，拒绝重复ID，课程锁/每题revision校验，整批事务提交；失败回滚。200返回changed和revisions，不自动确认。原PATCH /past-questions/{id}仍兼容，共用校正服务。
+
+
+2026-10-21 M4-REDO-API-GUIDE-05：GET /mistakes/daily-progress 返回账户时区date/target/completed/done/remaining_ids；POST /mistakes/{id}/redoes(request_id UUID)幂等开始，POST /mistakes/{id}/redoes/{rid}/submit(answer)冻结本次输入并规则判定，非自动题NEEDS_SELF_REVIEW后POST .../judge(correct)。同值提交幂等、冲突409，空答案422，无归属/已移出404。DELETE /mistakes/{id}仅已重做正确可软移出；旧错题快照与重做记录保存在detail_json附加元数据，备份验证结构及归属。
+GET/PUT/DELETE /api-connection 为已登录用户可操作的本机共用配置（无密钥回显）；PUT含revision/model/key（可留空保留），DELETE含revision；POST /api-connection/test含revision与confirm=true，仅明确确认后发送最小测试。状态configured与test_status分离，测试期间配置变化丢弃迟到结果。固定智谱端点/现有模型，原M2/M4 Provider复用，无新增迁移。
+
+2026-10-21 M4-REDO-GOAL-08：GET /mistakes/daily-progress?goal=N（0–1000，默认3，0暂停）额外返回goal；target=min(goal,待掌握与今日有效掌握的不同Mistake ID并集)。available为未掌握数，completed只计当前掌握期从今日开始的题，最新错误撤销掌握与当日计数。GET /mistakes追加mastered/mastered_at，未掌握优先；重做/正常练习再次错误将已保留或移出同源题恢复，relapses只追加历史事件，不重复同一作答错误。DELETE仅当前已掌握可移出。目标由浏览器按账号保存；后端不新增用户设置表。
+
+2026-10-21 M4-REDO-EXTRA-09：daily-progress.completed不再按target截断，可大于goal/target；done仍由completed>=target判定。客户端比例分母为用户goal，题量不足单独说明有效target。每日达标不限制start/submit/下一题，重复去重和再错撤回不变。
+
+2026-10-21 M4-DISPLAY-REFERENCE-11：question_payload和新题库试卷快照新增可选display_group={key,label,order}，按本人原卷ID/显式题号生成，未知题号null；题库列表分页前按中文/数字自然顺序排序。考生public_question可含分组，不含answer/explanation，交卷result仍返回原文解答与解析。旧快照无分组保持兼容，无新接口/迁移。
+
+## M4完整题干上下文增量（2026-10-21）
+
+新抽题和蓝图组卷仍按子题计数；Question公开快照新增可选context_stem（安全Markdown原大题上下文）、context_illustrations（已审核插图），供作答页及整道题弹窗使用，不携带其他题答案/解析。内部context_sources仅用于同账户同课程来源校验，考生接口不下发；开始作答再次校验来源有效性。完整上下文超预算返回422，不截断；历史快照缺字段仍兼容，不重写。题目校正保存同内容标签选择时保留topic_index并设置selection_reviewed=true，新AI归类覆盖该标记，避免人工取消被自动重新勾选。
+
+## M4审核与批量标签增量（2026-10-21）
+
+POST /courses/{id}/question-bank/batch新增action=tag_add（去重追加），保留action=tag为替换。整批先校验归属/revision/追加后每题最多5标签，超限422且无部分写入；显式标签决定标记selection_reviewed。保存与批量核验后同步题库review_status，仅非SUPERSEDED有效题全部CONFIRMED且非空才确认。未改业务字段的保存保持题目核验状态，真实修改回到DRAFT。批量save响应新增needs_review布尔值，供提示所选题是否仍需核验，changed/revisions兼容保留。
+
+标签上限追加规则：新设置/保存/导入/合并每题最多5标签，历史快照不删改。批量tag_add超限422详情包含limit=5及over_limit_questions数组，每项含question_id、paper_id、paper_title、number、tag_count、limit，收集全部超限题后整批拒绝；前端据此显示精确题库/题号而非只报笼统失败。
+
+## M4-RETIRE-FILL-BLANK-16（2026-10-22）
+
+新来源题和新抽题仅single_choice/solution；导入文本与AI旧输出fill_blank统一保存为solution，原blank_answers在缺答案时连接为参考解答。BankQuestionEdit/BankDraw/QuestionTypeQuota兼容接收旧fill_blank请求并归一为solution，公开题型枚举移除fill_blank（历史Paper及Attempt快照读取兼容仍保留）。旧填空来源启动时在线备份后幂等转换、revision递增，旧空答案元数据归档在retired_fill_blank；不重写试卷/作答/错题原始快照。账户恢复仅转换本次恢复的来源题，其他账户不受影响；新redo副本转solution，已存在redo保持。无schema迁移或真实模型调用。

@@ -16,7 +16,7 @@ from app.workers.ai_queries import run_ai_once
 from app.main import app
 from test_remote_ai import source, envelope, payload, adapter
 from test_remote_ai import configured as configured  # noqa: F401
-from test_question_drafts import setup, preview
+from test_question_drafts import setup
 
 
 def test_default_and_supported_models():
@@ -90,8 +90,8 @@ def test_model_switch_rejects_old_preview_or_queued_job(monkeypatch, queued):
     get_settings.cache_clear()
     try:
         with TestClient(app) as client:
-            owner, course, _, _, _, spec = setup(client)
-            pending = preview(client, owner, course, spec)
+            owner, course, _, version, _, spec = setup(client)
+            pending = client.post(f"/api/v1/courses/{course}/remote-queries/preview", headers=owner, json={"query": "苹果", "version_ids": [version]}).json()
             base = f"/api/v1/remote-queries/{pending['id']}"
             if queued:
                 assert (

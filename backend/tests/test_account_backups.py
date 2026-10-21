@@ -1,3 +1,4 @@
+from test_question_bank import seed_choice
 import hashlib
 import io
 import json
@@ -155,6 +156,7 @@ def test_roundtrip_document_note_citation_image_and_source_hash():
             ).status_code
             == 201
         )
+        seed_choice(client, headers, course)
         attempts = []
         for index in range(2):
             blueprint = client.post(
@@ -173,6 +175,8 @@ def test_roundtrip_document_note_citation_image_and_source_hash():
             paper = client.post(
                 f"/api/v1/exam-blueprints/{blueprint['id']}/generate", headers=headers
             ).json()
+            correct = client.get(f"/api/v1/exam-papers/{paper['id']}?include_answers=true", headers=headers).json()["questions"][0]["answer"]
+            wrong = next(c for c in "ABCD" if c != correct)
             assert (
                 client.post(
                     f"/api/v1/exam-papers/{paper['id']}/review", headers=headers
@@ -186,7 +190,7 @@ def test_roundtrip_document_note_citation_image_and_source_hash():
                 client.put(
                     f"/api/v1/attempts/{attempt['id']}/answers/{paper['questions'][0]['id']}",
                     headers=headers,
-                    json={"answer": "B"},
+                    json={"answer": wrong},
                 ).status_code
                 == 200
             )
@@ -197,6 +201,8 @@ def test_roundtrip_document_note_citation_image_and_source_hash():
                 == 200
             )
             attempts.append(attempt["id"])
+        original_mistakes = client.get("/api/v1/mistakes", headers=headers).json()
+        assert original_mistakes
         body, archive = exported(client, headers)
         assert archive["counts"]["documents"] == 4
         assert archive["counts"]["assets"] == 3 and archive["counts"]["notes"] == 3
@@ -255,7 +261,7 @@ def test_roundtrip_document_note_citation_image_and_source_hash():
                 ).status_code
                 == 200
             )
-        assert len(client.get("/api/v1/mistakes", headers=target).json()) == 2
+        assert client.get("/api/v1/mistakes", headers=target).json() == original_mistakes
         assert (
             client.post(
                 "/api/v1/backups/restore",

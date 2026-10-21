@@ -68,7 +68,8 @@ def claim(db):
             ProcessingJob.status == "QUEUED",
             ~exists(
                 select(active.c.id).where(
-                    active.c.type == "AI_ANALYSIS", active.c.status == "RUNNING"
+                    active.c.type.in_(["AI_ANALYSIS", "BANK_EXTRACT"]),
+                    active.c.status == "RUNNING",
                 )
             ),
         )
@@ -108,6 +109,10 @@ def run_ai_once():
                 raise ProviderFailure("INVALID_CONSENT", "任务没有有效发送确认")
             report = report_envelope(row.query)
             candidate = candidate_envelope(row.query)
+            if candidate:
+                raise ProviderFailure(
+                    "RETIRED_GENERATION", "AI练习生成已停用，请从用户题库抽题"
+                )
             if report:
                 prompt_version = REPORT_PROMPT_VERSION
             elif candidate:

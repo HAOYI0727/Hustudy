@@ -69,7 +69,7 @@ class LocalFileStorage:
         self, user_id: str, course_id: str, suffix: str, group: str = ""
     ) -> Path:
         user_id, course_id = str(UUID(user_id)), str(UUID(course_id))
-        if group not in {"", "assets", "exports", "backups"} or suffix not in {
+        if group not in {"", "assets", "exports", "backups", "question_bank"} or suffix not in {
             ".pdf",
             ".pptx",
             ".docx",

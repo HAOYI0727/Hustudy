@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse
 from .core.config import get_settings
 from .core.database import init_db
 from .core.storage import InsufficientStorage
+from .routers import question_bank, exam_analysis, connection, mistake_redo
 from .routers import (
     assets,
     ai,
@@ -42,12 +43,19 @@ async def lifespan(_app: FastAPI):
     settings = get_settings()
     Path(settings.storage_root).mkdir(parents=True, exist_ok=True)
     init_db()
+    from .services.bank_question_types import upgrade_local_sources
+
+    upgrade_local_sources()
     yield
 
 
 def create_app() -> FastAPI:
     settings = get_settings()
     app = FastAPI(title="Hustudy API", version="0.1.0", lifespan=lifespan)
+    app.include_router(connection.router)
+    app.include_router(mistake_redo.router)
+    app.include_router(question_bank.router)
+    app.include_router(exam_analysis.router)
     app.include_router(backups.router)
     app.include_router(note_exports.router)
     app.include_router(note_organization.router)
@@ -115,8 +123,17 @@ def create_app() -> FastAPI:
                     "message": "请求参数校验失败",
                     "details": {
                         "errors": jsonable_encoder(
-                            [{"type": item["type"], "loc": ["body"], "msg": "配置参数不合法"} for item in exc.errors()]
-                            if request.url.path == "/api/v1/note-ai/config" else exc.errors(), custom_encoder={ValueError: str}
+                            [
+                                {
+                                    "type": item["type"],
+                                    "loc": ["body"],
+                                    "msg": "配置参数不合法",
+                                }
+                                for item in exc.errors()
+                            ]
+                            if request.url.path == "/api/v1/note-ai/config"
+                            else exc.errors(),
+                            custom_encoder={ValueError: str},
                         )
                     },
                     "request_id": rid,

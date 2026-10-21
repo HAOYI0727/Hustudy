@@ -21,7 +21,6 @@ from ..schemas.question_drafts import (
     CANDIDATE_PROMPT_VERSION,
     DEMO_PROMPT_VERSION,
 )
-from ..services import question_drafts
 from ..services.exam_ai_context import candidate_context
 from ..ai.providers import PROMPT_VERSION
 
@@ -76,17 +75,8 @@ def preview_candidates(
     user: User = Depends(current_user),
     db: Session = Depends(get_db),
 ):
-    return remote_ai.preview(
-        db,
-        user.id,
-        course_id,
-        PreviewRequest(
-            query=payload.goal,
-            version_ids=payload.version_ids,
-            chunk_ids=[],
-        ),
-        candidate_request=payload,
-    )
+    owned_course(db, user.id, course_id)
+    raise HTTPException(410, "练习题已改为用户题库随机抽题，请使用question-bank/draw")
 
 
 @router.post(
@@ -100,9 +90,8 @@ def demo_candidates(
     user: User = Depends(current_user),
     db: Session = Depends(get_db),
 ):
-    return remote_ai.validated_result(
-        db, question_drafts.demo(db, user.id, course_id, payload)
-    )
+    owned_course(db, user.id, course_id)
+    raise HTTPException(410, "练习题已改为用户题库随机抽题；历史候选仍可查看")
 
 
 @router.get(

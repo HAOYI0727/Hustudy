@@ -37,6 +37,7 @@ def _chunks(
             DocumentChunk.user_id == user_id,
             Document.course_id == course_id,
             Document.deleted_at.is_(None),
+            Document.library_scope == "material",
             Document.user_id == user_id,
             DocumentVersion.user_id == user_id,
             indexable_source(),

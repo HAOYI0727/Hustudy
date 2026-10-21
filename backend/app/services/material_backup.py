@@ -29,7 +29,13 @@ MODELS = [
 ]
 FILTERS = {
     "processing_jobs": ProcessingJob.type.not_in(
-        ["ACCOUNT_BACKUP", "ACCOUNT_RESTORE", "NOTE_EXPORT", "NOTE_CAPTURE", "NOTE_ORGANIZE"]
+        [
+            "ACCOUNT_BACKUP",
+            "ACCOUNT_RESTORE",
+            "NOTE_EXPORT",
+            "NOTE_CAPTURE",
+            "NOTE_ORGANIZE",
+        ]
     )
 }
 
@@ -148,6 +154,11 @@ def validate(db, user_id, source_user, tables, all_ids, paths):
         db, user_id, source_user, MODELS, tables, all_ids, paths
     )
     documents = {row["id"]: row for row in decoded["documents"]}
+    if any(
+        d["library_scope"] not in {"material", "question_bank"}
+        for d in documents.values()
+    ):
+        raise ValueError("文件库范围不合法")
     used = set()
     for name, fields in {
         "documents": ["storage_path"],

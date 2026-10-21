@@ -1,0 +1,123 @@
+[
+  {
+    "package": "rapidocr-onnxruntime",
+    "version": "1.4.4",
+    "license_metadata": "Apache-2.0",
+    "saved_notices": [
+      "docs/licenses/m4-ocr/rapidocr-onnxruntime/UPSTREAM-LICENSE.txt"
+    ],
+    "upstream_source": "https://raw.githubusercontent.com/RapidAI/RapidOCR/v1.4.4/LICENSE"
+  },
+  {
+    "package": "onnxruntime",
+    "version": "1.31.0",
+    "license_metadata": "MIT License",
+    "saved_notices": [
+      "docs/licenses/m4-ocr/onnxruntime/onnxruntime/LICENSE",
+      "docs/licenses/m4-ocr/onnxruntime/onnxruntime/ThirdPartyNotices.txt"
+    ]
+  },
+  {
+    "package": "opencv-python",
+    "version": "5.0.0.93",
+    "license_metadata": "Apache 2.0",
+    "saved_notices": [
+      "docs/licenses/m4-ocr/opencv-python/cv2/LICENSE-3RD-PARTY.txt",
+      "docs/licenses/m4-ocr/opencv-python/cv2/LICENSE.txt",
+      "docs/licenses/m4-ocr/opencv-python/opencv_python-5.0.0.93.dist-info/LICENSE-3RD-PARTY.txt",
+      "docs/licenses/m4-ocr/opencv-python/opencv_python-5.0.0.93.dist-info/LICENSE.txt"
+    ]
+  },
+  {
+    "package": "numpy",
+    "version": "2.5.4",
+    "license_metadata": "BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0",
+    "saved_notices": [
+      "docs/licenses/m4-ocr/numpy/numpy-2.5.4.dist-info/licenses/LICENSE.txt",
+      "docs/licenses/m4-ocr/numpy/numpy-2.5.4.dist-info/licenses/numpy/_core/include/numpy/libdivide/LICENSE.txt",
+      "docs/licenses/m4-ocr/numpy/numpy-2.5.4.dist-info/licenses/numpy/_core/src/common/pythoncapi-compat/COPYING",
+      "docs/licenses/m4-ocr/numpy/numpy-2.5.4.dist-info/licenses/numpy/_core/src/highway/LICENSE",
+      "docs/licenses/m4-ocr/numpy/numpy-2.5.4.dist-info/licenses/numpy/_core/src/multiarray/dragon4_LICENSE.txt",
+      "docs/licenses/m4-ocr/numpy/numpy-2.5.4.dist-info/licenses/numpy/_core/src/npysort/x86-simd-sort/LICENSE.md",
+      "docs/licenses/m4-ocr/numpy/numpy-2.5.4.dist-info/licenses/numpy/_core/src/umath/svml/LICENSE",
+      "docs/licenses/m4-ocr/numpy/numpy-2.5.4.dist-info/licenses/numpy/fft/pocketfft/LICENSE.md",
+      "docs/licenses/m4-ocr/numpy/numpy-2.5.4.dist-info/licenses/numpy/linalg/lapack_lite/LICENSE.txt",
+      "docs/licenses/m4-ocr/numpy/numpy-2.5.4.dist-info/licenses/numpy/ma/LICENSE",
+      "docs/licenses/m4-ocr/numpy/numpy-2.5.4.dist-info/licenses/numpy/random/LICENSE.md",
+      "docs/licenses/m4-ocr/numpy/numpy-2.5.4.dist-info/licenses/numpy/random/src/distributions/LICENSE.md",
+      "docs/licenses/m4-ocr/numpy/numpy-2.5.4.dist-info/licenses/numpy/random/src/mt19937/LICENSE.md",
+      "docs/licenses/m4-ocr/numpy/numpy-2.5.4.dist-info/licenses/numpy/random/src/pcg64/LICENSE.md",
+      "docs/licenses/m4-ocr/numpy/numpy-2.5.4.dist-info/licenses/numpy/random/src/philox/LICENSE.md",
+      "docs/licenses/m4-ocr/numpy/numpy-2.5.4.dist-info/licenses/numpy/random/src/sfc64/LICENSE.md",
+      "docs/licenses/m4-ocr/numpy/numpy-2.5.4.dist-info/licenses/numpy/random/src/splitmix64/LICENSE.md",
+      "docs/licenses/m4-ocr/numpy/numpy/_core/include/numpy/random/LICENSE.txt",
+      "docs/licenses/m4-ocr/numpy/numpy/ma/LICENSE",
+      "docs/licenses/m4-ocr/numpy/numpy/random/LICENSE.md"
+    ]
+  },
+  {
+    "package": "pyclipper",
+    "version": "1.4.0",
+    "license_metadata": "MIT",
+    "saved_notices": [
+      "docs/licenses/m4-ocr/pyclipper/pyclipper-1.4.0.dist-info/licenses/LICENSE"
+    ]
+  },
+  {
+    "package": "Shapely",
+    "version": "2.2.0",
+    "license_metadata": "BSD-3-Clause",
+    "saved_notices": [
+      "docs/licenses/m4-ocr/Shapely/shapely-2.2.0.dist-info/licenses/LICENSE.txt",
+      "docs/licenses/m4-ocr/Shapely/shapely-2.2.0.dist-info/licenses/LICENSE_GEOS",
+      "docs/licenses/m4-ocr/Shapely/shapely-2.2.0.dist-info/licenses/LICENSE_win32"
+    ]
+  },
+  {
+    "package": "protobuf",
+    "version": "7.36.2",
+    "license_metadata": "3-Clause BSD License",
+    "saved_notices": [
+      "docs/licenses/m4-ocr/protobuf/protobuf-7.36.2.dist-info/LICENSE"
+    ]
+  },
+  {
+    "package": "flatbuffers",
+    "version": "25.12.19",
+    "license_metadata": "Apache 2.0",
+    "saved_notices": [
+      "docs/licenses/m4-ocr/flatbuffers/UPSTREAM-LICENSE.txt"
+    ],
+    "upstream_source": "https://raw.githubusercontent.com/google/flatbuffers/v25.12.19/LICENSE"
+  },
+  {
+    "package": "six",
+    "version": "1.17.0",
+    "license_metadata": "MIT",
+    "saved_notices": [
+      "docs/licenses/m4-ocr/six/six-1.17.0.dist-info/LICENSE"
+    ]
+  },
+  {
+    "package": "tqdm",
+    "version": "4.70.1",
+    "license_metadata": "MPL-2.0 AND MIT",
+    "saved_notices": [
+      "docs/licenses/m4-ocr/tqdm/tqdm-4.70.1.dist-info/licenses/LICENCE",
+      "docs/licenses/m4-ocr/tqdm/UPSTREAM-LICENSE.txt"
+    ],
+    "upstream_source": "https://raw.githubusercontent.com/tqdm/tqdm/v4.70.1/LICENCE"
+  },
+  {
+    "package": "pypdfium2",
+    "version": "4.30.0",
+    "saved_notices": [
+      "docs/licenses/m4-ocr/pypdfium2/pypdfium2-4.30.0.dist-info/Apache-2.0.txt",
+      "docs/licenses/m4-ocr/pypdfium2/pypdfium2-4.30.0.dist-info/BSD-3-Clause.txt",
+      "docs/licenses/m4-ocr/pypdfium2/pypdfium2-4.30.0.dist-info/CC-BY-4.0.txt",
+      "docs/licenses/m4-ocr/pypdfium2/pypdfium2-4.30.0.dist-info/LicenseRef-PdfiumThirdParty.txt",
+      "docs/licenses/m4-ocr/pypdfium2/pypdfium2-4.30.0.dist-info/dep5-wheel"
+    ],
+    "license_metadata": "(Apache-2.0 OR BSD-3-Clause) AND LicenseRef-PdfiumThirdParty"
+  }
+]

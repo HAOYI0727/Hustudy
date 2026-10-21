@@ -9,6 +9,13 @@ from .base import Base, OwnedResourceMixin, UTCDateTime
 
 class Document(Base, OwnedResourceMixin):
     __tablename__ = "documents"
+    library_scope: Mapped[str] = mapped_column(
+        String(24),
+        default="material",
+        server_default="material",
+        nullable=False,
+        index=True,
+    )
     course_id: Mapped[str] = mapped_column(
         String(36),
         ForeignKey("courses.id", ondelete="CASCADE"),

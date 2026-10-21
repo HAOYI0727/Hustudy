@@ -1,0 +1,32 @@
+import {useEffect,useRef,useState} from "react";
+import {api,BankImage} from "../../api/client";
+
+export function BankFigure({token,courseId,image}:{token:string;courseId:string;image:BankImage}){
+ const [url,setUrl]=useState(""),[error,setError]=useState(false);
+ const region=(image.box||[0,0,1,1]).join(",");
+ useEffect(()=>{const abort=new AbortController();let created="";setUrl("");setError(false);void api.bankIllustration(token,courseId,{...image,box:region.split(",").map(Number)},abort.signal).then(blob=>{if(!abort.signal.aborted){created=URL.createObjectURL(blob);setUrl(created);}}).catch(()=>{if(!abort.signal.aborted)setError(true);});return()=>{abort.abort();if(created)URL.revokeObjectURL(created);};},[token,courseId,image.asset_id,region]);
+ return error?<p className="missing-asset">图片已失效或暂时无法读取</p>:url?<img className="bank-figure" src={url} alt={image.alt||"题目插图"}/>:<span role="status">加载图片…</span>;
+}
+
+function CropPicker({token,courseId,assetId,crop,onChange}:{token:string;courseId:string;assetId:string;crop:number[];onChange:(crop:number[])=>void}){
+ const [url,setUrl]=useState("");const start=useRef<number[]|null>(null);
+ useEffect(()=>{let created="";const abort=new AbortController();void api.bankIllustration(token,courseId,{asset_id:assetId},abort.signal).then(blob=>{if(!abort.signal.aborted){created=URL.createObjectURL(blob);setUrl(created);}}).catch(()=>{});return()=>{abort.abort();if(created)URL.revokeObjectURL(created);};},[token,courseId,assetId]);
+ const point=(event:React.PointerEvent<HTMLDivElement>)=>{const bounds=event.currentTarget.getBoundingClientRect();return [Math.max(0,Math.min(100,(event.clientX-bounds.left)/bounds.width*100)),Math.max(0,Math.min(100,(event.clientY-bounds.top)/bounds.height*100))];};
+ return url?<div className="bank-crop-picker" role="group" aria-label="在原图拖动框选插图" onPointerDown={event=>{if(event.button!==0)return;event.preventDefault();start.current=point(event);event.currentTarget.setPointerCapture(event.pointerId);}} onPointerMove={event=>{if(!start.current)return;const end=point(event),begin=start.current;onChange([Math.min(begin[0],end[0]),Math.min(begin[1],end[1]),Math.max(.1,Math.abs(end[0]-begin[0])),Math.max(.1,Math.abs(end[1]-begin[1]))].map(v=>Math.round(v*10)/10));}} onPointerUp={()=>{start.current=null;}} onPointerCancel={()=>{start.current=null;}}><img src={url} alt="裁剪用完整原图" draggable={false}/><div className="bank-crop-selection" style={{left:`${crop[0]}%`,top:`${crop[1]}%`,width:`${crop[2]}%`,height:`${crop[3]}%`}}/></div>:<p role="status">加载裁剪原图…</p>;
+}
+
+export function BankImageEditor({token,courseId,sources,images,onChange,busy,onWorking}:{onWorking:(busy:boolean)=>void;token:string;courseId:string;sources:BankImage[];images:BankImage[];onChange:(images:BankImage[])=>void;busy:boolean}){
+ const [source,setSource]=useState(0),[crop,setCrop]=useState([0,0,100,100]);
+ const [cropMode,setCropMode]=useState(false),[uploading,setUploading]=useState(false),[error,setError]=useState("");
+ const normalized=crop.map(v=>v/100),[x,y,w,h]=normalized;
+ const valid=normalized.every(Number.isFinite)&&x>=0&&y>=0&&w>0&&h>0&&x+w<=1&&y+h<=1;
+ const item=sources[source];
+ return <div className="bank-image-editor"><h4>题目插图 <span className="hint">{images.length}/8</span></h4><p className="hint">原图可能同时含题目、选项和解析。原图只供审核；仅把需要的图形裁取为插图，勿附带答案文字。</p>
+ <label className="bank-upload">上传独立插图（不识别文字）<input type="file" accept="image/png,image/jpeg,image/webp" multiple disabled={busy||uploading||images.length>=8} onChange={async e=>{const files=Array.from(e.target.files||[]);e.target.value="";if(files.length+images.length>8){setError("每题最多8张插图");return;}setUploading(true);onWorking(true);setError("");const next=[...images];try{for(const file of files){const asset=await api.uploadAsset(token,courseId,file,"题目插图");next.push({asset_id:asset.id,box:[0,0,1,1],alt:file.name});onChange([...next]);}}catch(err){setError(err instanceof Error?err.message:"上传失败，已成功的图片保留");}finally{setUploading(false);onWorking(false);}}}/></label>
+ {error&&<p role="alert">{error}</p>}{uploading&&<p role="status">正在上传插图，请保持当前题目打开…</p>}
+ {sources.length>0&&<details><summary>对照题目原图 / 从原图裁取插图</summary><label>原图区域<select value={source} onChange={e=>{setSource(Number(e.target.value));setCrop([0,0,100,100]);setCropMode(false);}}>{sources.map((s,i)=><option key={i} value={i}>原图 {i+1}</option>)}</select></label>{item&&<BankFigure token={token} courseId={courseId} image={item}/>}
+ <button type="button" className="secondary" onClick={()=>{setCropMode(!cropMode);setCrop((item?.box||[0,0,1,1]).map(v=>Math.round(v*100)));}}>调整裁剪区域</button>
+ {cropMode&&item&&<div className="bank-crop"><p className="hint">在原图上拖动框选插图。也可展开数值精确调整；请排除题目答案和解析。</p><CropPicker token={token} courseId={courseId} assetId={item.asset_id} crop={crop} onChange={setCrop}/><details><summary>精确调整裁剪位置</summary><div className="bank-fields">{["左侧位置 %","顶部位置 %","裁剪宽度 %","裁剪高度 %"].map((label,i)=><label key={label}>{label}<input type="number" min={0} max={100} step={0.1} value={crop[i]} onChange={e=>setCrop(v=>v.map((n,j)=>i===j?Number(e.target.value):n))}/></label>)}</div></details>{valid?<BankFigure token={token} courseId={courseId} image={{asset_id:item.asset_id,box:normalized,alt:"插图裁剪预览"}}/>:<p role="alert">请将裁剪区域放在原图内，宽高不能为0。</p>}<button type="button" className="secondary" disabled={busy||!valid||images.length>=8} onClick={()=>{onChange([...images,{asset_id:item.asset_id,box:normalized,alt:"从题目原图裁取的插图"}]);setCropMode(false);}}>将预览区域用作插图</button></div>}</details>}
+ <div className="bank-image-grid">{images.map((image,i)=><figure key={i}><BankFigure token={token} courseId={courseId} image={image}/><figcaption><label>插图说明<input maxLength={500} value={image.alt||""} onChange={e=>onChange(images.map((v,j)=>j===i?{...v,alt:e.target.value}:v))}/></label><button type="button" className="danger-button" disabled={busy||uploading} onClick={()=>onChange(images.filter((_,j)=>j!==i))}>移除插图 {i+1}</button></figcaption></figure>)}</div>
+ </div>;
+}

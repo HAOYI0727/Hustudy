@@ -1,7 +1,8 @@
 // Render the actual preview component and check hostile content without a browser/network.
 import { createRequire } from 'node:module';
-import { mkdtemp, readFile, writeFile, rm } from 'node:fs/promises';
-import { resolve, join } from 'node:path';
+import { mkdtemp, readFile, writeFile, rm, readdir } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { resolve, join, dirname } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import assert from 'node:assert/strict';
 const frontend = resolve('frontend');
@@ -17,11 +18,17 @@ try {
     '--target','es2020','--module','esnext','--moduleResolution','bundler',
     '--rootDir',join(frontend,'src'),'--outDir',scratch
   ]);
-  const previewFile = join(scratch,'components/knowledge.js');
-  const compiled = (await readFile(previewFile,'utf8')).replace('"../api/client"','"../api/client.js"').replace('"./Icon"','"./Icon.js"');
-  await writeFile(previewFile,compiled);
-  const clientFile = join(scratch,'api/client.js');
-  await writeFile(clientFile,(await readFile(clientFile,'utf8')).replace('"./query"','"./query.js"'));
+  // Compile the real transitive component tree for native Node ESM. Browser-only
+  // styles are irrelevant to this HTML safety check; no production sources change.
+  for (const name of await readdir(scratch,{recursive:true})) {
+    if (!name.endsWith('.js')) continue;
+    const file=join(scratch,name);
+    const compiled=(await readFile(file,'utf8'))
+      .replace(/import\s+(['"])[^'"\n]+\.css\1\s*;?/g,'')
+      .replace(/\bfrom\s+(['"])(\.{1,2}\/[^'"]+)\1/g,(all,quote,target)=>
+        existsSync(resolve(dirname(file),target+'.js')) ? `from ${quote}${target}.js${quote}` : all);
+    await writeFile(file,compiled);
+  }
   const {NotePreview} = await import(pathToFileURL(join(scratch,'components/knowledge.js')));
   const id='11111111-1111-1111-1111-111111111111';
   const render = content => renderToStaticMarkup(React.createElement(NotePreview,{content,token:'test',notes:[{id,title:'改名后的概念'}],onNote:()=>{}}));

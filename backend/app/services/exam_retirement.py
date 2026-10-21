@@ -3,6 +3,7 @@
 from sqlalchemy import delete, select, func
 from ..models import (
     Topic,
+    ExamAnalysisReport,
     PastPaper,
     ExamBlueprint,
     ExamPaper,
@@ -94,7 +95,7 @@ def retire_course_exams(db, user_id, course_id):
         .execution_options(synchronize_session=False)
     )
     # Deleting these roots cascades questions, attempts and mistakes under existing FKs.
-    for model in (ExamPaper, ExamBlueprint, PastPaper, Topic):
+    for model in (ExamAnalysisReport, ExamPaper, ExamBlueprint, PastPaper, Topic):
         db.execute(
             delete(model)
             .where(model.user_id == user_id, model.course_id == course_id)

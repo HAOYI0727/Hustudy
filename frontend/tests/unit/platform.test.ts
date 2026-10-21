@@ -7,11 +7,17 @@ afterEach(()=>{clearSessionQueries();vi.unstubAllGlobals();});
 test('资料历史版本、定位和预览页可完整往返 URL',()=>{
   const target={documentId,versionId,chunkId,previewPage:3};
   const url=new URL(workspaceHref('materials',course,{material:target}),'http://localhost');
-  expect(parseWorkspace(url.pathname,url.search)).toEqual({section:'materials',courseId:course,noteId:undefined,material:target,invalid:false});
+  expect(parseWorkspace(url.pathname,url.search)).toEqual({section:'materials',courseId:course,noteId:undefined,mistakeId:undefined,material:target,invalid:false});
   expect(workspaceHref('notes',course,{noteId:chunkId})).toContain('note='+chunkId);
 });
 test.each(['/alien?course=broken','/materials?document='+documentId,'/notes?course=','/materials?document='+documentId+'&version='+versionId+'&page=-1'])('坏地址被标记而不转成业务 ID: %s',address=>{
   const url=new URL(address,'http://localhost');expect(parseWorkspace(url.pathname,url.search).invalid).toBe(true);
+});
+
+test('错题子页面地址支持往返且拒绝无效题目ID',()=>{
+ const url=new URL(workspaceHref('review',course,{mistakeId:chunkId}),'http://localhost');
+ expect(parseWorkspace(url.pathname,url.search)).toMatchObject({section:'review',mistakeId:chunkId,invalid:false});
+ expect(parseWorkspace('/review','?mistake=bad').invalid).toBe(true);
 });
 test('令牌不进入 query key，退出清理所有会话数据',async()=>{
   vi.stubGlobal('fetch',vi.fn(async()=>Response.json([])));
