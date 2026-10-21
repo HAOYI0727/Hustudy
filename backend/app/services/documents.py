@@ -67,11 +67,16 @@ def save_upload(
     user_id: str,
     db: Session,
     document_id: str | None = None,
+    library_scope: str = "material",
 ):
+    if library_scope not in {"material", "question_bank"}:
+        raise ValueError("Unknown library scope")
     filename, suffix, data = validate_file(upload)
     owned_course(db, user_id, course_id, lock=True)
     digest = hashlib.sha256(data).hexdigest()
     document = active_document(db, document_id, user_id) if document_id else None
+    if document and document.library_scope != library_scope:
+        raise ValueError("Wrong library scope")
     if document:
         # Acquire the SQLite write lock before allocating the immutable version number.
         result = db.execute(
@@ -94,6 +99,7 @@ def save_upload(
             .where(
                 Document.user_id == user_id,
                 Document.course_id == course_id,
+                Document.library_scope == library_scope,
                 Document.deleted_at.is_(None),
                 DocumentVersion.sha256 == digest,
             )
@@ -110,7 +116,12 @@ def save_upload(
         db.rollback()
         return document, existing, job, True
     storage = get_storage()
-    stored = storage.new_path(user_id, course_id, suffix)
+    stored = storage.new_path(
+        user_id,
+        course_id,
+        suffix,
+        "question_bank" if library_scope == "question_bank" else "",
+    )
     published = False
     try:
         storage.write(stored, data)
@@ -121,6 +132,7 @@ def save_upload(
                 user_id=user_id,
                 course_id=course_id,
                 name=Path(filename).stem[:240],
+                library_scope=library_scope,
                 original_filename=filename,
                 mime_type=mime,
                 size_bytes=len(data),

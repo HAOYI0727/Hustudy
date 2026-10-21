@@ -20,7 +20,7 @@ from . import material_backup, note_backup, ai_backup, exam_backup
 
 ADAPTERS = [material_backup, note_backup, ai_backup, exam_backup]
 MODELS = [Course]
-REVISION = "0016_note_trash"
+REVISION = "0021_bank_library"
 LEGACY_REVISION = "0012_account_archives"
 MAX_ZIP = 256 * 1024 * 1024
 MAX_CONTENT = 512 * 1024 * 1024
@@ -310,6 +310,9 @@ def inspect_package(path):
                 "0013_note_tags",
                 "0014_note_exports",
                 "0015_note_folders",
+                "0016_note_trash",
+                "0019_exam_bank",
+                "0020_exam_analysis",
                 REVISION,
             )
         ):
@@ -323,18 +326,53 @@ def inspect_package(path):
         expected = {model.__tablename__ for model in MODELS}
         for adapter in ADAPTERS:
             expected.update(model.__tablename__ for model in adapter.MODELS)
-        if manifest["schema_revision"] not in ("0015_note_folders", REVISION):
+        if manifest["schema_revision"] not in (
+            "0015_note_folders",
+            "0016_note_trash",
+            "0019_exam_bank",
+            "0020_exam_analysis",
+            REVISION,
+        ):
             expected.remove("note_folders")
-        if manifest["schema_revision"] != REVISION:
+        if manifest["schema_revision"] not in (
+            "0016_note_trash",
+            "0019_exam_bank",
+            "0020_exam_analysis",
+            REVISION,
+        ):
             expected.remove("note_trash_policies")
+        if manifest["schema_revision"] not in ("0020_exam_analysis", REVISION):
+            expected.remove("exam_analysis_reports")
         if set(manifest["tables"]) != expected:
             raise ValueError("备份模块集合不完整或包含未知表")
         if manifest["schema_revision"] == LEGACY_REVISION:
             note_backup.upgrade_legacy_tags(manifest["tables"])
-        if manifest["schema_revision"] not in ("0015_note_folders", REVISION):
+        if manifest["schema_revision"] not in (
+            "0015_note_folders",
+            "0016_note_trash",
+            "0019_exam_bank",
+            "0020_exam_analysis",
+            REVISION,
+        ):
             note_backup.upgrade_legacy_folders(manifest["tables"])
-        if manifest["schema_revision"] != REVISION:
+        if manifest["schema_revision"] not in (
+            "0016_note_trash",
+            "0019_exam_bank",
+            "0020_exam_analysis",
+            REVISION,
+        ):
             note_backup.upgrade_legacy_trash(manifest["tables"])
+        if manifest["schema_revision"] not in (
+            "0019_exam_bank",
+            "0020_exam_analysis",
+            REVISION,
+        ):
+            exam_backup.upgrade_legacy(manifest["tables"])
+        if manifest["schema_revision"] not in ("0020_exam_analysis", REVISION):
+            exam_backup.upgrade_legacy_analysis(manifest["tables"])
+        if manifest["schema_revision"] != REVISION:
+            for doc in manifest["tables"]["documents"]:
+                doc.setdefault("library_scope", "material")
         all_ids = contract.ids(manifest["tables"])
         members, file_ids = {"manifest.json"}, set()
         for item in manifest["files"]:

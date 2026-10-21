@@ -21,6 +21,8 @@ from .note_exports import run_note_export_once
 from .note_trash import run_trash_cleanup
 from .note_capture import run_capture_once
 from .ai_queries import run_ai_once
+from .bank_ocr import run_bank_ocr_once
+from .bank_ai import run_bank_ai_once
 
 LEASE_SECONDS = 180
 
@@ -398,6 +400,8 @@ def drain_jobs(limit=100):
             not run_once()
             and not run_note_export_once()
             and not run_capture_once()
+            and not run_bank_ocr_once()
+            and not run_bank_ai_once()
             and not run_export_once()
             and not run_ai_once()
             and not run_archive_once()
@@ -415,7 +419,13 @@ if __name__ == "__main__":
     init_db()
     if args.once:
         run_trash_cleanup(force=True)
-        if not run_once() and not run_note_export_once() and not run_capture_once():
+        if (
+            not run_once()
+            and not run_note_export_once()
+            and not run_capture_once()
+            and not run_bank_ocr_once()
+            and not run_bank_ai_once()
+        ):
             if not run_export_once():
                 if not run_ai_once():
                     run_archive_once()
@@ -426,6 +436,8 @@ if __name__ == "__main__":
                 not run_once()
                 and not run_note_export_once()
                 and not run_capture_once()
+                and not run_bank_ocr_once()
+                and not run_bank_ai_once()
                 and not run_export_once()
                 and not run_ai_once()
                 and not run_archive_once()

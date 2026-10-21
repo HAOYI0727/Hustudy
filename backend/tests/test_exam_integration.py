@@ -1,3 +1,4 @@
+from test_question_bank import seed_choice
 from datetime import timedelta
 from fastapi.testclient import TestClient
 from app.main import app
@@ -11,6 +12,7 @@ def test_blueprint_answer_gates_deadline_and_idempotent_submit():
     with TestClient(app) as client:
         owner, course = context(client)
         stranger, _ = context(client)
+        seed_choice(client, owner, course)
         base = {
             "name": "集成蓝图",
             "total_points": 5,
@@ -33,6 +35,8 @@ def test_blueprint_answer_gates_deadline_and_idempotent_submit():
             f"/api/v1/exam-blueprints/{blueprint['id']}/generate", headers=owner
         ).json()
         qid = paper["questions"][0]["id"]
+        correct = client.get(f"/api/v1/exam-papers/{paper['id']}?include_answers=true", headers=owner).json()["questions"][0]["answer"]
+        wrong = next(c for c in "ABCD" if c != correct)
         client.post(f"/api/v1/exam-papers/{paper['id']}/review", headers=owner)
         attempt = client.post(
             f"/api/v1/exam-papers/{paper['id']}/attempts", headers=owner
@@ -61,7 +65,7 @@ def test_blueprint_answer_gates_deadline_and_idempotent_submit():
             == 422
         )
         assert (
-            client.put(path + qid, headers=owner, json={"answer": "B"}).status_code
+            client.put(path + qid, headers=owner, json={"answer": wrong}).status_code
             == 200
         )
         with SessionLocal() as db:
@@ -78,6 +82,6 @@ def test_blueprint_answer_gates_deadline_and_idempotent_submit():
         assert len(client.get("/api/v1/mistakes", headers=owner).json()) == 1
         assert (
             client.get(result_url, headers=owner).json()["questions"][0]["answer"]
-            == "A"
+            == correct
         )
         assert client.get(result_url, headers=stranger).status_code == 404

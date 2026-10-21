@@ -1,3 +1,4 @@
+import type {DisplayGroup} from "../features/exams/questionGroups";
 export type NoteAIConfig = {provider: string; model: string; configured: boolean; has_personal_key: boolean; revision: number; source: "personal" | "server" | "none"; reason: string | null; endpoint: string};
 import { queryClient, sessionPartition, sessionGeneration, advanceSessionGeneration } from "./query";
 const API_BASE = import.meta.env?.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
@@ -47,13 +48,31 @@ export type NoteTrashPage = {items: NoteTrashEntry[]; total: number; snapshot: s
 export type NoteTrashPolicy = {retention_days: number | null; revision: number};
 export type NoteBatchChange = {add_tags?: string[]; remove_tags?: string[]; folder_id?: string | null};
 export type NoteExport = Omit<MaterialExport, "course_id"> & {filename: string; layout: "simple" | "legacy"};
-export type Topic = { id: string; name: string; aliases: string[] };
+export type Topic = { parent_id?:string|null; id: string; name: string; aliases: string[];revision:number;merged_into_id?:string|null };
+export type ExamAnalysis = {id:string;course_id:string;status:string;report:{sample_count:number;all_papers:number;pending_papers:number;question_count:number;known_years:number[];unknown_years:number;unknown_points:number;known_points:number;known_points_coverage:number|null;by_type:Record<string,number>;topics:Array<{id:string;name:string;count:number;involvement_rate:number|null;year_rate:number|null;primary_known_points:number;points_rate:number|null}>}};
+export type GapMatrix = {status:string;topics:Array<{id:string;name:string;revision:number;confirmed_sources:SourceCitation[];material_candidates:Array<{version_id:string;chunk_id:string;document_id:string;name:string;quote:string}>;notes:Array<{id:string;title:string}>;images:Array<{id:string;name:string;alt:string}>;match_status:string;mastery:string;judged_count:number;error_count:number}>};
 export type Paper = { id: string; title: string; year?: number | null; review_status: string; questions: PastQuestion[] };
-export type PastQuestion = { id: string; number: string; stem: string; question_type: string; points?: number | null; answer?: string | null; answer_source: string; status: string; topic_id?: string | null };
+export type BankArchiveEntry={path:string;kind:"document"|"image"|"skip";status:"uploaded"|"failed"|"skipped";version_id?:string;asset_id?:string;error?:string};
+export type BankAIJob={paper_id:string;title:string;model:string;endpoint:string;status:string;job_id?:string;error?:string;sources?:{source_id:string;text:string}[];expires_at:string};
+export type BankImage = {asset_id:string;box?:number[];alt?:string};
+export type BankPDFInfo={version_id:string;pages:number;ocr_pages:number[];ocr_available:boolean};
+export type BankImageJob = {engine?:string;completed_pages?:number;auto_topic_status?:string;pdf_version_id?:string;force_ocr?:boolean;id:string;paper_id:string;title:string;status:string;error?:string;progress:number;asset_ids:string[];layout:"single"|"double"};
+export type BankTopicJob={preview_id?:string;paper_id:string;status:string;model:string;endpoint?:string;expires_at?:string;error?:string;input?:{questions:{question_id:string;revision:number;stem:string;options:string[]}[];topics:{id:string;name:string;aliases:string[];revision:number}[]}};
+export type BankTopicIndex = {selection_reviewed?:boolean;reason?:string;version?:string;auto_assigned?:boolean;existing?:{topic_id:string;name:string;method:string;reason:string}[];candidates?:string[]};
+export type BankData = {content_format?:"markdown";topic_index?:BankTopicIndex;content_profile?:string;import_warnings?:string[];source_images?:BankImage[];illustrations?:BankImage[];images_reviewed?:boolean;options?:string[];blank_answers?:string[];unique_answer?:boolean|null;topic_ids?:string[];explanation?:string;warnings?:string[];citations?:SourceCitation[]};
+export type BankDeleteResult={changed:number;revisions:Record<string,number>;paper_id?:string;paper_revision?:number};
+export type BankFile=DocumentItem&{library_scope:"material"|"question_bank"};
+export type BankPaperMeta = {question_count:number;question_snapshot:string;id:string;title:string;year:number|null;status:string;metadata:{revision?:number;variant?:string;provenance?:string;duplicate_of?:string|null}};
+export type PastQuestion = {display_group?:DisplayGroup|null; id: string; number: string; stem: string; question_type: string; points?: number | null; answer?: string | null; answer_source: string; status: string; topic_id?: string | null;revision:number;bank_data:BankData;paper_id?:string };
 export type Blueprint = { id: string; name: string; config: Record<string, unknown>; status: string };
 export type ExamPaper = { id: string; title: string; mode: string; status: string; questions: Question[] };
-export type Question = { id: string; type: string; stem: string; options?: string[]; points: number; topic: string; answer?: string | boolean; rubric?: string[]; explanation?: string };
-export type Attempt = { id: string; paper_id: string; status: string; answers: Record<string, unknown>; score?: number | null };
+export type Question = {context_stem?:string;context_illustrations?:BankImage[];display_group?:DisplayGroup|null;illustrations?:BankImage[]; id: string; type: string; stem: string; options?: string[]; points: number; topic: string; answer?: string | boolean; rubric?: string[]; explanation?: string;blank_count?:number;blank_answers?:string[];unique_answer?:boolean|null;topic_ids?:string[] };
+export type ApiConnection={configured:boolean;model:string;revision:number;scope:string;endpoint:string;test_status:string;tested_at?:string;message:string;guide_url:string;key_url:string};
+export type Redo={id:string;question:Question;status:string;answer:unknown;grading:Grade|null;correct:boolean|null};
+export type DailyRedo={date:string;goal:number;target:number;completed:number;available:number;done:boolean;remaining_ids:string[];completed_ids:string[]};
+export type MistakeItem={id:string;question:Question;given:unknown;topics:Topic[];mastered:boolean;mastered_at:string|null};
+export type Grade = {status:string;automatic:boolean;submitted:boolean;score?:number;max_score?:number;self_correct?:boolean};
+export type Attempt = { id: string; paper_id: string; status: string; answers: Record<string, unknown>; score?: number | null;grading:Record<string,Grade>;deadline_at?:string;questions?:Question[] };
 
 export class ApiError extends Error {
   status: number;
@@ -197,7 +216,7 @@ export const api = {
   removeNoteExport: (token: string, id: string) => request<void>(`/note-exports/${id}`, {method: "DELETE"}, token),
   downloadNoteExport: (token: string, id: string) => fileRequest(`/note-exports/${id}/download`, token),
 
-  createReviewTask: (token: string, payload: { mistake_id: string; title: string; due_date: string }) => request("/review-tasks", { method: "POST", body: JSON.stringify(payload) }, token),
+  createReviewTask: (token: string, payload: { mistake_id: string; title: string; due_date?: string }) => request("/review-tasks", { method: "POST", body: JSON.stringify(payload) }, token),
   register: (username: string, password: string) => request<{ access_token: string; user: { id: string; username: string } }>("/auth/register", { method: "POST", body: JSON.stringify({ username, password }) }),
   login: (username: string, password: string) => request<{ access_token: string; user: { id: string; username: string } }>("/auth/login", { method: "POST", body: JSON.stringify({ username, password }) }),
   courses: (token: string) => request<Course[]>("/courses", {}, token),
@@ -217,7 +236,53 @@ export const api = {
   citation: (token: string, noteId: string, payload: { version_id: string; chunk_id: string; quote: string }) => request(`/notes/${noteId}/citations`, { method: "POST", body: JSON.stringify(payload) }, token),
   aiQuery: (token: string, courseId: string, query: string) => request<AIAnswer>(`/courses/${courseId}/ai-queries`, { method: "POST", body: JSON.stringify({ query, mode: "demo" }) }, token),
   topics: (token: string, courseId: string) => request<Topic[]>(`/courses/${courseId}/topics`, {}, token),
-  createTopic: (token: string, courseId: string, name: string) => request<Topic>(`/courses/${courseId}/topics`, { method: "POST", body: JSON.stringify({ name, aliases: [] }) }, token),
+  deleteTopic: (token:string,id:string,revision:number) => request<{status:string;id:string}>(`/topics/${id}?revision=${revision}`,{method:"DELETE"},token),
+  renameTopic: (token:string,id:string,payload:{revision:number;name:string;aliases:string[];parent_id?:string|null}) => request<Topic>(`/topics/${id}`,{method:"PATCH",body:JSON.stringify(payload)},token),
+  mergeTopic: (token:string,id:string,payload:{revision:number;target_id:string;target_revision:number}) => request<Topic>(`/topics/${id}/merge`,{method:"POST",body:JSON.stringify(payload)},token),
+  confirmTopicSource: (token:string,id:string,payload:{revision:number;version_id:string;chunk_id:string;quote:string}) => request<Topic>(`/topics/${id}/sources`,{method:"PUT",body:JSON.stringify(payload)},token),
+  createAnalysis: (token:string,courseId:string) => request<ExamAnalysis>(`/courses/${courseId}/exam-analyses`,{method:"POST"},token),
+  analysis: (token:string,id:string) => request<ExamAnalysis>(`/exam-analyses/${id}`,{},token),
+  analysisHistory: (token:string,courseId:string) => request<Array<{id:string;status:string}>>(`/courses/${courseId}/exam-analyses`,{},token),
+  analysisGaps: (token:string,id:string) => request<GapMatrix>(`/exam-analyses/${id}/gaps`,{},token),
+  bankImport: (token:string,courseId:string,payload:{title:string;content?:string;version_id?:string;year?:number;default_topic_ids?:string[]}) => request<Paper>(`/courses/${courseId}/question-bank/import`,{method:"POST",body:JSON.stringify(payload)},token),
+  bankQuestions: (token:string,courseId:string,offset=0,paperId="",topicId="") => request<{items:PastQuestion[];total:number}>(`/courses/${courseId}/question-bank?offset=${offset}&limit=50${paperId?`&paper_id=${encodeURIComponent(paperId)}`:""}${topicId?`&topic_id=${encodeURIComponent(topicId)}`:""}`,{},token),
+  bankMarkdown:(token:string,id:string)=>fileRequest(`/past-questions/${id}/markdown`,token),
+  bankArchiveInspect:(token:string,courseId:string,file:File)=>{const body=new FormData();body.append("file",file);return request<{entries:{path:string;kind:string;size:number}[]}>(`/courses/${courseId}/question-bank/archives/inspect`,{method:"POST",body},token);},
+  bankVisionResume:(token:string,paperId:string)=>request<BankImageJob>(`/past-papers/${paperId}/vision-resume`,{method:"POST",body:JSON.stringify({confirm_remote_send:true})},token),
+  bankRecognitionCancel:(token:string,paperId:string)=>request(`/past-papers/${paperId}/recognition-cancel`,{method:"POST"},token),
+  bankArchive: (token:string,courseId:string,file:File,selectedPaths?:string[]) => {const body=new FormData();body.append("file",file);if(selectedPaths)body.append("selected_paths",JSON.stringify(selectedPaths));return request<{entries:BankArchiveEntry[]}>(`/courses/${courseId}/question-bank/archives`,{method:"POST",body},token);},
+  bankTopicPreview:(token:string,id:string,question_ids:string[])=>request<BankTopicJob>(`/past-papers/${id}/topic-ai-preview`,{method:"POST",body:JSON.stringify({question_ids})},token),
+  bankTopicStatus:(token:string,id:string)=>request<BankTopicJob>(`/past-papers/${id}/topic-ai-preview`,{},token),
+  bankTopicConfirm:(token:string,id:string,preview_id:string)=>request<BankTopicJob>(`/past-papers/${id}/topic-ai-confirm`,{method:"POST",body:JSON.stringify({confirm_remote_send:true,preview_id})},token),
+  bankAICapabilities: (token:string) => request<{configured:boolean;model:string;documentation_url:string}>("/question-bank/ai-capabilities",{},token),
+  bankAIPreview: (token:string,courseId:string,payload:{title:string;version_id:string;default_topic_ids:string[];year?:number}) => request<BankAIJob>(`/courses/${courseId}/question-bank/ai-preview`,{method:"POST",body:JSON.stringify(payload)},token),
+  bankAIDetail: (token:string,id:string) => request<BankAIJob>(`/past-papers/${id}/ai-preview`,{},token),
+  bankAIConfirm: (token:string,id:string) => request<BankAIJob>(`/past-papers/${id}/ai-confirm`,{method:"POST",body:JSON.stringify({confirm_remote_send:true})},token),
+  bankAIJobs: (token:string,courseId:string) => request<BankAIJob[]>(`/courses/${courseId}/question-bank/ai-jobs`,{},token),
+  bankImageImport: (token:string,courseId:string,payload:{request_id:string;title:string;asset_ids:string[];layout:string;year?:number;default_topic_ids?:string[];engine?:string;confirm_remote_send?:boolean;questions_only?:boolean;classify_topics?:boolean}) => request<BankImageJob>(`/courses/${courseId}/question-bank/images`,{method:"POST",body:JSON.stringify(payload)},token),
+  bankPDFInfo:(token:string,courseId:string,versionId:string)=>request<BankPDFInfo>(`/courses/${courseId}/question-bank/pdf/${versionId}`,{},token),
+  bankPDFOCR:(token:string,courseId:string,versionId:string,payload:{request_id:string;title:string;year?:number;default_topic_ids:string[];force_ocr:boolean;layout:string;engine?:string;confirm_remote_send?:boolean;questions_only?:boolean;classify_topics?:boolean})=>request<BankImageJob>(`/courses/${courseId}/question-bank/pdf/${versionId}/ocr`,{method:"POST",body:JSON.stringify(payload)},token),
+  bankImageJobs: (token:string,courseId:string) => request<BankImageJob[]>(`/courses/${courseId}/question-bank/image-jobs`,{},token),
+  bankIllustration: (token:string,courseId:string,image:BankImage,signal?:AbortSignal) => fileRequest(`/question-bank/illustrations/${image.asset_id}?${new URLSearchParams({course_id:courseId,box:(image.box||[0,0,1,1]).join(",")})}`,token,signal),
+  deleteBankQuestion: (token:string,id:string,revision:number) => request<BankDeleteResult>(`/past-questions/${id}?revision=${revision}`,{method:"DELETE"},token),
+  bankBatch: (token:string,courseId:string,payload:{question_ids:string[];revisions:Record<string,number>;action:"delete"|"tag"|"tag_add"|"confirm";topic_ids?:string[]}) => request<BankDeleteResult>(`/courses/${courseId}/question-bank/batch`,{method:"POST",body:JSON.stringify(payload)},token),
+  saveBankQuestions: (token:string,courseId:string,items:Record<string,unknown>[]) => request<{changed:number;needs_review:boolean;revisions:Record<string,number>}>(`/courses/${courseId}/question-bank/save`,{method:"POST",body:JSON.stringify({items})},token),
+  editBankQuestion: (token:string,id:string,payload:Record<string,unknown>) => request<PastQuestion>(`/past-questions/${id}`,{method:"PATCH",body:JSON.stringify(payload)},token),
+  splitBankQuestion: (token:string,id:string,revision:number,parts:string[]) => request<PastQuestion[]>(`/past-questions/${id}/split`,{method:"POST",body:JSON.stringify({revision,parts})},token),
+  mergeBankQuestions: (token:string,courseId:string,question_ids:string[],revisions:Record<string,number>,stem:string) => request<PastQuestion>(`/courses/${courseId}/question-bank/merge`,{method:"POST",body:JSON.stringify({question_ids,revisions,stem})},token),
+  bankDraw: (token:string,courseId:string,payload:{request_id:string;topic_ids:string[];count:number;question_type?:string;duration_minutes:number;title?:string}) => request<ExamPaper>(`/courses/${courseId}/question-bank/draw`,{method:"POST",body:JSON.stringify(payload)},token),
+  examHistory: (token:string,courseId:string) => request<Array<{id:string;title:string;status:string;attempts?:Array<{id:string;status:string}>}>>(`/courses/${courseId}/exam-papers`,{},token),
+  bankStats: (token:string,courseId:string) => request<{eligible_questions:number;confirmed_papers:number;unknown_points:number;known_points:number;by_type:Record<string,number>;by_topic:Array<{id:string;name:string;count:number}>}>(`/courses/${courseId}/question-bank/statistics`,{},token),
+  uploadBankFile:(token:string,courseId:string,file:File)=>{const data=new FormData();data.append("file",file);return request<Job>(`/courses/${courseId}/question-bank/files`,{method:"POST",body:data},token);},
+  bankFiles:(token:string,courseId:string)=>request<BankFile[]>(`/courses/${courseId}/question-bank/files`,{},token),
+  moveBankFile:(token:string,courseId:string,id:string)=>request<{moved:boolean}>(`/courses/${courseId}/question-bank/files/${id}/move`,{method:"POST"},token),
+  deleteBankPaper:(token:string,id:string,revision:number,question_snapshot:string)=>request<BankDeleteResult>(`/past-papers/${id}/delete`,{method:"POST",body:JSON.stringify({revision,question_snapshot})},token),
+  restoreBankDeletion:(token:string,courseId:string,payload:Pick<BankDeleteResult,"revisions"|"paper_id"|"paper_revision">)=>request<{restored:number}>(`/courses/${courseId}/question-bank/restore`,{method:"POST",body:JSON.stringify(payload)},token),
+  bankPapers: (token:string,courseId:string) => request<BankPaperMeta[]>(`/courses/${courseId}/question-bank/papers`,{},token),
+  editBankMetadata: (token:string,id:string,payload:Record<string,unknown>) => request(`/past-papers/${id}/metadata`,{method:"PATCH",body:JSON.stringify(payload)},token),
+  restoreAttempt: (token:string,id:string) => request<Attempt>(`/attempts/${id}`,{},token),
+  selfGrade: (token:string,id:string,qid:string,correct:boolean) => request<Attempt>(`/attempts/${id}/self-grades/${qid}`,{method:"POST",body:JSON.stringify({correct})},token),
+  createTopic: (token: string, courseId: string, name: string, parent_id?:string|null) => request<Topic>(`/courses/${courseId}/topics`, { method: "POST", body: JSON.stringify({ name, aliases: [],parent_id }) }, token),
   papers: (token: string, courseId: string) => request<Paper[]>(`/courses/${courseId}/past-papers`, {}, token),
   createPaper: (token: string, courseId: string, payload: { title: string; year?: number; content: string }) => request<Paper>(`/courses/${courseId}/past-papers`, { method: "POST", body: JSON.stringify(payload) }, token),
   extractPaper: (token: string, paperId: string) => request<Paper>(`/past-papers/${paperId}/extract`, { method: "POST" }, token),
@@ -231,7 +296,17 @@ export const api = {
   paperWithAnswers: (token: string, paperId: string) => request<ExamPaper>(`/exam-papers/${paperId}?include_answers=true`, {}, token),
   answer: (token: string, attemptId: string, questionId: string, answer: unknown) => request<Attempt>(`/attempts/${attemptId}/answers/${questionId}`, { method: "PUT", body: JSON.stringify({ answer }) }, token),
   submit: (token: string, attemptId: string) => request<Attempt>(`/attempts/${attemptId}/submit`, { method: "POST" }, token),
-  mistakes: (token: string) => request<Array<{ id: string; question: Question; given: unknown }>>("/mistakes", {}, token),
+  apiConnection:(token:string)=>request<ApiConnection>("/api-connection",{},token),
+  saveApiConnection:(token:string,payload:{revision:number;model:string;key?:string})=>request<ApiConnection>("/api-connection",{method:"PUT",body:JSON.stringify(payload)},token),
+  testApiConnection:(token:string,revision:number)=>request<ApiConnection>("/api-connection/test",{method:"POST",body:JSON.stringify({revision,confirm:true})},token),
+  clearApiConnection:(token:string,revision:number)=>request<ApiConnection>(`/api-connection?revision=${revision}`,{method:"DELETE"},token),
+  dailyRedo:(token:string,goal=3)=>request<DailyRedo>(`/mistakes/daily-progress?goal=${goal}`,{},token),
+  startRedo:(token:string,id:string,request_id:string)=>request<Redo>(`/mistakes/${id}/redoes`,{method:"POST",body:JSON.stringify({request_id})},token),
+  submitRedo:(token:string,id:string,rid:string,answer:unknown)=>request<Redo>(`/mistakes/${id}/redoes/${rid}/submit`,{method:"POST",body:JSON.stringify({answer})},token),
+  judgeRedo:(token:string,id:string,rid:string,correct:boolean)=>request<Redo>(`/mistakes/${id}/redoes/${rid}/judge`,{method:"POST",body:JSON.stringify({correct})},token),
+  removeMistake:(token:string,id:string)=>request<{status:string}>(`/mistakes/${id}`,{method:"DELETE"},token),
+  mistakes: (token: string) => request<MistakeItem[]>("/mistakes", {}, token),
   reviewTasks: (token: string) => request<Array<{ id: string; title: string; due_date: string; status: string }>>("/review-tasks/today", {}, token),
+  rescheduleReview: (token:string,id:string,due:string,expected:string) => request(`/review-tasks/${id}`,{method:"PATCH",body:JSON.stringify({due_date:due,expected_due_date:expected})},token),
   feedback: (token: string, payload: { kind: string; content: string; rating?: number }) => request("/feedback", { method: "POST", body: JSON.stringify(payload) }, token),
 };

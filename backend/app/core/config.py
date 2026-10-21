@@ -12,7 +12,9 @@ class Settings(BaseSettings):
         hide_input_in_errors=True,
     )
     env: str = "development"
-    speech_model_path: str = Field(default="./data/models/faster-whisper-base", max_length=1024, repr=False)
+    speech_model_path: str = Field(
+        default="./data/models/faster-whisper-base", max_length=1024, repr=False
+    )
     database_url: str = "sqlite:///./data/hustudy.db"
     storage_root: str = "./data/storage"
     storage_reserve_bytes: int = Field(default=64 * 1024 * 1024, ge=1024 * 1024)
@@ -33,5 +35,14 @@ class Settings(BaseSettings):
 
 
 @lru_cache
-def get_settings() -> Settings:
+def base_settings() -> Settings:
     return Settings()
+
+
+def get_settings() -> Settings:
+    from .connection_store import apply
+
+    return apply(base_settings())
+
+
+get_settings.cache_clear = base_settings.cache_clear

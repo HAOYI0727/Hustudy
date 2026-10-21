@@ -358,6 +358,10 @@ def test_trash_backup_roundtrip_legacy_and_invalid_deadline(mode):
             if mode == "legacy":
                 manifest["schema_revision"] = "0015_note_folders"
                 del manifest["tables"]["note_trash_policies"]
+                manifest["tables"].pop("exam_analysis_reports", None)
+                for topic in manifest["tables"]["topics"]:
+                    for key in ("revision", "merged_into_id", "sources_json"):
+                        topic.pop(key, None)
                 for row in manifest["tables"]["notes"]:
                     del row["deleted_at"], row["purge_after"]
             else:

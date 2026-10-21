@@ -175,10 +175,7 @@ def preview(
         raise HTTPException(409, "未确认预览已达20条，请等待旧预览过期")
     query = payload.query
     if candidate_request:
-        from .question_drafts import prepare, encode
-
-        sources, envelope = prepare(db, user_id, course_id, candidate_request)
-        query = encode(envelope)
+        raise HTTPException(410, "练习题已改为用户题库随机抽题，请使用question-bank/draw")
     elif report_request:
         sources, coverage = full_context(
             db,
@@ -242,6 +239,8 @@ def preview(
 
 def confirm(db, user_id, query_id):
     row = owned_query(db, user_id, query_id)
+    if candidate_envelope(row.query):
+        raise HTTPException(410, "旧AI练习生成已停用，请从用户题库抽题")
     owned_course(db, user_id, row.course_id, lock=True)
     row = owned_query(db, user_id, query_id)
     if row.job_id:

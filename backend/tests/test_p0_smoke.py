@@ -1,3 +1,4 @@
+from test_question_bank import seed_choice
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
@@ -54,6 +55,7 @@ def test_p0_course_material_ai_and_exam_flow():
             json={"query": "什么是拥塞控制？"},
         )
         assert ai.status_code == 201 and ai.json()["status"] == "grounded"
+        seed_choice(client, headers, course_id)
         blueprint = client.post(
             "/api/v1/exam-blueprints",
             headers=headers,

@@ -14,6 +14,17 @@ class Topic(Base, OwnedResourceMixin):
     )
     name: Mapped[str] = mapped_column(String(240), nullable=False)
     aliases_json: Mapped[str] = mapped_column(Text, default="[]", nullable=False)
+    revision: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    merged_into_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
+    sources_json: Mapped[str] = mapped_column(Text, default="{}", nullable=False)
+
+
+class ExamAnalysisReport(Base, OwnedResourceMixin):
+    __tablename__ = "exam_analysis_reports"
+    course_id: Mapped[str] = mapped_column(String(36), ForeignKey("courses.id", ondelete="CASCADE"), nullable=False, index=True)
+    input_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    report_json: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(String(24), default="READY", nullable=False)
 
 
 class PastPaper(Base, OwnedResourceMixin):
@@ -25,6 +36,7 @@ class PastPaper(Base, OwnedResourceMixin):
         index=True,
     )
     title: Mapped[str] = mapped_column(String(240), nullable=False)
+    bank_meta_json: Mapped[str] = mapped_column(Text, default="{}", nullable=False)
     year: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     content: Mapped[str] = mapped_column(Text, default="", nullable=False)
     review_status: Mapped[str] = mapped_column(
@@ -43,6 +55,8 @@ class PastQuestion(Base, OwnedResourceMixin):
     )
     number: Mapped[str] = mapped_column(String(40), nullable=False)
     stem: Mapped[str] = mapped_column(Text, nullable=False)
+    bank_data_json: Mapped[str] = mapped_column(Text, default="{}", nullable=False)
+    revision: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     question_type: Mapped[str] = mapped_column(
         String(32), default="short_answer", nullable=False
     )
@@ -104,6 +118,8 @@ class ExamAttempt(Base, OwnedResourceMixin):
         String(24), default="IN_PROGRESS", nullable=False
     )
     answers_json: Mapped[str] = mapped_column(Text, default="{}", nullable=False)
+    snapshot_json: Mapped[str] = mapped_column(Text, default="{}", nullable=False)
+    grading_json: Mapped[str] = mapped_column(Text, default="{}", nullable=False)
     score: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 
 

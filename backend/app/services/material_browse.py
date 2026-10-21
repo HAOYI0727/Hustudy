@@ -59,6 +59,7 @@ def document_page(
             Document.user_id == user_id,
             Document.course_id == course_id,
             Document.deleted_at.is_(None),
+            Document.library_scope == "material",
         )
     )
 
@@ -82,6 +83,7 @@ def document_page(
             Document.user_id == user_id,
             Document.course_id == course_id,
             Document.deleted_at.is_(None),
+            Document.library_scope == "material",
         )
     ).all()
     query = base
@@ -143,6 +145,7 @@ def job_page(db, user_id, course_id, *, status, kind, offset, limit):
         .where(
             Document.course_id == course_id,
             Document.deleted_at.is_(None),
+            Document.library_scope == "material",
             Document.user_id == user_id,
             DocumentVersion.user_id == user_id,
             ProcessingJob.user_id == user_id,

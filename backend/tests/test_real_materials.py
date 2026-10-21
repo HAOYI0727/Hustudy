@@ -18,7 +18,6 @@ from app.services.report_batches import CHECKPOINT_VERSION
 from test_remote_ai import adapter, envelope, configured as configured  # noqa: F401
 from test_material_organization import setup_course, import_document
 from test_study_reports import model_report
-from test_question_drafts import setup, preview, output
 
 
 def long_report(client):
@@ -205,31 +204,6 @@ def test_operators_case_and_indentation_not_collapsed_and_long_slice_offsets():
     assert citation["start_offset"] == 2000 and citation["end_offset"] == 2002
 
 
-@pytest.mark.usefixtures("configured")
-def test_programming_choices_and_unambiguous_answer_text_conversion(monkeypatch):
-    with TestClient(app) as client:
-        owner, course, _, _, _, payload = setup(client)
-        pending = preview(client, owner, course, payload)
-
-        def handler(request):
-            sent = json.loads(json.loads(request.content)["messages"][1]["content"])
-            body = output(sent["sources"], json.loads(sent["query"])["request"])
-            body["questions"][0].update(
-                options=[{"id": "A", "text": "x+1"}, {"id": "B", "text": "x-1"}],
-                answer="x+1",
-            )
-            return httpx.Response(200, json=envelope(json.dumps(body)))
-
-        adapter(monkeypatch, handler)
-        base = f"/api/v1/remote-queries/{pending['id']}"
-        client.post(
-            base + "/confirm", headers=owner, json={"confirm_remote_send": True}
-        )
-        assert run_ai_once()
-        result = client.get(base, headers=owner).json()["result"]
-        assert result["status"] == "grounded"
-        assert result["result"]["question_drafts"][0]["answer"] == "A"
-        assert result["result"]["validation_notices"]
 
 
 @pytest.mark.usefixtures("configured")

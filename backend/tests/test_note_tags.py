@@ -174,7 +174,7 @@ def test_account_archive_preserves_tags_and_upgrades_0012(legacy):
         body, _ = exported(client, owner)
         with zipfile.ZipFile(io.BytesIO(body)) as archive:
             manifest = json.loads(archive.read("manifest.json"))
-        assert manifest["schema_revision"] == "0016_note_trash"
+        assert manifest["schema_revision"] == "0021_bank_library"
         assert manifest["tables"]["notes"][0]["tags"] == note["tags"]
         if legacy is True:
 
@@ -202,6 +202,10 @@ def test_account_archive_preserves_tags_and_upgrades_0012(legacy):
 
             def remove_trash(manifest):
                 del manifest["tables"]["note_trash_policies"]
+                manifest["tables"].pop("exam_analysis_reports", None)
+                for topic in manifest["tables"]["topics"]:
+                    for key in ("revision", "merged_into_id", "sources_json"):
+                        topic.pop(key, None)
                 for row in manifest["tables"]["notes"]:
                     del row["deleted_at"]
                     del row["purge_after"]

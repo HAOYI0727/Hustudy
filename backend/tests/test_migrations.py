@@ -170,7 +170,7 @@ def test_migration_adopts_legacy_rows_rebuilds_index_and_is_repeatable(tmp_path)
         )
         assert (
             connection.execute(text("SELECT version_num FROM alembic_version")).scalar()
-            == "0018_note_ai_config"
+            == "0021_bank_library"
         )
         assert (
             connection.execute(text("SELECT category FROM documents")).scalar()

@@ -22,6 +22,7 @@ Hustudy/
 frontend/test-results/
 frontend/playwright-report/
 frontend/.vitest/
+local_only/
 
 # Generated isolated Office preview runtime
 frontend/public/native-office/

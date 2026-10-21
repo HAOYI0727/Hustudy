@@ -1,0 +1,16 @@
+# Optional local M4 OCR; installed and checked on Windows/Python 3.12.
+# No speech runtime; models bundled in RapidOCR package, no job-time downloads.
+rapidocr-onnxruntime==1.4.4
+onnxruntime==1.31.0
+opencv-python==5.0.0.93
+numpy==2.5.4
+pyclipper==1.4.0
+Shapely==2.2.0
+protobuf==7.36.2
+flatbuffers==25.12.19
+six==1.17.0
+tqdm==4.70.1
+PyYAML==6.0.3
+Pillow==12.3.0
+packaging==26.3
+pypdfium2==4.30.0

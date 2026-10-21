@@ -8,7 +8,7 @@ import time
 import zipfile
 
 from fastapi import HTTPException
-from sqlalchemy import select, update, func, cast, LargeBinary
+from sqlalchemy import select, update, func, cast, LargeBinary, or_
 from ..core.config import get_settings
 from ..models import (
     Course,
@@ -24,6 +24,19 @@ from ..models.base import utc_now
 from ..repositories.assets import available_assets
 from ..schemas.material import JobResponse
 from ..schemas.material_exports import MaterialExportResponse
+
+
+def material_asset_scope():
+    material_versions = (
+        select(DocumentVersion.id)
+        .join(Document, Document.id == DocumentVersion.document_id)
+        .where(Document.library_scope == "material")
+    )
+    return or_(
+        Asset.source_version_id.is_(None),
+        Asset.source_version_id.in_(material_versions),
+    )
+
 
 MAX_CONTENT = 256 * 1024 * 1024
 MAX_METADATA = 16 * 1024 * 1024
@@ -55,7 +68,9 @@ def sources_available(db, row):
         (
             Document,
             "documents",
-            Document.deleted_at.is_(None) & (Document.course_id == row.course_id),
+            Document.deleted_at.is_(None)
+            & (Document.course_id == row.course_id)
+            & (Document.library_scope == "material"),
         ),
         (Asset, "assets", available_assets(row.user_id, row.course_id)),
         (
@@ -151,10 +166,13 @@ def create_export(db, course_id, user_id, request_id):
             Document.course_id == course_id,
             Document.user_id == user_id,
             Document.deleted_at.is_(None),
+            Document.library_scope == "material",
         )
         .limit(1)
     ) and not db.scalar(
-        select(Asset.id).where(available_assets(user_id, course_id)).limit(1)
+        select(Asset.id)
+        .where(available_assets(user_id, course_id), material_asset_scope())
+        .limit(1)
     ):
         raise HTTPException(409, "课程还没有可导出的资料或图片")
     job = ProcessingJob(
@@ -285,6 +303,7 @@ def snapshot(db, row):
             Document.course_id == row.course_id,
             Document.user_id == row.user_id,
             Document.deleted_at.is_(None),
+            Document.library_scope == "material",
         )
         .order_by(Document.id)
         .limit(2001)
@@ -298,6 +317,7 @@ def snapshot(db, row):
             Document.course_id == row.course_id,
             Document.user_id == row.user_id,
             Document.deleted_at.is_(None),
+            Document.library_scope == "material",
             DocumentVersion.user_id == row.user_id,
         )
         .order_by(DocumentVersion.document_id, DocumentVersion.version_no)
@@ -359,7 +379,7 @@ def snapshot(db, row):
         raise ValueError("资料切片超过导出预算（50000个）")
     assets = db.scalars(
         select(Asset)
-        .where(available_assets(row.user_id, row.course_id))
+        .where(available_assets(row.user_id, row.course_id), material_asset_scope())
         .order_by(Asset.id)
         .limit(10001)
     ).all()

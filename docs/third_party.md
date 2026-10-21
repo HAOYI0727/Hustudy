@@ -79,3 +79,10 @@ Windows Python3.11本地CPU组件安装和图片/扫描PDF实测；依赖闭包�
 ## 2026-10-19 M3 图形符号与结构填写
 
 本轮参考[AxMath官方手册](https://www.axsoft.co/AxMath_Help.pdf)的分类符号面板和结构子字段交互，自行实现数据、扫描器、按钮与样式。没有复制AxMath代码、图标、安装包或文档正文；没有新增第三方依赖。图形按钮使用既有本地KaTeX输出，完整许可生成流程不变。
+
+## M4 图片题库本地OCR（2026-10-20）
+
+复用RapidOCR 1.4.4公开Python API，不复制源码；接口已按[版本文档](https://rapidai.github.io/RapidOCRDocs/v1.4.4/install_usage/api/RapidOCR/)核对返回的行坐标、文字与分数，用于按阅读顺序和题号切分。当前Windows/Python3.12安装闭包见 `backend/requirements-bank-ocr.lock`，不安装语音组件；`pip check`无冲突。实际安装wheel许可/NOTICE及元数据记录保存在 `docs/licenses/m4-ocr/manifest.json` 与同目录包名子目录；模型使用RapidOCR包内现有ONNX，未下载、改写或单独再发布权重。自制三张PNG只含本项目编写的题目/线框图，不含第三方试卷。真实OCR样例可验证运行，不作为通用准确率指标；完整发行许可还需按发布包审阅。
+## M4 扫描PDF本地渲染（2026-10-20）
+
+M4可选OCR依赖复用pypdfium2==4.30.0；用途扩展为题库PDF原页渲染，识别继续使用既有RapidOCR。wheel随附完整PDFium/第三方许可已保存至docs/licenses/m4-ocr/pypdfium2，清单追加到manifest.json，不复制PDFium二进制到源码。无需引入语音组件；依赖检查以本轮实际pip check为准。

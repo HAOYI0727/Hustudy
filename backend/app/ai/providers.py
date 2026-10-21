@@ -154,7 +154,7 @@ class ZhipuProvider:
     def __init__(self, settings, transport=None):
         self.settings, self.transport = settings, transport
 
-    def structured(self, query, sources, system_prompt, output_schema, max_tokens=2048):
+    def structured(self, query, sources, system_prompt, output_schema, max_tokens=2048, *, images=None):
         key = self.settings.zhipu_api_key.get_secret_value()
         if not key or self.settings.llm_provider != "zhipu":
             raise ProviderFailure("NOT_CONFIGURED", "智谱未配置，请检查后端配置")
@@ -186,6 +186,15 @@ class ZhipuProvider:
             "response_format": {"type": "json_object"},
             "max_tokens": max_tokens,
         }
+        if images is not None:
+            if not 1 <= len(images) <= 2 or any(len(i) > 14 * 1024 * 1024 for i in images):
+                raise ProviderFailure("INPUT_BUDGET", "视觉输入超过图片预算")
+            payload["messages"][1]["content"] = [
+                {"type": "text", "text": payload["messages"][1]["content"]},
+                *[{"type": "image_url", "image_url": {"url": i}} for i in images],
+            ]
+            if self.settings.llm_model != "glm-5.3-flash":
+                payload.pop("response_format", None)
         if self.settings.llm_model == "glm-5.3-flash":
             # GLM-5.3-Flash cannot disable thinking. Keep its effort bounded;
             # only final message.content is validated/persisted, never reasoning.

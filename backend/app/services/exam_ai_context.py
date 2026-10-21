@@ -1,5 +1,6 @@
 """M4-owned read-only bridge for M2. No commits, generation or status changes."""
 
+from .topic_tree import active_clause
 from fastapi import HTTPException
 from sqlalchemy import select
 from ..models import Topic, PastPaper, PastQuestion
@@ -8,7 +9,9 @@ from .courses import owned_course
 
 def candidate_context(db, user_id, course_id, topic_ids=None, reference_ids=None):
     owned_course(db, user_id, course_id)
-    topics = select(Topic).where(Topic.user_id == user_id, Topic.course_id == course_id)
+    topics = select(Topic).where(
+        active_clause(), Topic.user_id == user_id, Topic.course_id == course_id
+    )
     questions = (
         select(PastQuestion, PastPaper)
         .join(PastPaper)

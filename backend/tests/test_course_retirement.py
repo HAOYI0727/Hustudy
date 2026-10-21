@@ -17,6 +17,7 @@ from app.models import (
 )
 from app.workers.materials import drain_jobs
 from test_material_organization import setup_course, import_document
+from test_question_bank import seed_choice
 from test_preview_assets import png
 
 
@@ -62,6 +63,7 @@ def fixture(client):
         headers=owner,
         json={"title": "自制真题", "content": "1. 简述条件。"},
     ).json()
+    seed_choice(client, owner, course)
     bp = client.post(
         f"/api/v1/exam-blueprints?course_id={course}",
         headers=owner,
@@ -76,6 +78,8 @@ def fixture(client):
     paper = client.post(
         f"/api/v1/exam-blueprints/{bp['id']}/generate", headers=owner
     ).json()
+    correct = client.get(f"/api/v1/exam-papers/{paper['id']}?include_answers=true", headers=owner).json()["questions"][0]["answer"]
+    wrong = next(c for c in "ABCD" if c != correct)
     client.post(f"/api/v1/exam-papers/{paper['id']}/review", headers=owner)
     attempt = client.post(
         f"/api/v1/exam-papers/{paper['id']}/attempts", headers=owner
@@ -84,7 +88,7 @@ def fixture(client):
     client.put(
         f"/api/v1/attempts/{attempt['id']}/answers/{question}",
         headers=owner,
-        json={"answer": "B"},
+        json={"answer": wrong},
     )
     client.post(f"/api/v1/attempts/{attempt['id']}/submit", headers=owner)
     mistake = client.get("/api/v1/mistakes", headers=owner).json()[0]
@@ -141,7 +145,7 @@ def test_course_removal_revokes_resources_preserves_outside_notes_and_foreign_da
             "material_exports": 1,
             "notes": 1,
             "ai_results": 1,
-            "past_papers": 1,
+            "past_papers": 2,
             "exam_papers": 1,
             "attempts": 1,
             "review_tasks": 2,

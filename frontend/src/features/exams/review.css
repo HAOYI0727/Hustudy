@@ -1,0 +1,38 @@
+.review-page{max-width:1400px;margin-inline:auto;width:100%;min-width:0}
+.review-page .daily-redo{margin-bottom:24px;padding:24px 28px;border-color:#d9e1fa;background:linear-gradient(110deg,#eef2ff,#f8faff)}
+.review-eyebrow{display:block;color:#596da0;font-size:13px;margin-bottom:10px;letter-spacing:.04em}
+.review-page .daily-redo h3{margin:0 0 10px;font-size:22px;color:#263e67}
+.review-page .daily-redo p{margin:8px 0;line-height:1.7}
+.review-page .daily-redo>div{flex:1;min-width:0}
+.review-page .daily-redo>button{min-height:46px;flex-shrink:0}
+.review-daily-actions{display:grid;gap:12px;max-width:340px;min-width:240px}
+.review-daily-actions form{display:flex;align-items:flex-end;gap:10px}
+.review-daily-actions label{display:grid;gap:8px;min-width:0}
+.review-daily-actions input{width:100%;min-width:0}
+.review-daily-actions button{min-height:44px;flex-shrink:0}
+.review-library{padding:26px}
+.review-filters{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start;margin:16px 0 22px}
+.review-filters>label{display:grid;gap:8px}
+.review-filters input{width:100%;min-width:0}
+.review-question-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-items:stretch}
+.review-question-list .mistake-card{margin:0;background:#fff;border:1px solid #e0e6f3;padding:22px;min-width:0}
+.review-question-list .mistake-card.is-mastered{background:#f7faf8;border-color:#dce8e0}
+.review-question-body{min-width:0;width:100%;display:flex;flex-direction:column;gap:16px}
+.review-question-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.review-question-heading .tag-list{margin:0;gap:6px}
+.review-mastery,.review-tag{display:inline-block;border-radius:8px;font-size:12px;padding:6px 10px;background:#fff1dd;color:#8c601d;line-height:1.5}
+.review-mastery.mastered{background:#e4f2e9;color:#31664b}
+.review-tag{background:#edf1ff;color:#5263a2}
+.review-question-footer{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:auto}
+.review-question-footer button{min-height:44px;flex-shrink:0}
+.review-question-body .bank-math{max-height:260px;overflow:auto;overflow-wrap:anywhere}
+.review-back{min-height:44px;align-self:flex-start;margin-bottom:18px}
+.review-practice-page{max-width:1100px}
+.review-practice-body{padding:28px;min-width:0}
+.review-practice-body .mistake-redo{border:0;background:transparent;padding:0;margin:22px 0}
+.review-practice-body .mistake-redo h4{font-size:19px;margin-bottom:18px}
+.review-practice-body .mistake-redo .options{display:grid;gap:12px}
+.review-practice-body .mistake-redo .option{width:100%;margin:0;text-align:left;justify-content:flex-start;padding:16px}
+.review-practice-body .mistake-redo textarea{width:100%;font-size:16px;min-height:100px}
+@media(max-width:1100px){.review-question-list{grid-template-columns:1fr}}
+@media(max-width:650px){.review-page .daily-redo{padding:20px;gap:12px}.review-page .daily-redo h3{font-size:20px}.review-library,.review-practice-body{padding:18px}.review-filters{grid-template-columns:1fr;gap:14px}.review-question-list .mistake-card{padding:16px}.review-question-footer{align-items:stretch;flex-direction:column}.review-practice-body .mistake-redo .bank-actions>button{flex:1 1 100%;margin-right:0}.review-question-heading{flex-direction:column}}
