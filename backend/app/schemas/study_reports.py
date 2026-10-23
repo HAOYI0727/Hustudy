@@ -7,7 +7,7 @@ from pydantic_core import PydanticCustomError
 from .remote_ai import Evidence, ExcerptReference, Text
 
 REQUEST_PREFIX = "hustudy:study-report:v1\n"
-REPORT_PROMPT_VERSION = "zhipu-study-report-v6"
+REPORT_PROMPT_VERSION = "zhipu-study-report-v7"
 DEMO_REPORT_PROMPT_VERSION = "demo-study-report-v2"
 
 

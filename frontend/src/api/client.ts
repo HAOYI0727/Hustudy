@@ -1,21 +1,27 @@
 import type {DisplayGroup} from "../features/exams/questionGroups";
 export type NoteAIConfig = {provider: string; model: string; configured: boolean; has_personal_key: boolean; revision: number; source: "personal" | "server" | "none"; reason: string | null; endpoint: string};
 import { queryClient, sessionPartition, sessionGeneration, advanceSessionGeneration } from "./query";
-const API_BASE = import.meta.env?.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
+import {resolveApiBase} from "./base";
+const API_BASE = resolveApiBase(import.meta.env.VITE_API_BASE_URL, import.meta.env.PROD);
 
 export type PreviewCapabilities = {native_pdf:boolean;office_available:boolean;office_status:string;message:string;installation_url:string};
+export type ProcessingServiceStatus={state:"ready"|"starting"|"unavailable";checked_at:string;message:string};
 export type ManualTranscript = {id:string;version_id:string;page:number;text:string;text_hash:string;revision:number;status:"DRAFT"|"CONFIRMED"|"SUPERSEDED"|"WITHDRAWN";supersedes_id:string|null;chunk_id:string|null;confirmed_by:string|null;confirmed_at:string|null;created_at:string;updated_at:string};
 export type Course = { id: string; name: string; description?: string | null; category: string; tags: string[]; revision: number; created_at: string; updated_at: string };
 export type CourseMetadata = {name: string; description: string | null; category: string; tags: string[]};
 export type CourseDeletionPreview = {course: Course; counts: Record<string, number>};
 export type DocumentItem = { id: string; course_id: string; name: string; category: string; tags: string[]; original_filename: string; size_bytes: number; created_at: string; updated_at: string; latest_version_id?: string; parse_status?: string; preview_status?: string; index_status?: string; parse_error?: string | null; preview_error?: string | null; latest_version_no?: number; confirmed_transcript_count?: number };
+export type DocumentMetadata = Pick<DocumentItem,"id"|"course_id"|"name"|"category"|"tags"|"updated_at">;
+export type DocumentOrganizeChange = {category?:string;tags_mode:"keep"|"add"|"remove"|"replace"|"clear";tags:string[]};
+export type NoteOption = Pick<Note,"id"|"title"|"updated_at">;
+export type NoteOptionPage = PageResult<NoteOption>;
 export type Asset = { id: string; name: string; tags: string[]; revision: number; created_at: string; updated_at: string; original_filename: string; mime_type: string; size_bytes: number; alt: string; source_version_id?: string | null; source_page?: number | null; source_locator_type?: string | null };
 export type AssetFilters = {q: string; tag: string; origin: "all" | "captured" | "external"; sort: "newest" | "oldest" | "updated" | "name"; offset: number; limit: number};
 export type AssetPage = {items: Asset[]; total: number; offset: number; limit: number; tags: string[]};
 export type AssetMetadata = Asset & { source_document_id?: string | null; source_document_name?: string | null; source_version_no?: number | null; source_availability: "active" | "unavailable"; sha256: string; created_at: string };
 export type Version = { id: string; document_id: string; version_no: number; original_filename: string; size_bytes: number; sha256: string; created_at: string; updated_at: string; parse_status: string; preview_status: string; index_status: string; parse_error?: string | null; preview_error?: string | null };
 export type Job = { id: string; type: string; status: string; resource_id: string; progress: number; error?: string | null; attempt_count: number; max_attempts: number; document_id?: string; document_name?: string; version_no?: number };
-export type MaterialExport = {id: string; course_id: string; created_at: string; snapshot_at: string | null; sha256: string | null; size_bytes: number; counts: Record<string,number>; availability: "pending" | "active" | "unavailable"; job: Job};
+export type MaterialExport = {id: string; course_id: string; created_at: string; snapshot_at: string | null; sha256: string | null; size_bytes: number; counts: Record<string,number>; availability: "pending" | "active" | "unavailable"; scope?:"course"|"selected";selected_count?:number;job: Job};
 export type StudyReport = {summary:string; citations?:SourceCitation[]; validation_notices?:string[]; learning_goals:string[]; prerequisites:string[]; learning_sequence:string[]; topics:{topic_id:string;name:string;explanation:string;concept_group?:string|null;related_concepts?:{target:string;relation:string}[];breakthrough_steps?:string[];misconceptions:string[];labels:{kind:"key"|"difficult"|"exam";reason:string;origin:"ai_suggestion"}[];citations:SourceCitation[]}[];examples:ReportExercise[];self_checks:ReportExercise[];review_suggestions?:string[]};
 export type ReportExercise = {generation_origin?:"rule_generated";question:string;answer:string;citations:SourceCitation[]};
 export type ReportCoverage = {warnings?:string[];truncated:boolean;notice:string;versions:{version_id:string;document_name:string;total_chunks:number;selected_chunks:number;total_chars:number;sent_chars:number;truncated:boolean}[]};
@@ -29,9 +35,14 @@ export type AIProvider = {provider: string; configured: boolean; model: string; 
 export type AISource = {source_id: string; version_id: string; document_id: string; document_name: string; version_no: number; locator: {type: string; value: string}; text: string; source_kind: string; sha256: string};
 export type RemoteQuery = {reusable_result?:AIAnswer|null;id: string; course_id: string; query: string; request_kind?:"qa"|"study_report"|"question_drafts";batch_progress?:{total:number;completed:number;max_calls:number;chars:number}|null;report_scope?:(ReportScope & {chunk_ids?:string[];batched?:boolean})|null;candidate_scope?:CandidateScope|null; model: string; endpoint: string; expires_at: string; consented_at: string | null; dispatched_at: string | null; sources: AISource[]; job: Job | null; result: AIAnswer | null};
 export type MaterialReference = { citation_id: string; note_id: string; note_title: string; chunk_id: string; quote: string; locator_type: string; locator_value: string };
+export type ReferenceNote={note_id:string;note_title:string;note_course_id:string|null;updated_at:string;citation_count:number;citation_id:string;chunk_id:string;locator_type:string;locator_value:string;quote_excerpt:string};
+export type ReferenceNotePage={course_id:string;document_id:string;version_id:string;chunk_id:string|null;items:ReferenceNote[];total:number;offset:number;limit:number;checked_at:string};
 export type SearchHit = { source_kind?: string; transcript_id?: string | null; chunk_id: string; version_id: string; version_no: number; document_id: string; document_name: string; category: string; tags: string[]; locator_type: string; locator_value: string; text: string; score: number };
 export type TextExcerpt = {text:string; start_offset:number; truncated_after:boolean; highlights:{start:number;end:number}[]};
 export type PageResult<T> = {items:T[];total:number;offset:number;limit:number};
+export type LearningTopic = {id:string;name:string;aliases:string[];parent_id:string|null;revision:number;confirmed:number;pending:number;needs_review:number};
+export type TopicSource = {version_id:string;chunk_id:string;availability:"active"|"unavailable";document_id?:string;title?:string;version_no?:number;locator?:string;quote?:string};
+export type TopicLearning = {course_id:string;topic:Omit<LearningTopic,"confirmed"|"pending"|"needs_review">;counts:Pick<LearningTopic,"confirmed"|"pending"|"needs_review">;sources:TopicSource[];candidates:Required<Omit<TopicSource,"availability">>[];notes:{id:string;title:string;updated_at:string;relation:"shared_source"|"same_tag_candidate"}[];mistakes:{id:string;updated_at:string}[];reviews:{id:string;title:string;due_date:string;mistake_id:string}[];review_total:number;today:string;timezone:string;checked_at:string};
 export type SearchPage = PageResult<Omit<SearchHit,"text"> & {excerpt:TextExcerpt}>;
 export type NoteSearchPage = PageResult<{id:string;title:string;excerpt:TextExcerpt;updated_at:string}>;
 export type MaterialFilters = { category?: string; tag?: string; latestOnly?: boolean };
@@ -42,6 +53,9 @@ export type AccountArchive = {id: string; purpose: "export" | "restore"; created
 export type SourceCitation = { document_name?: string | null; version_no?: number | null; source_kind?: string; id?: string; document_id?: string | null; version_id: string; chunk_id: string; locator?: { type: string; value: string }; locator_type?: string; locator_value?: string; quote: string; availability: string };
 export type Chunk = { source_kind?: string; transcript_id?: string | null; transcript_status?: string | null; confirmed_at?: string | null; id: string; version_id: string; locator_type: string; locator_value: string; text: string };
 export type Note = { id: string; title: string; content: string; tags: string[]; course_id?: string | null; folder_id?: string | null; revision: number; updated_at: string };
+export type NoteSummary = Omit<Note,"content">;
+export type NoteCatalog = PageResult<NoteSummary>;
+export const noteSummary=(note:NoteSummary):NoteSummary=>({id:note.id,title:note.title,tags:note.tags,course_id:note.course_id,folder_id:note.folder_id,revision:note.revision,updated_at:note.updated_at});
 export type NoteFolder = {id: string; name: string; parent_id: string | null; course_id: string; revision: number};
 export type NoteTrashEntry = Pick<Note, 'id' | 'title' | 'tags' | 'course_id' | 'folder_id' | 'revision'> & {course_name: string; deleted_at: string; purge_after: string | null; restore_requires_course: boolean};
 export type NoteTrashPage = {items: NoteTrashEntry[]; total: number; snapshot: string};
@@ -64,6 +78,7 @@ export type BankDeleteResult={changed:number;revisions:Record<string,number>;pap
 export type BankFile=DocumentItem&{library_scope:"material"|"question_bank"};
 export type BankPaperMeta = {question_count:number;question_snapshot:string;id:string;title:string;year:number|null;status:string;metadata:{revision?:number;variant?:string;provenance?:string;duplicate_of?:string|null}};
 export type PastQuestion = {display_group?:DisplayGroup|null; id: string; number: string; stem: string; question_type: string; points?: number | null; answer?: string | null; answer_source: string; status: string; topic_id?: string | null;revision:number;bank_data:BankData;paper_id?:string };
+export type QuestionDirectoryItem = Pick<PastQuestion,"id"|"paper_id"|"number"|"stem"|"question_type"|"status"|"revision"|"topic_id"> & {fingerprint:string;bank_data:{topic_ids:string[]}};
 export type Blueprint = { id: string; name: string; config: Record<string, unknown>; status: string };
 export type ExamPaper = { id: string; title: string; mode: string; status: string; questions: Question[] };
 export type Question = {context_stem?:string;context_illustrations?:BankImage[];display_group?:DisplayGroup|null;illustrations?:BankImage[]; id: string; type: string; stem: string; options?: string[]; points: number; topic: string; answer?: string | boolean; rubric?: string[]; explanation?: string;blank_count?:number;blank_answers?:string[];unique_answer?:boolean|null;topic_ids?:string[] };
@@ -101,7 +116,7 @@ async function transport<T>(path: string, options: RequestInit = {}, token?: str
   try {
     response = await fetch(`${API_BASE}${path}`, { ...options, headers });
   } catch {
-    throw new ApiError("无法连接后端服务，请确认 Uvicorn 正在 127.0.0.1:8000 运行", 0);
+    throw new ApiError("暂时无法连接学习服务，请检查连接与本机服务状态后重试。", 0);
   }
   if (!response.ok) {
     notifyUnauthorized(response.status, token);
@@ -127,7 +142,45 @@ async function request<T>(path: string, options: RequestInit = {}, token?: strin
 }
 
 export type NoteCapture = {id: string; filename: string; course_id: string; status: string; kind: string; error: string | null; result: {text?: string; parts?: {location: string; text: string; method: string}[]; warnings?: string[]}; ai_result: {markdown?: string; warnings?: string[]}};
+export type ReviewPlan = {id:string;mistake_id:string|null;title:string;due_date:string;status:string};
+export type ReviewPlanPage = {items:ReviewPlan[];total:number;offset:number;limit:number;today:string;timezone:string};
+export type AgendaView="due"|"overdue"|"today"|"upcoming"|"completed"|"pending";
+export type CourseAgendaPage=ReviewPlanPage&{course_id:string;counts:Record<AgendaView,number>};
+export type WorkspaceDomain = "materials" | "notes" | "study" | "practice";
+export type WorkspaceItem = {id:string;title:string;kind:"material"|"note"|"qa"|"report"|"attempt"|"mistake";status:string;updated_at:string;document_id?:string|null;version_id?:string|null};
+export type WorkspaceSection = {course_id:string;domain:WorkspaceDomain;counts:Record<string,number>;recent:WorkspaceItem[];checked_at:string};
+export type LearningRecordKind = "all"|WorkspaceItem["kind"];
+export type LearningRecordPage = {course_id:string;items:WorkspaceItem[];total:number;counts:Record<WorkspaceItem["kind"],number>;offset:number;limit:number;checked_at:string};
+export type LearningLinkItem = {id:string;title:string;kind:"note"|"qa"|"report"|"topic"|"mistake";status:string;updated_at:string;source_relation?:"citation"|"version"|null;review?:{mastered:boolean|null;pending_count:number;due_count:number;next_due_date:string|null}|null};
+export type LearningLinkKind = "all"|LearningLinkItem["kind"];
+export type MaterialHealthIssue="all"|"attention"|"text"|"parse"|"index"|"preview"|"processing";
+export type MaterialHealthJob=Pick<Job,"id"|"type"|"status"|"attempt_count"|"max_attempts"|"error">;
+export type MaterialHealthItem={document_id:string;name:string;updated_at:string;version_id:string;version_no:number;parse_status:string;index_status:string;preview_status:string;has_text:boolean;issues:MaterialHealthIssue[];jobs:MaterialHealthJob[]};
+export type MaterialHealthPage={course_id:string;items:MaterialHealthItem[];counts:Record<string,number>;total:number;offset:number;limit:number;checked_at:string};
+export type LearningLinkPage = {course_id:string;document_id:string;version_id:string;chunk_id:string|null;items:LearningLinkItem[];counts:Record<LearningLinkItem["kind"],number>;total:number;offset:number;limit:number;checked_at:string;today:string;timezone:string};
+export type MistakeSources = {course_id:string;items:{version_id:string;chunk_id:string;document_id?:string|null;title:string;locator:string;availability:"active"|"unavailable"}[]};
 export const api = {
+  processingStatus:(token:string,signal?:AbortSignal)=>transport<ProcessingServiceStatus>("/processing/status",{signal},token),
+  learningTopics:(token:string,courseId:string,q="",state="all",offset=0)=>request<PageResult<LearningTopic>>(`/courses/${courseId}/learning-topics?${new URLSearchParams({q,state,offset:String(offset),limit:"12"})}`,{},token),
+  topicLearning:(token:string,courseId:string,id:string)=>request<TopicLearning>(`/courses/${courseId}/learning-topics/${id}`,{},token),
+  questionDirectory:(token:string,courseId:string,offset=0)=>request<PageResult<QuestionDirectoryItem>>(`/courses/${courseId}/question-directory?offset=${offset}&limit=200`,{},token),
+  bankQuestion:(token:string,id:string)=>request<PastQuestion>(`/past-questions/${id}`,{},token),
+
+  me: (token:string)=>request<{id:string;username:string;timezone:string}>("/auth/me",{},token),
+  noteCatalog: (token:string,offset=0)=>request<NoteCatalog>(`/notes/catalog?offset=${offset}&limit=200`,{},token),
+  noteMatches:(token:string,courseId:string,q:string,tag:string)=>request<{ids:string[]}>(`/courses/${courseId}/note-matches?${new URLSearchParams({q,tag})}`,{},token),
+  backlinkOptions:(token:string,id:string)=>request<NoteSummary[]>(`/notes/${id}/backlink-options`,{},token),
+
+  reviewSchedule: (token:string,state:"pending"|"all"="pending",offset=0,limit=20) => request<ReviewPlanPage>(`/review-tasks?state=${state}&offset=${offset}&limit=${limit}`,{},token),
+  courseAgenda:(token:string,courseId:string,view:AgendaView,q:string,offset:number,signal?:AbortSignal)=>transport<CourseAgendaPage>(`/review-tasks?${new URLSearchParams({course_id:courseId,state:view==="completed"?"completed":"pending",period:view==="completed"||view==="pending"?"all":view,q,offset:String(offset),limit:"6"})}`,{signal,cache:"no-store"},token),
+  workspace: (token:string,courseId:string,domain:WorkspaceDomain) => request<WorkspaceSection>(`/courses/${courseId}/workspace/${domain}`,{},token),
+  // Explicit dialog reads must fail offline and honor close cancellation, without reconnect replay.
+  learningRecords: (token:string,courseId:string,kind:LearningRecordKind,q:string,offset:number,signal?:AbortSignal) => transport<LearningRecordPage>(`/courses/${courseId}/learning-records?${new URLSearchParams({kind,q,offset:String(offset),limit:"12"})}`,{signal},token),
+  sourceLearningLinks:(token:string,versionId:string,chunkId:string|null,kind:LearningLinkKind,q:string,offset:number,signal?:AbortSignal)=>transport<LearningLinkPage>(`/versions/${versionId}/learning-links?${new URLSearchParams({kind,q,offset:String(offset),limit:"12",...(chunkId?{chunk_id:chunkId}:{})})}`,{signal},token),
+  materialHealth:(token:string,courseId:string,issue:MaterialHealthIssue,q:string,offset:number,signal?:AbortSignal)=>transport<MaterialHealthPage>(`/courses/${courseId}/material-health?${new URLSearchParams({issue,q,offset:String(offset),limit:"12"})}`,{signal},token),
+  mistakeSources: (token:string,id:string) => request<MistakeSources>(`/mistakes/${id}/sources`,{},token),
+  aiResult: (token:string,id:string) => request<AIAnswer>(`/ai-results/${id}`,{},token),
+
   noteAIConfig: (token: string) => request<NoteAIConfig>('/note-ai/config', {}, token),
   saveNoteAIConfig: (token: string, payload: {revision: number; model: string; api_key?: string}) => request<NoteAIConfig>('/note-ai/config', {method: 'PUT', body: JSON.stringify(payload)}, token),
   clearNoteAIConfig: (token: string, revision: number) => request<NoteAIConfig>(`/note-ai/config?revision=${revision}`, {method: 'DELETE'}, token),
@@ -146,7 +199,7 @@ export const api = {
   removeAccountArchive: (token: string, id: string) => request<void>(`/backups/${id}`,{method:"DELETE"},token),
   document: (token: string, id: string) => request<DocumentItem>(`/documents/${id}`, {}, token),
   documentPage: (token: string, id: string, filters: DocumentBrowse) => request<DocumentPage>(`/courses/${id}/documents/page?${new URLSearchParams(Object.entries(filters).map(([k,v]) => [k,String(v)]))}`, {}, token),
-  jobPage: (token: string, id: string, status: string, offset: number) => request<JobPage>(`/courses/${id}/jobs/page?${new URLSearchParams({status,offset:String(offset),limit:"10"})}`, {}, token),
+  jobPage: (token: string, id: string, status: string, offset: number,kind="all") => request<JobPage>(`/courses/${id}/jobs/page?${new URLSearchParams({status,kind,offset:String(offset),limit:"10"})}`, {}, token),
   aiProvider: (token: string) => request<AIProvider>("/ai/provider", {}, token),
   previewStudyReport: (token:string,courseId:string,goal:string,versionIds:string[],studyMode:string,chunkIds:string[]=[]) => request<RemoteQuery>(`/courses/${courseId}/study-reports/preview`,{method:"POST",body:JSON.stringify({goal,version_ids:versionIds,study_mode:studyMode,chunk_ids:chunkIds})},token),
   studyReports: (token:string,courseId:string) => request<AIAnswer[]>(`/courses/${courseId}/study-reports`,{},token),
@@ -167,8 +220,11 @@ export const api = {
   updateTranscript: (token:string,id:string,payload:{revision:number;text:string}) => request<ManualTranscript>(`/transcripts/${id}`,{method:"PATCH",body:JSON.stringify(payload)},token),
   confirmTranscript: (token:string,id:string,revision:number) => request<ManualTranscript>(`/transcripts/${id}/confirm`,{method:"POST",body:JSON.stringify({revision})},token),
   withdrawTranscript: (token:string,id:string,revision:number) => request<ManualTranscript>(`/transcripts/${id}/withdraw`,{method:"POST",body:JSON.stringify({revision})},token),
-  updateDocument: (token: string, id: string, payload: {name?: string; category?: string; tags?: string[]}) => request<DocumentItem>(`/documents/${id}`, { method: "PATCH", body: JSON.stringify(payload) }, token),
+  organizeDocuments: (token:string,courseId:string,items:DocumentMetadata[],change:DocumentOrganizeChange) => request<{items:DocumentMetadata[];changed:number}>(`/courses/${courseId}/documents/organize`,{method:"POST",body:JSON.stringify({...change,items:items.map(item=>({id:item.id,expected_updated_at:item.updated_at}))})},token),
+  noteOptions: (token:string,courseId:string,q="",offset=0,limit=20) => request<NoteOptionPage>(`/courses/${courseId}/note-options?${new URLSearchParams({q,offset:String(offset),limit:String(limit)})}`,{},token),
+  updateDocument: (token: string, id: string, payload: {name?: string; category?: string; tags?: string[];expected_updated_at?:string}) => request<DocumentItem>(`/documents/${id}`, { method: "PATCH", body: JSON.stringify(payload) }, token),
   materialReferences: (token: string, id: string, chunkId?: string) => request<MaterialReference[]>(`/versions/${id}/references${chunkId ? '?chunk_id=' + encodeURIComponent(chunkId) : ''}`, {}, token),
+  referenceNotes:(token:string,versionId:string,q:string,chunkId:string,offset:number,signal?:AbortSignal)=>transport<ReferenceNotePage>(`/versions/${versionId}/reference-notes?${new URLSearchParams({q,offset:String(offset),limit:"6",...(chunkId?{chunk_id:chunkId}:{})})}`,{signal,cache:"no-store"},token),
   assets: (token: string, id: string) => request<Asset[]>(`/courses/${id}/assets`, {}, token),
   asset: (token: string, id: string) => fileRequest(`/assets/${id}`, token),
   assetMetadata: (token: string, id: string) => request<AssetMetadata>(`/assets/${id}/metadata`, {}, token),
@@ -183,7 +239,7 @@ export const api = {
   retryJob: (token: string, id: string) => request<Job>(`/jobs/${id}/retry`, { method: "POST" }, token),
   cancelJob: (token: string, id: string) => request<Job>(`/jobs/${id}/cancel`, {method: "POST"}, token),
   materialExports: (token: string, id: string) => request<MaterialExport[]>(`/courses/${id}/material-exports`, {}, token),
-  createMaterialExport: (token: string, id: string, requestId: string) => request<MaterialExport>(`/courses/${id}/material-exports`, {method: "POST", body: JSON.stringify({request_id: requestId})}, token),
+  createMaterialExport: (token: string, id: string, requestId: string,documentIds?:string[]) => request<MaterialExport>(`/courses/${id}/material-exports`, {method: "POST", body: JSON.stringify({request_id: requestId,...(documentIds?{document_ids:documentIds}:{})})}, token),
   retryMaterialExport: (token: string, id: string) => request<MaterialExport>(`/material-exports/${id}/retry`, {method: "POST"}, token),
   removeMaterialExport: (token: string, id: string) => request<void>(`/material-exports/${id}`, {method: "DELETE"}, token),
   downloadMaterialExport: (token: string, id: string) => fileRequest(`/material-exports/${id}/download`, token),
@@ -195,7 +251,7 @@ export const api = {
   citations: (token: string, id: string) => request<SourceCitation[]>(`/notes/${id}/citations`, {}, token),
   removeCitation: (token: string, noteId: string, citationId: string) => request<void>(`/notes/${noteId}/citations/${citationId}`, {method: "DELETE"}, token),
   completeReviewTask: (token: string, id: string) => request(`/review-tasks/${id}/complete`, {method: "POST"}, token),
-  note: (token: string, id: string) => request<Note>(`/notes/${id}`, {}, token),
+  note: (token: string, id: string, signal?:AbortSignal) => signal?transport<Note>(`/notes/${id}`,{signal},token):request<Note>(`/notes/${id}`, {}, token),
   noteFolders: (token: string, courseId: string) => request<NoteFolder[]>(`/note-folders?course_id=${encodeURIComponent(courseId)}`, {}, token),
   createNoteFolder: (token: string, payload: {course_id: string; parent_id: string | null; name: string}) => request<NoteFolder>("/note-folders", {method: "POST", body: JSON.stringify(payload)}, token),
   updateNoteFolder: (token: string, id: string, payload: {revision: number; parent_id?: string | null; name?: string}) => request<NoteFolder>(`/note-folders/${id}`, {method: "PATCH", body: JSON.stringify(payload)}, token),
@@ -216,7 +272,7 @@ export const api = {
   removeNoteExport: (token: string, id: string) => request<void>(`/note-exports/${id}`, {method: "DELETE"}, token),
   downloadNoteExport: (token: string, id: string) => fileRequest(`/note-exports/${id}/download`, token),
 
-  createReviewTask: (token: string, payload: { mistake_id: string; title: string; due_date?: string }) => request("/review-tasks", { method: "POST", body: JSON.stringify(payload) }, token),
+  createReviewTask: (token: string, payload: { mistake_id: string; title: string; due_date?: string }) => request<ReviewPlan>("/review-tasks", { method: "POST", body: JSON.stringify(payload) }, token),
   register: (username: string, password: string) => request<{ access_token: string; user: { id: string; username: string } }>("/auth/register", { method: "POST", body: JSON.stringify({ username, password }) }),
   login: (username: string, password: string) => request<{ access_token: string; user: { id: string; username: string } }>("/auth/login", { method: "POST", body: JSON.stringify({ username, password }) }),
   courses: (token: string) => request<Course[]>("/courses", {}, token),
@@ -280,7 +336,7 @@ export const api = {
   restoreBankDeletion:(token:string,courseId:string,payload:Pick<BankDeleteResult,"revisions"|"paper_id"|"paper_revision">)=>request<{restored:number}>(`/courses/${courseId}/question-bank/restore`,{method:"POST",body:JSON.stringify(payload)},token),
   bankPapers: (token:string,courseId:string) => request<BankPaperMeta[]>(`/courses/${courseId}/question-bank/papers`,{},token),
   editBankMetadata: (token:string,id:string,payload:Record<string,unknown>) => request(`/past-papers/${id}/metadata`,{method:"PATCH",body:JSON.stringify(payload)},token),
-  restoreAttempt: (token:string,id:string) => request<Attempt>(`/attempts/${id}`,{},token),
+  restoreAttempt: (token:string,id:string,courseId?:string) => request<Attempt>(`/attempts/${id}${courseId?"?course_id="+encodeURIComponent(courseId):""}`,{},token),
   selfGrade: (token:string,id:string,qid:string,correct:boolean) => request<Attempt>(`/attempts/${id}/self-grades/${qid}`,{method:"POST",body:JSON.stringify({correct})},token),
   createTopic: (token: string, courseId: string, name: string, parent_id?:string|null) => request<Topic>(`/courses/${courseId}/topics`, { method: "POST", body: JSON.stringify({ name, aliases: [],parent_id }) }, token),
   papers: (token: string, courseId: string) => request<Paper[]>(`/courses/${courseId}/past-papers`, {}, token),

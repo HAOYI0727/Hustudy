@@ -1,20 +1,20 @@
 import type {DragEvent} from 'react';
-import type {Note, NoteFolder} from '../../api/client';
+import type {NoteSummary, NoteFolder} from '../../api/client';
 import {folderPath} from './organization';
 import {Icon} from '../../components/Icon';
 
-export function NoteManager({notes, folders, selected, setSelected, disabled, search, setSearch, tag, setTag, tags, path, onOpen, onTool, onRefresh, onDrag, onDragEnd, onDelete}: {
-  notes: Note[]; folders: NoteFolder[]; selected: string[]; setSelected: (ids: string[]) => void; disabled: boolean;
+export function NoteManager({notes, folders, selected, setSelected, disabled, search, setSearch, tag, setTag, tags, path, total, onOpen, onTool, onRefresh, onDrag, onDragEnd, onDelete}: {
+  notes: NoteSummary[]; total?:number; folders: NoteFolder[]; selected: string[]; setSelected: (ids: string[]) => void; disabled: boolean;
   search: string; setSearch: (s: string) => void; tag: string; setTag: (s: string) => void; tags: string[]; path: string;
-  onOpen: (note: Note) => void; onTool: (tool: 'batch' | 'export') => void; onRefresh: () => void;
-  onDrag: (event: DragEvent, note: Note) => void; onDragEnd: () => void;
+  onOpen: (note: NoteSummary) => void; onTool: (tool: 'batch' | 'export') => void; onRefresh: () => void;
+  onDrag: (event: DragEvent, note: NoteSummary) => void; onDragEnd: () => void;
   onDelete: () => void;
 }) {
   return <section className="panel note-manager" aria-label="笔记管理列表">
-    <div className="panel-title"><div><h2>{path}</h2><p className="hint note-filter-summary">找到 {notes.length} 篇笔记 · 打开标题即可编辑</p></div><button className="text-button" disabled={disabled} onClick={onRefresh}>刷新笔记列表</button></div>
+    <div className="panel-title"><div><h2>{path}</h2><p className="hint note-filter-summary">找到 {total??notes.length} 篇笔记 · 打开标题即可编辑</p></div><button className="text-button" disabled={disabled} onClick={onRefresh}>刷新笔记列表</button></div>
     <div className="note-manager-filters"><input aria-label="搜索笔记" placeholder="搜索标题、正文或标签…" maxLength={200} value={search} onChange={e => setSearch(e.target.value)}/><select aria-label="按标签筛选笔记" value={tag} onChange={e => setTag(e.target.value)}><option value="">全部标签</option>{[...new Set([...tags, ...(tag ? [tag] : [])])].map(t => <option key={t}>{t}</option>)}</select>{(search || tag) && <button className="text-button" onClick={() => {setSearch(''); setTag('');}}>清除筛选</button>}</div>
     <div className="note-batch-bar" aria-label="列表批量操作">
-      <label><input type="checkbox" aria-label="选择当前筛选结果" disabled={disabled || !notes.length} checked={!!notes.length && notes.every(n => selected.includes(n.id))} onChange={e => setSelected(e.target.checked ? [...new Set([...selected, ...notes.map(n => n.id)])] : selected.filter(id => !notes.some(n => n.id === id)))}/>全选</label>
+      <label><input type="checkbox" aria-label="选择当前筛选结果" disabled={disabled || !notes.length} checked={!!notes.length && notes.every(n => selected.includes(n.id))} onChange={e => setSelected(e.target.checked ? [...new Set([...selected, ...notes.map(n => n.id)])] : selected.filter(id => !notes.some(n => n.id === id)))}/>全选本页</label>
       <strong role="status">已选 {selected.length} 篇</strong><button className="secondary" disabled={disabled || !selected.length} onClick={() => onTool('batch')}>批量整理</button><button className="secondary" disabled={disabled || !selected.length} onClick={() => onTool('export')}>导出已选</button><button className="text-button" disabled={disabled || !selected.length} onClick={() => setSelected([])}>清空选择</button>
       <button className="text-button note-delete" disabled={disabled || !selected.length || selected.length > 200} onClick={onDelete}>批量删除</button>
       {selected.length > 200 && <small>每次最多删除 200 篇，请分批选择</small>}

@@ -1,5 +1,5 @@
 import {useEffect, useReducer, useRef, useState, type RefObject} from 'react';
-import type {Note} from '../../api/client';
+import type {NoteSummary} from '../../api/client';
 import {NotePreview} from '../../components/knowledge';
 import {Icon, type IconName} from '../../components/Icon';
 import {NotesDialog} from './NotesDialog';
@@ -9,7 +9,7 @@ import {continueList, formatMarkdown, markdownOutline, type MarkdownCommand, typ
 
 export function MarkdownEditor({value, onChange, textarea, preview, setPreview, token, notes, onNote, onSave, assetRevision, focused, setFocused, onImage}: {
   value: string; onChange: (text: string) => void; textarea: RefObject<HTMLTextAreaElement | null>; preview: boolean; setPreview: (value: boolean) => void;
-  token: string; notes: Note[]; onNote: (note: Note) => void; onSave: () => void; assetRevision: number; focused: boolean; setFocused: (value: boolean) => void;
+  token: string; notes: NoteSummary[]; onNote: (note: NoteSummary) => void; onSave: () => void; assetRevision: number; focused: boolean; setFocused: (value: boolean) => void;
   onImage?: () => void;
 }) {
   const [split, setSplit] = useState(false), [find, setFind] = useState(''), [findStatus, setFindStatus] = useState('');

@@ -15,7 +15,7 @@ from ..repositories.materials import active_document
 from .courses import owned_course
 
 ALLOWED_SUFFIXES = {".pptx", ".pdf", ".docx", ".md", ".markdown", ".txt"}
-MAX_BYTES = 20 * 1024 * 1024
+MAX_BYTES = 30 * 1024 * 1024
 MIMES = {
     ".pdf": "application/pdf",
     ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
@@ -30,7 +30,7 @@ def validate_file(upload: UploadFile):
         raise ValueError("仅支持 PPTX、PDF、DOCX、Markdown 或 TXT 文件")
     data = upload.file.read(MAX_BYTES + 1)
     if not data or len(data) > MAX_BYTES:
-        raise ValueError("文件不能为空且不能超过 20 MiB")
+        raise ValueError("文件不能为空且不能超过 30 MiB")
     if suffix in {".pptx", ".docx"}:
         try:
             with zipfile.ZipFile(io.BytesIO(data)) as archive:

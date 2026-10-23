@@ -1,0 +1,32 @@
+/* Native file cover and metadata; status colors retain their business meaning. */
+.app-shell .material-library .material-cover-card {position:relative;isolation:isolate;display:flex;flex-direction:column;gap:10px;width:100%;padding:14px;text-align:left;border:1px solid var(--material-line);border-radius:13px;background:linear-gradient(150deg,var(--material-tint),var(--surface));box-shadow:0 3px 9px #25334c06;overflow:hidden;}
+.material-cover-card::before {content:"";position:absolute;inset:0 auto 0 0;width:3px;background:var(--material-color);opacity:.45;pointer-events:none;}
+.material-card-heading {display:flex;align-items:center;gap:9px;min-width:0;width:100%;}
+.app-shell .material-cover-card .file-icon {position:relative;width:32px;height:40px;border-radius:4px 9px 5px 5px;background:var(--material-wash);color:var(--material-ink);border:1px solid var(--material-line);box-shadow:2px 2px 0 var(--material-line);}
+.material-cover-card .file-icon::after {content:"";position:absolute;top:-1px;right:-1px;width:8px;height:8px;background:var(--surface);border-left:1px solid var(--material-line);border-bottom:1px solid var(--material-line);border-radius:0 5px 0 3px;}
+.material-edition {display:flex;flex-direction:column;gap:3px;color:var(--muted);font-size:10px;}
+.material-edition>span {color:var(--material-ink);font-size:12px;font-variant-numeric:tabular-nums;}
+.material-open-marker {margin-left:auto;display:inline-flex;align-items:center;gap:3px;color:var(--material-ink);font-size:10px;}
+.app-shell .material-cover-card .row-main {width:100%;gap:8px;}
+.app-shell .material-cover-card .row-main>strong {display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal;font-size:13px;line-height:1.6;overflow-wrap:anywhere;color:var(--ink);}
+.material-card-states {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;gap:4px;padding:8px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
+.material-card-states>span {display:flex;flex-direction:column;align-items:flex-start;gap:5px;color:var(--muted);font-size:10px;}
+.app-shell .material-cover-card .material-card-states .status {margin:0;padding:3px 5px;white-space:normal;font-size:10px;}
+.material-read-hint {display:inline-flex;align-items:center;gap:4px;font-size:10px;color:var(--material-ink);}
+.app-shell .material-cover-card.selected-document {background:linear-gradient(145deg,var(--material-wash),var(--material-tint));border-color:var(--material-color);box-shadow:inset 0 0 0 1px var(--material-line),0 4px 12px var(--accent-glow);}
+.material-cover-card.selected-document::before {opacity:1;}
+.app-shell .material-cover-card.is-compact {gap:6px;padding:10px 12px;}
+.material-cover-card.is-compact .material-card-heading {gap:8px;}
+.app-shell .material-cover-card.is-compact .file-icon {width:24px;height:27px;box-shadow:1px 1px 0 var(--material-line);}
+.material-cover-card.is-compact .file-icon>.ui-icon {display:none;}
+.material-cover-card.is-compact .material-edition {flex-direction:row;align-items:center;gap:7px;}
+.material-cover-card.is-compact .material-card-description,.material-cover-card.is-compact .document-bottom {display:none;}
+.material-cover-card.is-compact .material-card-states {padding:4px 0 0;border:0;}
+.material-cover-card.is-compact .material-card-states>span {flex-direction:row;align-items:center;flex-wrap:wrap;gap:3px;}
+.material-display-controls {display:flex;align-items:center;justify-content:space-between;gap:8px;margin:12px 0 10px;}
+.material-display-controls>span {color:var(--muted);font-size:11px;}
+.material-display-switch {display:inline-flex;gap:3px;padding:3px;border:1px solid var(--material-line);border-radius:9px;background:var(--material-tint);}
+.material-display-switch>button {display:inline-flex;align-items:center;gap:4px;padding:6px 9px;font-size:11px;border:1px solid transparent;border-radius:6px;background:transparent;color:var(--muted);}
+.material-display-switch>button[aria-pressed=true] {background:var(--material-wash);color:var(--material-ink);border-color:var(--material-line);box-shadow:0 2px 4px #25334c08;}
+@media(hover:hover) and (pointer:fine) {.app-shell .material-cover-card:hover:not(:disabled) {border-color:var(--material-color);box-shadow:0 5px 14px var(--accent-glow);}}
+@media(pointer:coarse) {.material-display-switch>button {min-height:44px;}}

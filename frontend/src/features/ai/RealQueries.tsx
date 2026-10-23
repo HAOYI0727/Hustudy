@@ -1,3 +1,4 @@
+import {SourceScopePicker} from "./SourceScopePicker";
 import {AIActivity} from "../../components/AIActivity";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { api, AIAnswer, AIProvider, DocumentItem, RemoteQuery, CandidateOptions, CandidateContext } from "../../api/client";
@@ -5,17 +6,21 @@ import { Icon } from "../../components/Icon";
 import { Status } from "../../components/workspace";
 import { ReusableResult } from "./ReusableResult";
 import {ChunkPicker} from "./ChunkPicker";
+import type {StudyTarget} from "../platform/routing";
+import {resolveStudySource} from "./studySource";
+import {readingSummaryGoal,belongsToReadingVersion} from "./readingSummary";
 
-type Props = {token: string; courseId: string; task?:"qa"|"study_report"|"question_drafts";onBusyChange?:(busy:boolean)=>void; onAnswer: (answer: AIAnswer) => void; onNotice: (s: string) => void; onError: (e: unknown) => void; onSource: (versionId: string, chunkId: string) => void};
+type Props = {readingName?:string;historyVersionId?:string;hidden?:boolean;skipRestore?:boolean;initialStudy?: StudyTarget; token: string; courseId: string; task?:"qa"|"study_report"|"question_drafts";onBusyChange?:(busy:boolean)=>void; onAnswer: (answer: AIAnswer) => void; onNotice: (s: string) => void; onError: (e: unknown) => void; onSource: (versionId: string, chunkId: string) => void};
 
-export function RealQueries({token, courseId, task="qa", onBusyChange, onAnswer, onNotice, onError, onSource}: Props) {
+export function RealQueries({readingName,historyVersionId,hidden=false,skipRestore, initialStudy, token, courseId, task="qa", onBusyChange, onAnswer, onNotice, onError, onSource}: Props) {
   const isReport = task === "study_report";
   const isCandidate = task === "question_drafts";
   const [provider, setProvider] = useState<AIProvider | null>(null);
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
-  const [query, setQuery] = useState(isReport ? "理解所选资料，梳理知识点并完成自测" : isCandidate ? "依据所选资料生成练习候选题" : "");
+  const [query, setQuery] = useState(readingName?readingSummaryGoal(readingName):isReport ? "理解所选资料，梳理知识点并完成自测" : isCandidate ? "依据所选资料生成练习候选题" : "");
   const [studyMode,setStudyMode] = useState("systematic");
   const [reports,setReports] = useState<AIAnswer[]>([]);
+  const visibleReports=historyVersionId?reports.filter(row=>readingName?belongsToReadingVersion(row,historyVersionId):row.result.citations?.some(source=>source.version_id===historyVersionId)||row.result.coverage?.versions?.some(version=>version.version_id===historyVersionId)):reports;
   const [versions, setVersions] = useState<string[]>([]);
   const [chunkIds,setChunkIds] = useState<string[]>([]);
   const [candidateContext,setCandidateContext]=useState<CandidateContext>({topics:[],references:[]});
@@ -24,6 +29,8 @@ export function RealQueries({token, courseId, task="qa", onBusyChange, onAnswer,
   const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [initializing, setInitializing] = useState(true);
+  const [initializationFailed, setInitializationFailed] = useState(false);
+  const [readingSource, setReadingSource] = useState<Awaited<ReturnType<typeof resolveStudySource>> | null>(null);
   const [error, setError] = useState("");
   const [expired, setExpired] = useState(false);
   const [reload, setReload] = useState(0);
@@ -31,7 +38,7 @@ export function RealQueries({token, courseId, task="qa", onBusyChange, onAnswer,
   const resultId = useRef("");
   const callbacks = useRef({onAnswer, onNotice, onError});
   callbacks.current = {onAnswer, onNotice, onError};
-  const storageKey = isReport ? `hustudy_study_report:${courseId}` : isCandidate ? `hustudy_question_drafts:${courseId}` : `hustudy_remote_query:${courseId}`;
+  const storageKey = readingName? `hustudy_reading_summary:${courseId}:${initialStudy?.versionId||""}`:isReport ? `hustudy_study_report:${courseId}` : isCandidate ? `hustudy_question_drafts:${courseId}` : `hustudy_remote_query:${courseId}`;
   const chapterId=versions.includes(candidateConfig.chapter_id)?candidateConfig.chapter_id:versions[0]||"";
   const candidateOptions={...candidateConfig,chapter_id:chapterId};
   const candidateReady=versions.length>0&&candidateConfig.topic_ids.length>0&&(candidateConfig.mode!=="variant"||candidateConfig.original_past_question_ids.length>0);
@@ -58,17 +65,27 @@ export function RealQueries({token, courseId, task="qa", onBusyChange, onAnswer,
   }, []);
   useEffect(() => {
     let active = true;
-    setInitializing(true); setError("");
-    void Promise.all([api.aiProvider(token), api.documents(token, courseId),isCandidate?api.candidateContext(token,courseId):Promise.resolve(null)]).then(async ([settings, docs,context]) => {
+    setInitializing(true); setInitializationFailed(false); setError("");
+    void Promise.all([api.aiProvider(token),isCandidate?api.candidateContext(token,courseId):Promise.resolve(null), initialStudy ? resolveStudySource(token, courseId, initialStudy) : Promise.resolve(null)]).then(async ([settings,context,source]) => {
       if (!active) return;
-      setProvider(settings); setDocuments(docs);
+      if(readingName&&!source)throw new Error("当前课件来源无法核对，未改用其他资料。");
+      setProvider(settings);
+      // Include the exact historical version alongside the latest version, never substitute it.
+      if(source)setDocuments([{...source.document,latest_version_id:source.version.id,latest_version_no:source.version.version_no}]);
       if(context)setCandidateContext(context);
+      if (source) {
+        setReadingSource(source); setVersions([source.version.id]); setChunkIds(readingName?[]:source.chunk ? [source.chunk.id] : []);
+        // Keep earlier requests in history; entering from the reader starts with its own scope.
+        setRemote(null); setConsent(false);
+        return;
+      }
+      if(skipRestore)return;
       const previous = localStorage.getItem(storageKey);
       if (previous) {
         try {const value = await api.remoteQuery(token, previous); if (active) {setQuery(value.query);if(value.report_scope){setVersions(value.report_scope.scope_version_ids);setChunkIds(value.report_scope.chunk_ids||[]);setStudyMode(value.report_scope.study_mode);}if(value.candidate_scope){setVersions(value.candidate_scope.request.version_ids);setChunkIds(value.candidate_scope.request.chunk_ids);setCandidateConfig(value.candidate_scope.request);} accept(value);}}
         catch {if (active) localStorage.removeItem(storageKey);}
       }
-    }).catch(e => {if (active) {setError(e instanceof Error ? e.message : "加载失败"); callbacks.current.onError(e);}})
+    }).catch(e => {if (active) {setInitializationFailed(true); setError(e instanceof Error ? e.message : "加载失败"); callbacks.current.onError(e);}})
       .finally(() => {if (active) setInitializing(false);});
     return () => {active = false;};
   }, [token, courseId, reload]);
@@ -98,7 +115,8 @@ export function RealQueries({token, courseId, task="qa", onBusyChange, onAnswer,
   }, [busy]);
   const resetPreview = () => {if (!pending) {setRemote(null); setConsent(false); setError(""); localStorage.removeItem(storageKey);}};
   const preview = async (event: FormEvent) => {
-    event.preventDefault(); if (busy || pending || !query.trim()) return;
+    event.preventDefault(); if (initializing || initializationFailed || busy || pending || !query.trim()) return;
+    if(readingName&&(!readingSource||versions.length!==1||versions[0]!==initialStudy?.versionId||chunkIds.length)){onError(new Error("当前课件版本或范围无法核对，请重新加载来源。"));return;}
     setBusy(true); setError(""); setConsent(false);
     try {const value = isCandidate?await api.previewQuestionDrafts(token,courseId,query,versions,chunkIds,candidateOptions):isReport ? await api.previewStudyReport(token,courseId,query,versions,studyMode,chunkIds) : await api.previewRemoteQuery(token, courseId, query, versions,chunkIds); if (alive.current) {accept(value); onNotice(value.reusable_result ? "找到相同设置的成功结果，可直接使用；也可确认后重新生成" : "发送预览已准备；尚未调用远程模型");}}
     catch (e) {if (alive.current) {setError(e instanceof Error ? e.message : "预览失败"); onError(e);}}
@@ -120,15 +138,17 @@ export function RealQueries({token, courseId, task="qa", onBusyChange, onAnswer,
     catch (e) {if (alive.current) setError(e instanceof Error ? e.message : "取消失败");}
     finally {if (alive.current) setBusy(false);}
   };
-  return <section className="panel real-ai-workspace" id="ai-controls" tabIndex={0}>
-    <div className="panel-title"><div><p className="eyebrow">GLM · SOURCE FIRST</p><h3>{isCandidate?"从知识依据生成练习草稿":isReport ? "把资料整理成可学习的报告" : "先核对原文，再让 AI 解释"}</h3></div><span className="course-current">{provider?.configured ? provider.model : "待配置"}</span></div>
-    {initializing ? <p role="status">正在读取后端模型与课程资料…</p> : <><p className="hint">使用智谱文本模型。不会上传原件、图片或笔记；只发送预览中列出的正文；候选生成还包含出题设置、目标知识点及所选原题。默认不发送。</p>
+  return <section hidden={hidden} className="panel real-ai-workspace" id="ai-controls" tabIndex={0}>
+    <div className="panel-title"><div><p className="eyebrow">GLM · SOURCE FIRST</p><h3>{readingName?"为当前课件生成知识点总结":isCandidate?"从知识依据生成练习草稿":isReport ? "把资料整理成可学习的报告" : "先核对原文，再让 AI 解释"}</h3></div><span className="course-current">{provider?.configured ? provider.model : "待配置"}</span></div>
+    {initializing ? <p role="status">正在读取后端模型与课程资料…</p> : initializationFailed ? <div className="inline-retry" role="alert">来源或配置加载未完成，请重试。<button className="secondary" onClick={() => setReload(value => value + 1)}>重新加载来源与配置</button></div> : <><p className="hint">{isCandidate?"候选生成包含预览原文、出题设置、目标知识点及所选原题，发送前仍须确认。":"仅发送预览中确认的课程原文片段，不会自动发送原件、图片或笔记。每次调用都需要你确认。"}</p>
+    {readingSource && <section className="study-source-context" aria-label="从资料阅读带入的来源"><strong>{readingSource.document.name} · v{readingSource.version.version_no}</strong><p>{readingSource.chunk ? `阅读入口：${readingSource.chunk.locator_value} · ${readingSource.chunk.text.slice(0, 120)}` : readingName?"固定当前版本的全部可提取文字，不混入其他课件。":"已预选阅读时的版本，可在下方调整本次范围。"}</p><p className="hint">{remote?.job ? "本次任务与发送状态见下方记录。" : readingName?"尚未发送；长课件按原预算分批，确认前可查看每批范围。":"尚未发送；请核对下方资料与片段选择。"}</p><button type="button" className="secondary" onClick={() => onSource(readingSource.version.id, readingSource.chunk?.id || "")}>回到阅读原文 <Icon name="arrow" size={15}/></button></section>}
     {!provider?.configured && <p className="course-conflict">后端尚未配置模型。阅读、笔记和演示检索仍可用。<button className="secondary" onClick={() => setReload(value => value + 1)}>重新检查</button></p>}
     {pending&&<AIActivity active queued={remote?.job?.status==="QUEUED"} label={isReport?"学习报告":"资料问答"}/>}
-    <form onSubmit={preview}><label>{isCandidate?"本次出题目标":isReport ? "本次学习目标" : "向课程提问"}<textarea maxLength={isCandidate?1000:2000} rows={4} value={query} disabled={busy || pending} onChange={e => {resetPreview(); setQuery(e.target.value);}} placeholder="例如：这章如何区分流量控制与拥塞控制？" required/></label>
-      {isReport && <label>学习方式<select value={studyMode} disabled={busy||pending} onChange={e=>{resetPreview();setStudyMode(e.target.value);}}><option value="preview">快速预习</option><option value="systematic">系统自学</option><option value="revision">考前复习</option></select></label>}
-      <details className="ai-scope-picker" open={isReport||isCandidate ? true : undefined}><summary>限定资料范围 · {versions.length ? `已选${versions.length}份` : isReport||isCandidate ? "请至少选择一份资料" : "自动检索最新版本"}</summary><p className="hint">{isReport ? "纳入所选资料的完整可提取正文，最多400段、24万字符，自动分批；也可精确选择章节片段。" : isCandidate ? "纳入所选范围完整正文，最多128段、32000字符；超限时请按章节选择。" : "最多选择20份资料；系统预览匹配的片段。没有关键词证据时不会调用模型。"}</p><div className="ai-scope-options">{documents.filter(d => d.latest_version_id).map(d => <label key={d.id}><input type="checkbox" disabled={busy || pending || (!versions.includes(d.latest_version_id!) && versions.length >= 20)} checked={versions.includes(d.latest_version_id!)} onChange={e => {resetPreview();setChunkIds([]); setVersions(current => e.target.checked ? [...current, d.latest_version_id!] : current.filter(id => id !== d.latest_version_id));}}/><span>{d.name} <small>v{d.latest_version_no}</small></span></label>)}</div></details>
-      <ChunkPicker limit={isReport?400:isCandidate?128:6} token={token} versions={versions} documents={documents} selected={chunkIds} disabled={busy||pending} onChange={ids=>{resetPreview();setChunkIds(ids);}} onError={onError}/>
+    <form onSubmit={preview}>{readingName&&<div className="reading-summary-presets" role="group" aria-label="课件总结侧重点">{["全面梳理","复习提纲","笔记写作"].map((name,i)=><button key={name} type="button" className="secondary" disabled={busy||pending} onClick={()=>{resetPreview();setStudyMode(i===1?"revision":"systematic");setQuery(readingSummaryGoal(readingName)+(i===1?"\n补充侧重点：突出概念区别、适用条件和易错点，形成复习提纲。":i===2?"\n补充侧重点：按知识点给出适合用自己的话重述的笔记层次，保留原文依据。":""));}}>{name}</button>)}</div>}<label>{readingName?"总结要求与提示词（可修改）":isCandidate?"本次出题目标":isReport ? "本次学习目标" : "向课程提问"}<textarea maxLength={isCandidate?1000:2000} rows={4} value={query} disabled={busy || pending} onChange={e => {resetPreview(); setQuery(e.target.value);}} placeholder="例如：这章如何区分流量控制与拥塞控制？" required/></label>
+      {isReport && !readingName && <label>学习方式<select value={studyMode} disabled={busy||pending} onChange={e=>{resetPreview();setStudyMode(e.target.value);}}><option value="preview">快速预习</option><option value="systematic">系统自学</option><option value="revision">考前复习</option></select></label>}
+      {!readingName&&<><details className="ai-scope-picker" open={isReport||isCandidate||!!initialStudy ? true : undefined}><summary>限定资料范围 · {versions.length ? `已选${versions.length}份` : isReport||isCandidate ? "请至少选择一份资料" : "自动检索最新版本"}</summary><p className="hint">{isReport ? "纳入所选资料的完整可提取正文，最多400段、24万字符，自动分批；也可精确选择章节片段。" : isCandidate ? "纳入所选范围完整正文，最多128段、32000字符；超限时请按章节选择。" : "最多选择20份资料；系统预览匹配的片段。没有关键词证据时不会调用模型。"}</p><SourceScopePicker token={token} courseId={courseId} documents={documents} onDocuments={setDocuments} versions={versions} disabled={busy||pending} onChange={ids=>{resetPreview();setChunkIds([]);setVersions(ids);}}/></details>
+      <ChunkPicker limit={isReport?400:isCandidate?128:6} token={token} versions={versions} documents={documents} selected={chunkIds} disabled={busy||pending} onChange={ids=>{resetPreview();setChunkIds(ids);}} onError={onError}/></>}
+      {readingName&&<p className="hint">默认纳入当前版本全部可提取正文，最多400段/24万字符并自动分批；是否完整以发送预览为准。无文字的图片页不能据此总结。</p>}
       {isCandidate&&<fieldset className="candidate-settings" disabled={busy||pending}><legend>候选题设置</legend><label>目标章节资料<select value={chapterId} onChange={e=>configure({chapter_id:e.target.value})}><option value="" disabled>请选择资料</option>{versions.map(id=><option key={id} value={id}>{documents.find(d=>d.latest_version_id===id)?.name||"已选历史版本"}</option>)}</select></label><label>生成模式<select value={candidateConfig.mode} onChange={e=>configure({mode:e.target.value as CandidateOptions["mode"]})}><option value="historical">按指定结构出题</option><option value="variant">同考点变式</option><option value="weakness">自选薄弱项练习</option></select></label><label>题型<select value={candidateConfig.type} onChange={e=>configure({type:e.target.value as CandidateOptions["type"]})}><option value="single_choice">单选题</option><option value="boolean">判断题</option><option value="short_answer">简答题</option></select></label><label>题数<input type="number" min={1} max={6} step={1} value={candidateConfig.count} onChange={e=>configure({count:Number(e.target.value)})}/></label><label>每题分值<input type="number" min="0.01" max="100" step="0.01" value={candidateConfig.points} onChange={e=>configure({points:e.target.value})}/></label><label>难度标签<select value={candidateConfig.difficulty_label} onChange={e=>configure({difficulty_label:e.target.value as CandidateOptions["difficulty_label"]})}><option value="basic">基础</option><option value="application">应用</option><option value="advanced">进阶</option></select></label><p className="hint">标签仅辅助估计；按指定结构不等于历史预测，自选弱项不代表已测得掌握度。</p><strong>目标知识点（最多4个）</strong><p className="hint">AI会分别标出每道题实际考查的知识点，不会统一附加全部所选知识点；关联准确性仍需审阅。</p><div className="ai-scope-options">{candidateContext.topics.map(t=><label key={t.id}><input type="checkbox" disabled={!candidateConfig.topic_ids.includes(t.id)&&candidateConfig.topic_ids.length>=4} checked={candidateConfig.topic_ids.includes(t.id)} onChange={e=>configure({topic_ids:e.target.checked?[...candidateConfig.topic_ids,t.id]:candidateConfig.topic_ids.filter(id=>id!==t.id)})}/><span>{t.name}</span></label>)}</div>{!candidateContext.topics.length&&<p className="hint">请先在「真题与模拟卷」创建考点，再返回此页。</p>}<details><summary>选择设计参考原题 · {candidateConfig.original_past_question_ids.length}题</summary><p className="hint">只列出已确认原题；变式模式必选，原题不作为答案知识依据。</p><div className="ai-scope-options">{candidateContext.references.map(r=><label key={r.id}><input type="checkbox" disabled={!candidateConfig.original_past_question_ids.includes(r.id)&&candidateConfig.original_past_question_ids.length>=6} checked={candidateConfig.original_past_question_ids.includes(r.id)} onChange={e=>configure({original_past_question_ids:e.target.checked?[...candidateConfig.original_past_question_ids,r.id]:candidateConfig.original_past_question_ids.filter(id=>id!==r.id)})}/><span>{r.title} · {r.stem}</span></label>)}</div></details></fieldset>}
       <button className="primary" disabled={busy || pending || !query.trim() || !provider?.configured || (isReport && !versions.length)||(isCandidate&&!candidateReady)}><Icon name="preview" size={17}/>{busy ? "处理中…" : "预览将发送的片段"}</button>
       {isCandidate&&<><button type="button" className="secondary" disabled={busy||pending||!candidateReady} onClick={()=>void demo()}>运行固定自制演示（不发送）</button><p className="hint">演示仅支持materialhub_demo.md、进程与线程考点、基础难度和最多2题。</p></>}
@@ -156,6 +176,6 @@ export function RealQueries({token, courseId, task="qa", onBusyChange, onAnswer,
       {remote.job && <><p className="hint">{pending ? "任务在后台生成，可离开页面继续阅读；返回后会恢复本次任务。" : remote.job.error || "结果保留在本次请求中，可重新预览新问题。"}{remote.dispatched_at ? " · 请求已派发" : " · 尚未派发"}</p><div className="course-editor-actions">{pending ? <button className="secondary" disabled={busy} onClick={() => void cancel()}>取消后续处理</button> : <button className="secondary" disabled={busy} onClick={resetPreview}>开始新问题</button>}<button className="secondary" disabled={busy} onClick={async () => {try {accept(await api.remoteQuery(token, remote.id));} catch(e) {onError(e);}}}>刷新状态</button></div></>}
       {remote.batch_progress&&remote.job&&["FAILED","CANCELLED"].includes(remote.job.status)&&<div><label className="ai-consent"><input type="checkbox" checked={consent} disabled={busy} onChange={e=>setConsent(e.target.checked)}/><span>我同意仅继续未完成批次，可能产生额外模型调用费用。</span></label><button className="primary" disabled={busy||!consent} onClick={async()=>{setBusy(true);try{accept(await api.resumeRemoteQuery(token,remote.id));setConsent(false);}catch(e){onError(e);}finally{setBusy(false);}}}>确认继续未完成批次</button></div>}
     </section>}
-    <section className="report-history"><h4>{isCandidate?"已保存的题目候选":isReport?"已保存的学习报告":"已保存的课程问答"}</h4><p className="hint">最近20条，包含失败记录。结果自动保存，生成成功仍需人工核实。</p>{reports.length ? reports.map(r=><button className="relation-link" key={r.id} disabled={busy} onClick={()=>onAnswer(r)}>{r.query} · {r.status === "grounded" ? "查看结果" : "查看不足或失败原因"}</button>) : <p className="hint">还没有结果，请先预览范围。</p>}</section>
+    <section className="report-history"><h4>{readingName?"当前课件的总结记录":isCandidate?"已保存的题目候选":isReport?"已保存的学习报告":"已保存的课程问答"}</h4><p className="hint">{historyVersionId?"从课程最近20条中筛选包含当前版本依据/覆盖信息的记录；不代表完整版本历史。":"最近20条，包含失败记录。"}结果自动保存，生成成功仍需人工核实。</p>{visibleReports.length ? visibleReports.map(r=><button className="relation-link" key={r.id} disabled={busy} onClick={()=>onAnswer(r)}>{r.query} · {r.status === "grounded" ? "查看结果" : "查看不足或失败原因"}</button>) : <p className="hint">还没有结果，请先预览范围。</p>}</section>
   </section>;
 }

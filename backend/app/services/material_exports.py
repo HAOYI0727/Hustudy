@@ -115,10 +115,12 @@ def response(db, row):
         counts=row.counts_json,
         availability=availability,
         job=JobResponse.model_validate(job, from_attributes=True),
+        scope="selected" if row.sources_json.get("request") else "course",
+        selected_count=len(row.sources_json.get("request", {}).get("document_ids", [])),
     )
 
 
-def create_export(db, course_id, user_id, request_id):
+def create_export(db, course_id, user_id, request_id, document_ids=None):
     owned_course(db, course_id, user_id)
     # Serialize request de-duplication, limits, retries and course deletion.
     db.execute(
@@ -135,6 +137,11 @@ def create_export(db, course_id, user_id, request_id):
             raise HTTPException(404, "请求标识不可用")
         if existing.course_id != course_id:
             raise HTTPException(409, "此请求标识已用于另一课程")
+        previous = existing.sources_json.get("request", {}).get("document_ids")
+        if previous != (sorted(document_ids) if document_ids is not None else None):
+            raise HTTPException(
+                409, "此请求标识已用于不同导出范围，请保留原范围或发起新请求"
+            )
         db.commit()
         return response(db, existing)
     if db.get(ProcessingJob, request_id):
@@ -175,13 +182,43 @@ def create_export(db, course_id, user_id, request_id):
         .limit(1)
     ):
         raise HTTPException(409, "课程还没有可导出的资料或图片")
+    selection = {}
+    if document_ids is not None:
+        ids = sorted(document_ids)
+        owned = db.scalars(
+            select(Document.id).where(
+                Document.id.in_(ids),
+                Document.user_id == user_id,
+                Document.course_id == course_id,
+                Document.deleted_at.is_(None),
+                Document.library_scope == "material",
+            )
+        ).all()
+        if len(owned) != len(ids):
+            raise HTTPException(404, "所选资料不存在或不可访问，请重新核对选择")
+        versions = db.scalars(
+            select(DocumentVersion.id)
+            .where(
+                DocumentVersion.document_id.in_(ids),
+                DocumentVersion.user_id == user_id,
+            )
+            .order_by(DocumentVersion.id)
+            .limit(10001)
+        ).all()
+        if not versions or len(versions) > 10000:
+            raise HTTPException(409, "所选资料没有版本或超过10000版本导出预算")
+        selection = {"request": {"document_ids": ids, "version_ids": list(versions)}}
     job = ProcessingJob(
         id=request_id, user_id=user_id, type="MATERIAL_EXPORT", resource_id=request_id
     )
     db.add(job)
     db.flush()
     row = MaterialExport(
-        id=request_id, user_id=user_id, course_id=course_id, job_id=job.id
+        id=request_id,
+        user_id=user_id,
+        course_id=course_id,
+        job_id=job.id,
+        sources_json=selection,
     )
     db.add(row)
     db.commit()
@@ -297,6 +334,13 @@ def metadata(row, skip=()):
 
 def snapshot(db, row):
     course = owned_course(db, row.course_id, row.user_id)
+    selection = row.sources_json.get("request")
+    document_scope = (
+        () if selection is None else (Document.id.in_(selection["document_ids"]),)
+    )
+    version_scope = (
+        () if selection is None else (DocumentVersion.id.in_(selection["version_ids"]),)
+    )
     documents = db.scalars(
         select(Document)
         .where(
@@ -304,12 +348,15 @@ def snapshot(db, row):
             Document.user_id == row.user_id,
             Document.deleted_at.is_(None),
             Document.library_scope == "material",
+            *document_scope,
         )
         .order_by(Document.id)
         .limit(2001)
     ).all()
     if len(documents) > 2000:
         raise ValueError("课程资料超过导出预算（2000份）")
+    if selection is not None and len(documents) != len(selection["document_ids"]):
+        raise ValueError("所选资料已删除或不可用，请核对后创建新的资料包")
     versions = db.scalars(
         select(DocumentVersion)
         .join(Document)
@@ -319,12 +366,16 @@ def snapshot(db, row):
             Document.deleted_at.is_(None),
             Document.library_scope == "material",
             DocumentVersion.user_id == row.user_id,
+            *document_scope,
+            *version_scope,
         )
         .order_by(DocumentVersion.document_id, DocumentVersion.version_no)
         .limit(10001)
     ).all()
     if len(versions) > 10000:
         raise ValueError("资料版本超过导出预算（10000个）")
+    if selection is not None and len(versions) != len(selection["version_ids"]):
+        raise ValueError("所选资料版本已不可用，不能生成部分资料包")
     ids = [v.id for v in versions]
     if sum(v.size_bytes for v in versions) > MAX_CONTENT:
         raise ValueError("原件总量超过256MiB导出内容预算")
@@ -379,7 +430,11 @@ def snapshot(db, row):
         raise ValueError("资料切片超过导出预算（50000个）")
     assets = db.scalars(
         select(Asset)
-        .where(available_assets(row.user_id, row.course_id), material_asset_scope())
+        .where(
+            available_assets(row.user_id, row.course_id),
+            material_asset_scope(),
+            *((Asset.source_version_id.in_(ids),) if selection is not None else ()),
+        )
         .order_by(Asset.id)
         .limit(10001)
     ).all()
@@ -399,6 +454,9 @@ def snapshot(db, row):
         "files": [],
     }
     files = []
+    if selection is not None:
+        manifest["scope"] = "selected_materials"
+        manifest["selection"] = selection
     for version in versions:
         value = metadata(
             version, ("source_path", "preview_path", "parse_error", "preview_error")
@@ -462,6 +520,8 @@ def snapshot(db, row):
         "assets": [a.id for a in assets],
         "transcripts": [t.id for t in transcripts],
     }
+    if selection is not None:
+        sources["request"] = selection
     return manifest, files, sources
 
 
@@ -531,7 +591,13 @@ def build_package(db, row, output):
             archive.writestr("manifest.json", encoded)
             archive.writestr(
                 "README.md",
-                "# Hustudy 课程资料包\n\n包含未删除资料的各版本原件、可用预览、解析文本、已确认人工补录及有效图片。\n\nmanifest.json 保存UUID、版本、定位、Unicode偏移、每文件SHA-256与字节数；text为UTF-8。人工文字明确标manual_transcript，DOCX正文按block，预览页不等于Word页码。\n\n不含笔记、AI结果、真题/试卷/作答或复习记录；不是完整账户备份，当前不能恢复导入。未识别图中文字不作为正文。快照仅反映生成时状态。\n\n可在项目目录执行：python3 scripts/verify_material_package.py /path/to/package.zip\n",
+                "# Hustudy 课程资料包\n\n"
+                + (
+                    "范围：仅所选资料提交时的版本，以及这些版本的有效来源图片；不含未选资料、后来新增版本或无来源图库图片。\n\n"
+                    if sources.get("request")
+                    else "范围：当前课程未删除资料的各版本及有效图片。\n\n"
+                )
+                + "包含范围内的原件、可用预览、解析文本及已确认人工补录。manifest.json 保存UUID、版本、定位、Unicode偏移、每文件SHA-256与字节数；text为UTF-8。人工文字明确标manual_transcript，DOCX正文按block，预览页不等于Word页码。\n\n不含笔记、AI结果、真题/试卷/作答或复习记录；不是完整账户备份，当前不能恢复导入。未识别图中文字不作为正文。快照仅反映生成时状态。\n\n可在项目目录执行：python3 scripts/verify_material_package.py /path/to/package.zip\n",
             )
         counts = {
             key: len(manifest[key])

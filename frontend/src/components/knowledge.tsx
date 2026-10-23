@@ -3,7 +3,7 @@ import Markdown, { defaultUrlTransform } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import {MathFormula} from './MathFormula';
-import { api, Note } from "../api/client";
+import { api, NoteSummary } from "../api/client";
 
 export function AssetImage({ token, id, alt }: { token: string; id: string; alt: string }) {
   const [url, setUrl] = useState("");
@@ -18,7 +18,7 @@ export function AssetImage({ token, id, alt }: { token: string; id: string; alt:
   return failed ? <span className="missing-asset">图片已删除或无法读取 · {alt}</span> : url ? <img className="knowledge-image" src={url} alt={alt}/> : <span role="status">正在加载图片…</span>;
 }
 
-export function NotePreview({ content, token, notes, onNote }: { content: string; token: string; notes: Note[]; onNote: (note: Note) => void }) {
+export function NotePreview({ content, token, notes, onNote }: { content: string; token: string; notes: NoteSummary[]; onNote: (note: NoteSummary) => void }) {
   const transformed = content.replace(/!\[\[asset:([0-9a-fA-F-]{36})(?:\|([^\]]*))?\]\]/g,
     (_match, id, label) => `![${String(label || "课程图片").replace(/[\[\]\n]/g, " ")}](asset://${id})`)
     .replace(/\[\[note:([0-9a-fA-F-]{36})(?:\|([^\]]*))?\]\]/g,

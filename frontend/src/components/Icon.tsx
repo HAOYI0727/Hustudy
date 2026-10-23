@@ -2,10 +2,12 @@ import type { ReactNode } from "react";
 
 // Self-authored outline icons. Shared stroke and sizing keep all workspaces consistent.
 const drawings = {
+  palette: <><path d="M12 3a9 9 0 1 0 0 18h1.5a2 2 0 0 0 1.5-3.3 1.5 1.5 0 0 1 1.1-2.5H18a3 3 0 0 0 3-3A9 9 0 0 0 12 3Z"/><circle cx="7.5" cy="10" r=".8"/><circle cx="10.5" cy="6.8" r=".8"/><circle cx="15" cy="7.5" r=".8"/><circle cx="17" cy="11.5" r=".8"/></>,
   search: <><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></>,
   home: <><path d="m3 10 9-7 9 7M5 9v11h14V9M9 20v-7h6v7"/></>,
   file: <><path d="M14 3H6a1 1 0 0 0-1 1v16h14V8l-5-5Zm0 0v5h5M8 12h8M8 16h5"/></>,
   folder: <path d="M3 7V5h7l2 3h9v12H3V7Zm0 3h18"/>,
+  bookmark: <path d="M6 3h12v18l-6-4-6 4V3Z"/>,
   notes: <><path d="M19 13v7H4V4h10M9 15l1-4L18 3l3 3-8 8-4 1ZM16 5l3 3"/></>,
   ai: <><path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5L12 3Z"/><path d="M20 3v4M18 5h4"/></>,
   exam: <><path d="M8 4H5v17h14V4h-3M8 3h8v4H8V3ZM8 12l1 1 2-2M13 12h3M8 17h8"/></>,

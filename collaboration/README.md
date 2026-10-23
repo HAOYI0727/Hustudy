@@ -1,5 +1,27 @@
 # Hustudy 四人协作入口
 
+2026-10-23 [现有长PPT与知识点排版](../docs/zhy/materialhub/learning_layout_acceptance.md)、[交接019](handoff.md#h-20261023-zhy-019)：队长按用户追加反馈，用本机现有资料只读隔离测量与优化；原件、日常数据、业务主责和正式签收保持。
+
+2026-10-23 [最新版本资料检查](../docs/zhy/materialhub/readiness_acceptance.md)、[交接018](handoff.md#h-20261023-zhy-018)：队长继续共享层/M1状态与恢复闭环，原历史任务及四模块业务保持，正式成员接收不代记。
+
+2026-10-23 [原文关联错题与复习摘要](../docs/zhy/materialhub/source_reviews_acceptance.md)、[交接017](handoff.md#h-20261023-zhy-017)：队长继续M1/M4只读集成及共享回看路由，原成绩/计划/掌握规则保持，业务主责与正式签收不代记。
+
+2026-10-23 [资料学习关联](../docs/zhy/materialhub/source_connections_acceptance.md)与[交接016](handoff.md#h-20261023-zhy-016)：队长继续四模块原文/成果/练习/错题集成，只读适配和原业务UUID，成员贡献及正式接收不代记。
+
+2026-10-23 队长继续整合：07–11共享控件/彩色模块/字体/记录后端与所有分界面细化，跨四域只读消费、共享记录入口和旧草稿/权限保护。[总验收](../docs/zhy/integration/all_workspaces_acceptance.md)及[H-20261023-ZHY-012](handoff.md#h-20261023-zhy-012)，成员正式接收由本人。
+
+2026-10-22 全站外观继续迭代：[研究](../docs/zhy/integration/appearance_research.md)、[功能与验证](../docs/zhy/integration/appearance_acceptance.md)、[H-20261022-ZHY-007](handoff.md#h-20261022-zhy-007)。仅共享展示/设备偏好，成员业务主责与接收不代填。
+
+2026-10-22 M1阅读工具继续迭代：[书签/版本对照验收](../docs/zhy/materialhub/reading_tools_acceptance.md)、[H-20261022-ZHY-006](handoff.md#h-20261022-zhy-006)；Codex辅助zhy，其他模块主责与成员签收不变。
+
+2026-10-22 H-20261022-ZHY-005：知识点只读学习中心及M1常用视图已自动验证，跨M1/M2/M3/M4的消费契约与官方设计研究已记录；成员接收仍由本人核对。 [实际范围与边界](../docs/zhy/integration/learning_hub_acceptance.md)。
+
+2026-10-22 H-20261022-ZHY-004补充阅读连续性与按需正文，影响gcx/fzk/xtc消费；成员接收由本人复验填写。 [使用、验证与边界](../docs/zhy/integration/continuity_acceptance.md)。
+
+2026-10-22 后续整合：H-20261022-ZHY-002已完成实现与隔离自动验证，待成员接收；不改变其他成员正式状态。[实现与验收](../docs/zhy/integration/learning_loop_acceptance.md)。
+
+2026-10-22 队长最新核查：[四模块现状、正式40任务覆盖与下一步](../docs/zhy/integration/project_review_2026_10_22.md)。本轮共享路由/M1批量导入/M2来源适配见[交接H-20261022-ZHY-001](handoff.md#h-20261022-zhy-001)与[验收](../docs/zhy/integration/material_study_acceptance.md)。未代改成员正式接收状态；下方旧分工/候选/待办说明保留原日期。
+
 ## 2026-10-16 M2继续推进（最新要求）
 
 用户授权M2不再按轮换日期刻意分段，能独立交付的P0持续提前完成；日期仅作团队协调，不作为停工条件。当前已接入真实三模式/三题型候选、固定自制报告/题目演示、精确片段、问答历史与错误细分。M4正式章节映射/试卷集成、M1教师标注和M4完整确认映射/统计契约仍为真实依赖；学科质量、实机和签收需要实际验收。当前状态见docs/gcx/m2_plan.md及candidate_acceptance.md（相对本项目根）。以下保留前一切片和历史进度，不以旧“待后续”覆盖当前结果。

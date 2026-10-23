@@ -18,6 +18,7 @@ def main() -> None:
             "HUSTUDY_STORAGE_ROOT": f"{scratch}/storage",
             "HUSTUDY_JWT_SECRET": "isolated-playwright-test-secret-only-123456789",
             "HUSTUDY_LLM_PROVIDER": "mock",
+            "HUSTUDY_WORKER_AUTOSTART": "false",
             "HUSTUDY_ZHIPU_API_KEY": "",
             "HUSTUDY_CORS_ORIGINS": "http://127.0.0.1:5178",
         }

@@ -3,7 +3,7 @@ import {createElement} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {StudyReportView} from '../../src/features/ai/StudyReportView';
 import type {StudyReport} from '../../src/api/client';
-import {beginReportReview,reviewedReportMarkdown,reviewError} from '../../src/features/ai/report-review';
+import {beginReportReview,beginTopicReview,reviewedReportMarkdown,reviewError} from '../../src/features/ai/report-review';
 
 const report:StudyReport={summary:'概念总结',learning_goals:['理解概念'],prerequisites:[],learning_sequence:['先阅读再练习'],topics:[{
   topic_id:'topic-1',name:'进程与线程',explanation:'概念解释',misconceptions:['不要混淆'],labels:[{kind:'key',origin:'ai_suggestion',reason:'原始理由'}],
@@ -12,6 +12,34 @@ const report:StudyReport={summary:'概念总结',learning_goals:['理解概念']
 }],examples:[{question:'例题',answer:'例题解答',citations:[]}],self_checks:[{question:'自测',answer:'自测解答',citations:[]}],review_suggestions:['合上原文再解释']};
 
 describe('FR-38 reviewed label note snapshots',()=>{
+  it('extracts only the chosen topic and exact unique evidence without changing the original report',()=>{
+    const input=structuredClone(report);
+    input.topics.push({...structuredClone(input.topics[0]),topic_id:'topic-2',name:'另一知识点',explanation:'其他正文'});
+    input.topics[0].citations.push(structuredClone(input.topics[0].citations[0]));
+    const review=beginTopicReview(input,'topic-1');
+    expect(review.report.citations).toHaveLength(1);
+    expect(review.report.topics).toHaveLength(1);
+    const markdown=reviewedReportMarkdown(review);
+    for(const content of ['知识点摘记','概念解释','> 第一行','原始理由','不包含原报告其他知识点'])expect(markdown).toContain(content);
+    for(const content of ['其他正文','概念总结','例题解答','自测解答','先阅读再练习','合上原文再解释'])expect(markdown).not.toContain(content);
+    review.labels[0][0].reason='只改摘记';review.report.citations![0].quote='修改摘记';
+    expect(input.topics[0].citations[0].quote).toBe('第一行\n第二行');
+    expect(input.topics[0].labels[0].reason).toBe('原始理由');
+    expect(input.topics).toHaveLength(2);
+  });
+  it('refuses ambiguous topics, missing or revoked evidence and over-budget notes',()=>{
+    expect(()=>beginTopicReview(report,'missing')).toThrow('唯一定位');
+    expect(()=>beginTopicReview({...report,topics:[report.topics[0],report.topics[0]]},'topic-1')).toThrow('唯一定位');
+    const input=structuredClone(report);
+    input.topics[0].citations=[];
+    expect(()=>beginTopicReview(input,'topic-1')).toThrow('没有可验证引用');
+    input.topics[0].citations=[{...report.topics[0].citations[0],availability:'unavailable'}];
+    expect(()=>beginTopicReview(input,'topic-1')).toThrow('失效');
+    input.topics[0].citations=Array.from({length:51},(_,i)=>({...report.topics[0].citations[0],chunk_id:'c'+i}));
+    expect(()=>beginTopicReview(input,'topic-1')).toThrow('50');
+    input.topics[0].citations.pop();
+    expect(beginTopicReview(input,'topic-1').report.citations).toHaveLength(50);
+  });
   it('shows locally grounded basic checks and preserves the replacement notice in notes',()=>{
     const notice='模型自测缺少依据，已舍弃并补充基础自测';
     const input={...report,validation_notices:[notice],self_checks:[{...report.self_checks[0],generation_origin:'rule_generated' as const}]};

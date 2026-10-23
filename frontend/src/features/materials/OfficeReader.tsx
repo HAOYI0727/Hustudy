@@ -3,8 +3,8 @@ import {api} from '../../api/client';
 import {Icon} from '../../components/Icon';
 import {officeFrameDocument} from './office/frame';
 
-type Props={token:string;versionId:string;kind:'pptx'|'docx';name:string;initialPage?:number;compatibilityReady:boolean;onCompatibility:()=>void;onDownload:()=>void};
-export default function OfficeReader({token,versionId,kind,name,initialPage=1,compatibilityReady,onCompatibility,onDownload}:Props) {
+type Props={onPageChange?:(page:number)=>void;token:string;versionId:string;kind:'pptx'|'docx';name:string;initialPage?:number;compatibilityReady:boolean;onCompatibility:()=>void;onDownload:()=>void};
+export default function OfficeReader({token,versionId,kind,name,initialPage=1,compatibilityReady,onCompatibility,onDownload,onPageChange}:Props) {
   const [srcDoc,setSrcDoc]=useState(''),[attempt,setAttempt]=useState(0);
   const [ready,setReady]=useState(false),[pending,setPending]=useState(true),[error,setError]=useState('');
   const [degraded,setDegraded]=useState(false),[presenting,setPresenting]=useState(false);
@@ -12,6 +12,8 @@ export default function OfficeReader({token,versionId,kind,name,initialPage=1,co
   const frame=useRef<HTMLIFrameElement>(null),channel=useRef(''),terminated=useRef(false);
   const watchdog=useRef<ReturnType<typeof setTimeout>|undefined>(undefined);
   const typeLabel=kind==='pptx'?'PPT':'Word',pageLabel=kind==='pptx'?'幻灯片':'阅读页';
+  const pageCallback=useRef(onPageChange);pageCallback.current=onPageChange;
+  useEffect(()=>{if(ready&&!pending)pageCallback.current?.(page);},[ready,pending,page]);
   const fail=()=>{terminated.current=true;setError('原格式预览未能完成。可以重试、下载原件，或使用兼容 PDF 预览。');setPending(false);setReady(false);setSrcDoc('');};
   useEffect(()=>{
     let live=true,opened=false;const controller=new AbortController();

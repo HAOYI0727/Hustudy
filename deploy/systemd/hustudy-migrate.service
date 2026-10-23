@@ -1,0 +1,13 @@
+[Unit]
+Description=Hustudy database migration before application services
+Before=hustudy-api.service hustudy-worker.service
+
+[Service]
+Type=oneshot
+User=hustudy
+Group=hustudy
+WorkingDirectory=/opt/hustudy
+EnvironmentFile=/etc/hustudy/hustudy.env
+Environment=PYTHONPATH=/opt/hustudy/backend
+ExecStart=/opt/hustudy/.venv/bin/python -c "from app.core.database import init_db; init_db()"
+RemainAfterExit=yes

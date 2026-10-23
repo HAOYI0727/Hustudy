@@ -1,0 +1,24 @@
+[Unit]
+Description=Hustudy persistent processing worker
+Requires=hustudy-migrate.service
+After=network.target hustudy-migrate.service
+
+[Service]
+Type=simple
+User=hustudy
+Group=hustudy
+WorkingDirectory=/opt/hustudy
+EnvironmentFile=/etc/hustudy/hustudy.env
+Environment=PYTHONPATH=/opt/hustudy/backend
+ExecStart=/opt/hustudy/.venv/bin/python -m app.workers.materials
+Restart=on-failure
+RestartPreventExitStatus=73
+RestartSec=3
+KillMode=control-group
+TimeoutStopSec=15
+NoNewPrivileges=true
+PrivateTmp=true
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

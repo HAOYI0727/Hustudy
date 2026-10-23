@@ -33,11 +33,11 @@ window.addEventListener('message',event=>{
   if(data.type==='open' && !started && data.buffer instanceof ArrayBuffer && ['pptx','docx'].includes(data.kind)) {
     started=true; kind=data.kind;
     queue=queue.then(async()=>{
-      if(data.buffer.byteLength>20*1024*1024)throw new Error('resource limit');
+      if(data.buffer.byteLength>30*1024*1024)throw new Error('resource limit');
       if(kind==='pptx') {
         viewer=await PptxViewer.open(data.buffer,stage,{
           renderMode:'slide',fitMode:'contain',lazySlides:true,lazyMedia:true,pdfjs:false,
-          zipLimits:{...RECOMMENDED_ZIP_LIMITS,maxEntries:10000,maxTotalUncompressedBytes:100*1024*1024,maxEntryUncompressedBytes:20*1024*1024,maxMediaBytes:80*1024*1024,maxConcurrency:2},
+          zipLimits:{...RECOMMENDED_ZIP_LIMITS,maxEntries:10000,maxTotalUncompressedBytes:100*1024*1024,maxEntryUncompressedBytes:30*1024*1024,maxMediaBytes:80*1024*1024,maxConcurrency:2},
           onNodeError:()=>post('degraded'),
         });
         count=viewer.slideCount;

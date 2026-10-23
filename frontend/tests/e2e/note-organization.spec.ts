@@ -117,7 +117,17 @@ test('MD响应丢失后显式重试，成功文件不重导且待导入继续', 
   const s = await seed(request, page);
   await page.getByRole('button', {name: '导入 Markdown', exact: true}).click();
   let calls = 0;
-  await page.route('**/api/v1/notes/import-markdown', async route => {calls++; if (calls === 2) {await route.fetch(); await route.abort('failed');} else await route.continue();});
+  await page.route('**/api/v1/notes/import-markdown', async route => {
+    calls++;
+    if (calls !== 2) return route.continue();
+    // WebKit's intercepted body omits file bytes. Submit the known fixture with
+    // its original request UUID, then lose only the response seen by the page.
+    const body=route.request().postDataBuffer()!.toString();
+    const id=/name="request_id"\r\n\r\n([a-f0-9-]+)/.exec(body)![1];
+    const response=await request.post(base+'/notes/import-markdown',{headers:s.headers,multipart:{file:{name:'乙.md',mimeType:'text/markdown',buffer:Buffer.from('内容 乙')},request_id:id,course_id:s.course.id,tags:'[]'}});
+    expect(response.status()).toBe(201);expect((await response.json()).content).toBe('内容 乙');
+    await route.abort('failed');
+  });
   await page.getByLabel('选择Markdown文件').setInputFiles(['甲','乙','丙'].map(name => ({name: name+'.md', mimeType: 'text/markdown', buffer: Buffer.from('内容 '+name)})));
   await page.getByRole('button', {name: '开始导入（3）', exact: true}).click();
   await expect(page.locator('.note-import-panel')).toContainText('已导入 1/3');
@@ -173,9 +183,9 @@ test('编辑器选区格式、撤销重做、列表、大纲、查找、分屏�
   await editor.press('Enter'); await expect(editor).toHaveValue('- [x] 已完成\n');
   await editor.fill('# 标题\n\n## 章节\n\n可查找的内容 <script>window.bad=true</script>');
   await page.getByLabel('笔记大纲').selectOption('6');
-  expect(await editor.evaluate((el: HTMLTextAreaElement) => el.selectionStart)).toBe(6);
+  await expect.poll(()=>editor.evaluate((el: HTMLTextAreaElement) => el.selectionStart)).toBe(6);
   await page.getByLabel('查找正文').fill('查找'); await page.getByRole('button', {name: '下一个匹配', exact: true}).click();
-  expect(await editor.evaluate((el: HTMLTextAreaElement) => el.value.slice(el.selectionStart, el.selectionEnd))).toBe('查找');
+  await expect.poll(()=>editor.evaluate((el: HTMLTextAreaElement) => el.value.slice(el.selectionStart, el.selectionEnd))).toBe('查找');
   await editor.press('Control+s'); await expect(page.locator('.save-indicator')).toHaveText('已保存到本地服务');
   await page.getByRole('button', {name: '分屏预览', exact: true}).click();
   await expect(page.getByLabel('笔记实时预览')).toContainText('可查找的内容');

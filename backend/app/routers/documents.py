@@ -1,4 +1,5 @@
 from pathlib import Path
+from uuid import UUID
 from typing import List, Literal
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, Query, status
@@ -30,10 +31,15 @@ from ..schemas.material import (
     SearchPage,
     VersionResponse,
     MaterialReferenceResponse,
+    ReferenceNotePage,
     DocumentPage,
     JobPage,
     PreviewCapabilities,
+    DocumentOrganize,
+    DocumentOrganizeResult,
 )
+from ..schemas.workspace import LearningLinkPage, LearningLinkKind
+from ..schemas.material_health import MaterialHealthPage, HealthIssue
 from ..services.documents import save_upload
 from ..core.storage import InsufficientStorage
 from ..services import material_jobs
@@ -41,9 +47,49 @@ from ..services.search import search_chunks, search_page
 from ..services.note_references import material_references
 from ..services.courses import owned_course
 from ..services.material_exports import owned_export
-from ..services import material_browse
+from ..services import material_browse, material_organize
 
 router = APIRouter(prefix="/api/v1", tags=["materials"])
+
+
+@router.get("/courses/{course_id}/material-health", response_model=MaterialHealthPage)
+def material_health(
+    course_id: str,
+    issue: HealthIssue = "attention",
+    q: str = Query(default="", max_length=200),
+    offset: int = Query(default=0, ge=0, le=1000000),
+    limit: int = Query(default=12, ge=1, le=50),
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    from ..services.material_health import page
+
+    return page(db, user.id, course_id, issue, q, offset, limit)
+
+
+@router.get("/versions/{version_id}/learning-links", response_model=LearningLinkPage)
+def learning_links(
+    version_id: str,
+    kind: LearningLinkKind = "all",
+    chunk_id: UUID | None = None,
+    q: str = Query(default="", max_length=200),
+    offset: int = Query(default=0, ge=0, le=1000000),
+    limit: int = Query(default=12, ge=1, le=50),
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    from ..services.source_learning import links
+
+    return links(
+        db,
+        user,
+        version_id,
+        str(chunk_id) if chunk_id else None,
+        kind,
+        q,
+        offset,
+        limit,
+    )
 
 
 def _course(course_id: str, user: User, db: Session) -> Course:
@@ -222,6 +268,18 @@ def get_document(
     return _document_response(active_document(db, document_id, user.id), db)
 
 
+@router.post(
+    "/courses/{course_id}/documents/organize", response_model=DocumentOrganizeResult
+)
+def organize_documents(
+    course_id: str,
+    payload: DocumentOrganize,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    return material_organize.organize(db, user.id, course_id, payload)
+
+
 @router.patch("/documents/{document_id}", response_model=DocumentResponse)
 def update_document(
     document_id: str,
@@ -229,23 +287,7 @@ def update_document(
     user: User = Depends(current_user),
     db: Session = Depends(get_db),
 ):
-    document = active_document(db, document_id, user.id)
-    values = payload.model_dump(exclude_unset=True)
-    if values:
-        changed = db.execute(
-            update(Document)
-            .where(
-                Document.id == document_id,
-                Document.user_id == user.id,
-                Document.deleted_at.is_(None),
-            )
-            .values(**values)
-        )
-        if changed.rowcount != 1:
-            db.rollback()
-            raise HTTPException(404, "资料不存在或已删除")
-        db.commit()
-        db.refresh(document)
+    document = material_organize.update_one(db, user.id, document_id, payload)
     return _document_response(document, db)
 
 
@@ -302,6 +344,19 @@ def list_chunks(
             .order_by(DocumentChunk.ordinal)
         ).all()
     ]
+
+
+@router.get("/versions/{version_id}/reference-notes", response_model=ReferenceNotePage)
+def reference_notes(
+    version_id: str,
+    chunk_id: str | None = Query(default=None),
+    q: str = Query(default="", max_length=200),
+    offset: int = Query(default=0, ge=0, le=1000000),
+    limit: int = Query(default=6, ge=1, le=50),
+    user: User = Depends(current_user), db: Session = Depends(get_db),
+):
+    from ..services.note_references import reference_notes as page
+    return page(db, user.id, version_id, chunk_id, q, offset, limit)
 
 
 @router.get(

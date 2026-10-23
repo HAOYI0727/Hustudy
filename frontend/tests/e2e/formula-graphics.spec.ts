@@ -32,7 +32,7 @@ for (const width of [390, 1440]) test('图形按钮、字段连续输入、嵌�
   await modal.getByRole('button', {name: '快捷符号 阿尔法 α', exact: true}).click();
   await expect(numerator).toHaveValue('x+1\\pm \\alpha ');
   await numerator.press('Tab'); await expect(denominator).toBeFocused(); await denominator.fill('n+1');
-  await numerator.focus(); await numerator.press('Control+a');
+  await numerator.focus(); await numerator.press('ControlOrMeta+a');
   await modal.getByRole('button', {name: '快捷结构 根号', exact: true}).click();
   const radicand = modal.getByLabel('填写 被开方数', {exact: true});
   await expect(radicand).toBeFocused();

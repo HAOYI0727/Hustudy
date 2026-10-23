@@ -1,4 +1,5 @@
 import logging
+import asyncio
 from contextlib import asynccontextmanager
 from pathlib import Path
 from uuid import uuid4
@@ -46,7 +47,16 @@ async def lifespan(_app: FastAPI):
     from .services.bank_question_types import upgrade_local_sources
 
     upgrade_local_sources()
-    yield
+    from .services.worker_supervisor import ManagedWorker
+
+    manager = ManagedWorker() if settings.manage_worker else None
+    if manager:
+        manager.start()
+    try:
+        yield
+    finally:
+        if manager:
+            await asyncio.to_thread(manager.close)
 
 
 def create_app() -> FastAPI:

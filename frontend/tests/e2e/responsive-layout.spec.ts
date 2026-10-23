@@ -92,6 +92,7 @@ test('窄屏导航焦点、旋转与取消离开仍保留草稿', async ({ page,
   const user = await seed(request); await login(page, user);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(`/notes?course=${user.course.id}`);
+  await page.getByRole('button', { name: '新建笔记', exact: true }).click();
   await page.getByLabel('Markdown 正文').fill('未命名草稿，不能被导航或尺寸变化清除。');
   const toggle = page.getByRole('button', { name: '打开导航菜单', exact: true });
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
@@ -155,7 +156,7 @@ test('关键文字配色、工作区标识与减少动效', async ({ page, reque
   await expect(context).toContainText('课程总览');
   await expect(page.locator('.sidebar .workspace-account strong')).toHaveText(user.username);
   await readable(context);
-  await readable(page.getByRole('button', { name: '进入课程工作台', exact: false }));
+  await readable(page.getByRole('button', { name: '继续阅读资料', exact: false }));
   await readable(page.locator('.sidebar .nav-item.active'));
   await readable(page.locator('.metric-card small').first());
   await navigate(page, '资料阅读');

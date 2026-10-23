@@ -11,7 +11,7 @@ for(const kind of ['pptx','docx'] as const) test(`${kind} 直接原格式预览�
   const uploaded=await request.post(base+`/courses/${course.id}/documents`,{headers,multipart:{file:{name:`native.${kind}`,mimeType:'application/octet-stream',buffer:bytes}}});expect(uploaded.status()).toBe(202);
   const job=await uploaded.json();
   const version=await (await request.get(base+`/versions/${job.resource_id}`,{headers})).json();
-  await page.addInitScript(({token,username})=>{localStorage.setItem('hustudy_token',token);localStorage.setItem('hustudy_user',username);Reflect.deleteProperty(Map.prototype,'getOrInsertComputed');},{token:auth.access_token,username});
+  await page.addInitScript(({token,username})=>{if(window===window.top){localStorage.setItem('hustudy_token',token);localStorage.setItem('hustudy_user',username);}Reflect.deleteProperty(Map.prototype,'getOrInsertComputed');},{token:auth.access_token,username});
   const outbound:string[]=[];
   page.on('request',req=>{if(req.url().startsWith('https://'))outbound.push(req.url());});
   // Prove this path never downloads or renders a converted PDF.
@@ -73,7 +73,7 @@ test('原格式渲染失败显式重试，不伪装为成功或偷偷转PDF',asy
   const bytes=await readFile(fileURLToPath(new URL('../../../fixtures/native_preview.docx',import.meta.url)));
   const job=await (await request.post(base+`/courses/${course.id}/documents`,{headers,multipart:{file:{name:'retry.docx',mimeType:'application/octet-stream',buffer:bytes}}})).json();
   const version=await (await request.get(base+`/versions/${job.resource_id}`,{headers})).json();
-  await page.addInitScript(({token,username})=>{localStorage.setItem('hustudy_token',token);localStorage.setItem('hustudy_user',username);},{token:auth.access_token,username});
+  await page.addInitScript(({token,username})=>{if(window===window.top){localStorage.setItem('hustudy_token',token);localStorage.setItem('hustudy_user',username);}},{token:auth.access_token,username});
   let reads=0,pdfReads=0,corrupted=true;
   await page.route(`**/api/v1/versions/${version.id}/original`,async route=>{reads++;if(corrupted)await route.fulfill({status:200,body:'invalid zip bytes'});else await route.continue();});
   await page.route('**/api/v1/versions/*/preview',route=>{pdfReads++;return route.abort();});

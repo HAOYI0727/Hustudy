@@ -3,15 +3,16 @@
 import argparse
 from datetime import timedelta
 import json
+import logging
 import os
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
-import time
+import threading
 from uuid import uuid4
 
-from sqlalchemy import select, update
+from sqlalchemy import case, select, update
 from ..core.database import SessionLocal, init_db
 from ..models import Document, DocumentChunk, DocumentVersion, ProcessingJob
 from ..models.base import utc_now
@@ -72,16 +73,20 @@ def recover_jobs(db):
     db.expire_all()
 
 
-def claim_job(db):
+def claim_job(db, kinds=("PARSE", "INDEX", "PREVIEW")):
     recover_jobs(db)
     for job_id in db.scalars(
         select(ProcessingJob.id)
         .where(
             ProcessingJob.status == "QUEUED",
-            ProcessingJob.type.in_(["PARSE", "INDEX", "PREVIEW"]),
+            ProcessingJob.type.in_(kinds),
             ProcessingJob.attempt_count < ProcessingJob.max_attempts,
         )
-        .order_by(ProcessingJob.created_at)
+        .order_by(
+            case((ProcessingJob.type == "PREVIEW", 1), else_=0),
+            ProcessingJob.created_at,
+            ProcessingJob.id,
+        )
         .limit(10)
     ).all():
         token = str(uuid4())
@@ -231,9 +236,9 @@ def preview_file(source):
         return str(target)
 
 
-def run_once():
+def run_once(kinds=("PARSE", "INDEX", "PREVIEW")):
     with SessionLocal() as db:
-        job = claim_job(db)
+        job = claim_job(db, kinds)
         if job is None:
             return False
         job_id, token, kind, version_id = (
@@ -410,9 +415,61 @@ def drain_jobs(limit=100):
     raise RuntimeError("worker exceeded drain limit")
 
 
-if __name__ == "__main__":
+def run_core_once():
     from .account_archives import run_archive_once
 
+    run_trash_cleanup()
+    return (
+        run_once(("PARSE", "INDEX"))
+        or run_note_export_once()
+        or run_capture_once()
+        or run_bank_ocr_once()
+        or run_bank_ai_once()
+        or run_export_once()
+        or run_ai_once()
+        or run_archive_once()
+    )
+
+
+def run_preview_lane(stop):
+    while not stop.is_set():
+        if not run_once(("PREVIEW",)):
+            stop.wait(0.5)
+
+
+def serve():
+    from ..services.worker_runtime import WorkerRuntime
+
+    # Each lane uses its own SessionLocal. A single slow Office conversion must
+    # not occupy the thread that claims new PARSE/INDEX tasks.
+    stop = threading.Event()
+    with WorkerRuntime() as runtime:
+        preview = threading.Thread(
+            target=run_preview_lane, args=(stop,), daemon=True, name="material-preview"
+        )
+        preview.start()
+        runtime.ready = True
+        runtime.publish()
+        try:
+            while True:
+                if not preview.is_alive():
+                    runtime.ready = False
+                    runtime.publish()
+                    raise RuntimeError(
+                        "Preview lane stopped; restart the processing worker"
+                    )
+                if not run_core_once():
+                    stop.wait(0.5)
+        finally:
+            stop.set()
+            preview.join(timeout=1)
+
+
+if __name__ == "__main__":
+    from .account_archives import run_archive_once
+    from ..services.worker_runtime import WorkerAlreadyRunning
+
+    logging.basicConfig(level=logging.INFO)
     parser = argparse.ArgumentParser()
     parser.add_argument("--once", action="store_true", help="Process one queued job")
     args = parser.parse_args()
@@ -430,16 +487,10 @@ if __name__ == "__main__":
                 if not run_ai_once():
                     run_archive_once()
     else:
-        while True:
-            run_trash_cleanup()
-            if (
-                not run_once()
-                and not run_note_export_once()
-                and not run_capture_once()
-                and not run_bank_ocr_once()
-                and not run_bank_ai_once()
-                and not run_export_once()
-                and not run_ai_once()
-                and not run_archive_once()
-            ):
-                time.sleep(1)
+        try:
+            serve()
+        except WorkerAlreadyRunning:
+            logging.getLogger(__name__).info(
+                "Processing worker already running; leaving existing owner in place"
+            )
+            raise SystemExit(73)

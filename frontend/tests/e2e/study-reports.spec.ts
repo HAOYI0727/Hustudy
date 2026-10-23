@@ -1,5 +1,4 @@
 import {test,expect} from '@playwright/test';
-import {fileURLToPath} from 'node:url';
 
 // Real temporary API for accounts/materials/notes; AI HTTP responses are synthetic.
 for (const width of [390,1440]) test(`M2报告：确认、报告、自测、草稿与恢复 ${width}px`,async({page,request})=>{
@@ -52,7 +51,7 @@ for (const width of [390,1440]) test(`M2报告：确认、报告、自测、草�
   await expect(article).toBeVisible();await expect(article).toContainText('AI建议');
   await article.getByText('查看答案与依据',{exact:true}).first().click();await expect(article).toContainText(exercise.answer);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
-  await page.screenshot({path:fileURLToPath(new URL(`../../../docs/gcx/evidence/study-report-${width}.png`,import.meta.url)),fullPage:true});
+  await page.screenshot({path:test.info().outputPath(`study-report-${width}.png`),fullPage:true});
   await page.getByRole('button',{name:'整理为可编辑笔记草稿',exact:true}).click();
   const reason=page.getByLabel('进程与线程 标签1理由',{exact:true});
   const next=page.getByRole('button',{name:'继续编辑笔记正文',exact:true});
@@ -70,7 +69,7 @@ for (const width of [390,1440]) test(`M2报告：确认、报告、自测、草�
   await page.evaluate(()=>window.dispatchEvent(new Event('hustudy:before-navigate',{cancelable:true})));
   await expect(reason).toHaveValue('我还需要练习区分资源与调度');
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
-  await page.screenshot({path:fileURLToPath(new URL(`../../../docs/gcx/evidence/label-review-${width}.png`,import.meta.url)),fullPage:true});
+  await page.screenshot({path:test.info().outputPath(`label-review-${width}.png`),fullPage:true});
   await next.click();
   const draft=page.getByLabel('AI 笔记草稿');
   await expect(draft).toHaveValue(/难点：我还需要练习区分资源与调度/);
@@ -88,7 +87,8 @@ for (const width of [390,1440]) test(`M2报告：确认、报告、自测、草�
   await page.getByRole('button',{name:'确认保存为笔记草稿',exact:true}).click();
   await expect(page.getByText('模拟保存失败',{exact:true})).toBeVisible();
   await expect(draft).toHaveValue(/人工正文修改/);
-  await page.getByRole('button',{name:'确认保存为笔记草稿',exact:true}).click();
+  await expect(draft).toBeDisabled();
+  await page.getByRole('button',{name:'重试保存原笔记',exact:true}).click();
   await expect.poll(async()=> (await (await request.get(base+`/notes?course_id=${course.id}`,{headers})).json()).length).toBe(1);
   const notes=await(await request.get(base+`/notes?course_id=${course.id}`,{headers})).json();
   expect(notes[0].content).toContain('难点：我还需要练习区分资源与调度');
@@ -115,5 +115,5 @@ for (const width of [390,1440]) test(`M2报告：确认、报告、自测、草�
   await page.locator('.ai-workspace-grid > section').evaluateAll(nodes=>nodes.forEach(node=>node.scrollTop=0));
   await page.locator('.ai-workspace-grid').scrollIntoViewIfNeeded();
   if(width<=1100)await expect(page.getByRole('link',{name:'设置与发送',exact:true})).toBeInViewport();
-  await page.screenshot({path:fileURLToPath(new URL(`../../../docs/gcx/evidence/ai-layout-${width}.png`,import.meta.url)),fullPage:false});
+  await page.screenshot({path:test.info().outputPath(`ai-layout-${width}.png`),fullPage:false});
 });

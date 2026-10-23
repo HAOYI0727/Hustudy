@@ -1,5 +1,48 @@
 # zhy 当前任务状态与剩余交付
 
+2026-10-24 H-20261024-ZHY-029：A06/A07/A08/A10的M1/M3只读引用笔记集成进入Review，478后端通过/2私有跳过、187单元/类型/构建/迁移/安全检查及84个不同双引擎场景经修正复验通过。[功能与验收](../../docs/zhy/materialhub/reference_notes_acceptance.md)。正文/保存与成员归属保持，121项人工清单、正式40任务/真人/实机/成员仍待本人，不自动Done。
+
+2026-10-24 H-20261024-ZHY-028：共享总览课程复习日程及M4只读计划适配进入Review，473后端通过/2跳过、187单元/类型/构建/迁移/安全检查、58个不同双引擎场景经修正复验通过。[范围与验收](../../docs/zhy/integration/course_agenda_acceptance.md)。标题/日期筛选、真实计数分页和回原错题已验证；118项人工清单、正式40任务/成员/真人/实机仍待本人，不自动Done。
+
+2026-10-23–24 H-20261023-ZHY-027：共享层/M1与四模块学习闭环核查、现行user.md24章及站内阅读/示例下载进入Review；469后端通过/2跳过、187单元/类型/构建/迁移/安全检查，240个不同Chrome/WebKit场景经修正复验通过。[功能/命令/限制](../../docs/zhy/integration/user_manual_acceptance.md)。115项人工清单、正式40任务/真人/实机与成员接收保留待本人，云端上线暂缓，不自动Done。
+
+2026-10-23 H-20261023-ZHY-026：A06/A07/A08/A10补课件知识点本地检索/分页/当前页反查及逐点讲解，183单元/类型/构建、44个不同双引擎场景经修正复验通过，进入Review。[使用与边界](../../docs/zhy/materialhub/reading_navigator_acceptance.md)。无新API/后端/schema/依赖/迁移/真实模型或日常测试数据，实机/成员/真人与正式任务不自动Done。
+
+2026-10-23 H-20261023-ZHY-024/025：A06/A07/A08/A10阅读总结/页码/单点笔记集成进入Review，469后端通过/2跳过、179单元/类型/构建/Ruff及46双引擎通过。[功能与验收](../../docs/zhy/materialhub/ppt_companion_acceptance.md)。真实模型教学质量/复杂图片/实机与正式任务签收待本人，云部署按用户决定暂缓，不自动Done。
+
+2026-10-23 H-20261023-ZHY-023：A01/A02/A03/A08/A10补跨端账号共用的部署适配与迁移/验收说明；173单元、类型/生产构建、26双引擎全部通过，进入Review。实际公共后端部署、test迁移与两台真实电脑接收待办，不把源码同步当数据同步。[范围](../../docs/zhy/shared_platform/cloud_accounts.md)。
+
+2026-10-23 H-20261023-ZHY-021/022：A04/A05/A06/A07/A08/A10补资料30MiB与阅读AI→来源核对→标签审阅→可编辑笔记闭环；467后端通过/2跳过、171单元/构建/Ruff及80个不同双引擎场景经复验通过。[使用与边界](../../docs/zhy/materialhub/reader_ai_acceptance.md)。代码与自动验证进入Review；真实模型教学质量、复杂PPT图像、实机与成员接收独立待验，正式任务不自动Done。
+
+2026-10-23 H-20261023-ZHY-020：A01/A04/A05/A07/A08/A09/A10补上传处理服务的自动托管/重复防护/状态与预览执行隔离，466后端通过/2跳过、170单元和60个不同双引擎场景通过。[配置与真实边界](../../docs/zhy/shared_platform/worker_deployment.md)。Linux模板仅准备，CI/真实部署/并发量/告警/实机及成员签收不据此自动Done。
+
+2026-10-23 H-20261023-ZHY-019：A06/A07/A08/A10继续完善实际长课件阅读与共享知识点排版，现有145页原件隔离复验、170单元和构建通过，116个不同双引擎场景经测试步骤/初始化修正复验通过。[实际高度、使用与边界](../../docs/zhy/materialhub/learning_layout_acceptance.md)。旧解析覆盖差异、正式成员/实机/真人接收独立待验，不自动Done。
+
+2026-10-23 H-20261023-ZHY-018：A04/A05/A07/A08/A10补最新版本资料检查、只读分页与原任务显式恢复，460后端通过/2跳过、167单元及98个不同双引擎场景通过。[使用与真实边界](../../docs/zhy/materialhub/readiness_acceptance.md)。正式A任务、成员/实机/真人接收不据此自动Done。
+
+2026-10-23 H-20261023-ZHY-017：A07/A08/A10继续M1/M4来源与复习集成，回看/计划/明确重做分别处理；456后端通过/2跳过、166单元及74项双引擎最终场景通过。[实际验收与边界](../../docs/zhy/materialhub/source_reviews_acceptance.md)。正式40任务及真人/成员/实机状态不据此自动Done。
+
+2026-10-23 H-20261023-ZHY-016：A07/A08/A10补资料学习关联、原UUID回跳及练习预填；452后端通过/2跳过、165单元及94项双引擎最终场景通过。[自制样例与7步验收](../../docs/zhy/materialhub/source_connections_acceptance.md)。正式任务/成员/实机/真人状态不据此自动Done。
+
+2026-10-23 H-20261023-ZHY-015：A04/A05/A07/A08/A10补范围导出固定版本、请求幂等/未知结果保护、任务类型/状态过滤与历史回跳，447后端/2跳过、165单元及106双引擎场景通过。[用户体验/完整矩阵](../../docs/zhy/materialhub/captain_acceptance_2026_10_23.md)。正式A01–A10与40任务状态、实机/真人/成员签收不据此自动Done。
+
+2026-10-23 共享控件、模块色、系统字体、全部分界面与真实学习记录完成实现和自动核验。443后端通过/2跳过、163前端单元及构建/迁移检查通过；434项浏览器首轮415通过/13失败/6跳过，修复后82项专项全通过，不同场景428项经修复复验通过。正式40任务/成员/实机验收仍由本人，实际过程与剩余关口见[全站功能核查](../../docs/zhy/integration/project_review_2026_10_23.md)。
+
+2026-10-22 PLATFORM-APPEARANCE-06：共享视觉/外观偏好已完成代码与自动验证并进入Review；154单元、66项双引擎回归及12项最终复验通过。正式A10/成员验收不自动Done。[范围](../../docs/zhy/integration/appearance_acceptance.md)。
+
+2026-10-22 M1-READING-TOOLS-05：阅读书签、版本文本对照与历史来源保护增量已进入验证/Review，正式A06/A07/A08/A10状态不据此自动Done。[验收](../../docs/zhy/materialhub/reading_tools_acceptance.md)。
+
+2026-10-22 H-20261022-ZHY-005：LEARNING-HUB-04知识点学习中心、M1常用视图及跨模块显式练习衔接已实施，记录官方设计依据与隔离证据，不覆盖成员正式任务状态/签收。 [功能与验证](../../docs/zhy/integration/learning_hub_acceptance.md)。
+
+2026-10-22 增量：PLATFORM-CONTINUITY-03实现阅读笔记/本机恢复及按需目录；对应共享/M1与M2/M3/M4展示集成，不代签正式A01–A10或40任务完成状态。 [使用、验证与边界](../../docs/zhy/integration/continuity_acceptance.md)。
+
+2026-10-22 M1连续完善：A05/A07/A08/A10补充原子批量整理、并发保护、分页引用目标和共享弹窗自动证据；正式十任务状态不代签。[使用与验证](../../docs/zhy/materialhub/organize_acceptance.md)。
+
+2026-10-22 后续整合：A07/A08/A10补充课程摘要、阅读继续与跨模块定位/回源/计划自动证据；A01–A10正式状态及其他成员签收保持原实际结论。[实现与验收](../../docs/zhy/integration/learning_loop_acceptance.md)。
+
+2026-10-22 M1-BATCH-STUDY-01：A05/A07/A10及M2来源消费衔接新增切片自动验收完成，待zhy审阅/成员接收，原正式任务状态不擅自改写。当前代码覆盖及剩余关口见[40任务核查](../../docs/zhy/integration/project_review_2026_10_22.md)，本轮[验收](../../docs/zhy/integration/material_study_acceptance.md)覆盖批量上传/来源学习/全量后端与双引擎回归。
+
+
 更新：2026-10-16；记录者：Codex（zhy队长会话辅助），本人审阅待填；工作区未提交/合并。任务DOC-ZHY-AUDIT-01。输入正式A01–A10、现有代码与验收证据，输出当前状态、剩余关口和成员依赖。本表管理任务；技术依据唯一汇总到[完成度核查](../../docs/zhy/completion_audit.md)，不复制公共API/schema。
 
 **整体状态：核心功能自动验收通过，正式交付Doing。** A01–A08为Review（核心实现与自动证据齐备，待zhy/成员评审），A09/A10仍有真实协作/集成发布交付项。Review不是Done，不代填签收；旧聚合编号不等于正式十任务。最新证据：[测试报告](../../docs/test_report.md)、[检索/容量/环境](../../docs/zhy/materialhub/search_capacity_acceptance.md)、[多端视觉](../../docs/zhy/shared_platform/visual_polish_acceptance.md)。

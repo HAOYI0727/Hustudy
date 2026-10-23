@@ -22,7 +22,15 @@ def create_export(
     user: User = Depends(current_user),
     db: Session = Depends(get_db),
 ):
-    return service.create_export(db, course_id, user.id, str(payload.request_id))
+    return service.create_export(
+        db,
+        course_id,
+        user.id,
+        str(payload.request_id),
+        None
+        if payload.document_ids is None
+        else [str(item) for item in payload.document_ids],
+    )
 
 
 @router.get(

@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     )
     database_url: str = "sqlite:///./data/hustudy.db"
     storage_root: str = "./data/storage"
+    worker_autostart: bool | None = None
     storage_reserve_bytes: int = Field(default=64 * 1024 * 1024, ge=1024 * 1024)
     libreoffice_path: str = Field(default="", max_length=1024, repr=False)
     jwt_secret: str = Field(default="", min_length=32, repr=False)
@@ -28,6 +29,14 @@ class Settings(BaseSettings):
         "https://open.bigmodel.cn/api/paas/v4/chat/completions"
     )
     zhipu_api_key: SecretStr = Field(default=SecretStr(""), repr=False)
+
+    @property
+    def manage_worker(self) -> bool:
+        return (
+            self.worker_autostart
+            if self.worker_autostart is not None
+            else self.env == "development"
+        )
 
     @property
     def cors_origin_list(self) -> list[str]:

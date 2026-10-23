@@ -70,6 +70,7 @@ test('无正文PDF：人工草稿不检索、确认引用、撤回失效',async(
   await expect(page.locator('.transcript-controls')).toContainText('已撤回');
   expect((await (await request.get(base+`/courses/${s.course.id}/search/page?q=人工星图协议`,{headers:s.headers})).json()).total).toBe(0);
   await page.goto(`/notes?course=${s.course.id}&note=${note.id}`);
+  await page.getByRole('button',{name:/^引用与关联/}).click();
   await expect(page.locator('.citation-card')).toContainText('不可用');
   expect((await (await request.get(base+`/notes/${note.id}`,{headers:s.headers})).json()).content).toBe('保留我的理解。');
 });

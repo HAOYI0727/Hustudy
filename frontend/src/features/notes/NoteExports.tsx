@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { api, Course, Note, NoteExport } from "../../api/client";
+import { api, Course, NoteSummary, NoteExport } from "../../api/client";
 
 const labels: Record<string, string> = {QUEUED: "排队中", RUNNING: "正在打包", SUCCEEDED: "已完成", FAILED: "失败", CANCELLED: "已取消"};
-export function NoteExports({token, notes, courseId, unsaved, onError, selection, onBusyChange, isOpen = true}: {token: string; notes: Note[]; courseId: string; unsaved: boolean; onError: (error: unknown) => void; selection?: {ids: string[]; version: number}; onBusyChange?: (busy: boolean) => void; isOpen?: boolean}) {
+export function NoteExports({token, notes, courseId, unsaved, onError, selection, onBusyChange, isOpen = true}: {token: string; notes: NoteSummary[]; courseId: string; unsaved: boolean; onError: (error: unknown) => void; selection?: {ids: string[]; version: number}; onBusyChange?: (busy: boolean) => void; isOpen?: boolean}) {
   const [rows, setRows] = useState<NoteExport[]>([]);
   const [busy, setBusy] = useState(false);
   useEffect(() => {onBusyChange?.(busy);}, [busy, onBusyChange]);

@@ -66,6 +66,7 @@ test('错题独立子页面、答错不计数、已掌握后置与移出后保�
  await redo.getByRole('button',{name:'提交重做答案',exact:true}).click();
  await expect(task).toContainText('今日已答对 1 / 5 题');
  await redo.getByRole('button',{name:'移出错题库',exact:true}).click();
+ await expect(page.locator('.review-library')).toBeVisible();await expect(page).not.toHaveURL(/mistake=/);
  await expect(page.locator('.mistake-card')).toHaveCount(1);
  await expect(task).toContainText('今日已答对 1 / 5 题');
  await page.getByRole('button',{name:'开始今日重做',exact:true}).click();
@@ -76,6 +77,7 @@ test('错题独立子页面、答错不计数、已掌握后置与移出后保�
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBeTruthy();
  await page.screenshot({path:'local_only/review-redo-mobile.png',fullPage:true});
  await redo.getByRole('button',{name:'移出错题库',exact:true}).click();
+ await expect(page.locator('.review-library')).toBeVisible();await expect(page).not.toHaveURL(/mistake=/);
  await expect(page.locator('.mistake-card')).toHaveCount(0);
  await page.reload();await expect(task).toContainText('今日已答对 2 / 5 题');
  const nextPaper=await(await request.post(`${base}/courses/${c.id}/question-bank/draw`,{headers,data:{request_id:crypto.randomUUID(),topic_ids:[],count:1}})).json();

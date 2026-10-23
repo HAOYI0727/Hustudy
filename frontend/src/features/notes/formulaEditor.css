@@ -1,112 +1,112 @@
-.notes-dialog.formula-dialog { width: min(1120px, calc(100vw - 32px)); }
-.formula-workspace [hidden] { display: none !important; }
-.formula-quick-tools { border: 1px solid #dfe6f2; background: #f8faff; border-radius: 12px; padding: 10px 12px; min-width: 0; }
-.formula-quick-heading { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
-.formula-quick-heading strong { font-size: 13px; }
-.formula-quick-heading small { color: #718099; font-size: 11px; }
-.formula-symbol-tabs { display: flex; gap: 5px; margin-bottom: 8px; overflow: auto; }
-.formula-symbol-tabs button { display: flex; align-items: center; gap: 6px; white-space: nowrap; padding: 5px 10px; min-height: 36px; }
-.formula-symbol-tabs button > span { font: 19px Georgia, serif; }
-.formula-symbol-tabs button > small { font-size: 11px; }
-.formula-symbol-tabs button[aria-pressed=true] { background: #e7edff; border-color: #9aa9de; color: #3b52a4; }
-.formula-symbol-ribbon, .formula-structure-ribbon { display: flex; flex-wrap: wrap; gap: 5px; min-width: 0; }
-.formula-structure-ribbon { padding-top: 8px; margin-top: 8px; border-top: 1px solid #e0e6f2; }
-.formula-workspace .formula-graphic { display: grid; place-items: center; width: 40px; height: 40px; padding: 2px; flex: 0 0 40px; background: #fff; }
-.formula-workspace .formula-graphic:hover { border-color: #8195d4; background: #eef2ff; }
-.formula-graphic > span { pointer-events: none; font-size: 17px; }
-.formula-workspace .formula-graphic.is-structure { width: 64px; flex-basis: 64px; height: 50px; }
-.formula-graphic.is-structure > span { font-size: 14px; }
-.formula-recent { margin-top: 8px; font-size: 11px; color: #6a7891; }
-.formula-recent summary { cursor: pointer; padding: 5px 0; }
-.formula-recent button { font-size: 12px; }
-.formula-field-controls { display: flex; flex-wrap: wrap; gap: 5px; }
-.formula-field-controls button { font-size: 12px; padding: 6px 9px; }
-.formula-field-controls button[aria-pressed=true] { background: #e7edff; border-color: #9aa9de; color: #3b52a4; }
-.formula-fields { padding: 10px; border: 1px solid #dce4f3; border-radius: 10px; background: #f8faff; }
-.formula-fields > .hint { margin: 0 0 10px; font-size: 11px; line-height: 1.65; }
-.formula-field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; max-height: 240px; overflow: auto; padding: 2px; }
-.formula-field-cell { display: grid; gap: 5px; min-width: 0; }
-.formula-field-cell > span { font-size: 11px; color: #53647d; }
-.formula-field-cell b { color: #7b8fb9; font-size: 10px; margin-right: 5px; font-weight: 400; }
-.formula-field-cell textarea { box-sizing: border-box; width: 100%; min-width: 0; min-height: 40px; resize: vertical; font: 14px/1.5 Consolas, monospace; padding: 8px; border-radius: 7px; background: #fff; }
-.formula-field-grid.is-fraction { grid-template-columns: minmax(0, 1fr); max-width: 340px; margin: auto; gap: 8px; }
-.formula-field-grid.is-fraction .formula-field-cell:first-child { padding-bottom: 9px; border-bottom: 1px solid #6f809a; }
-.formula-field-grid.is-fraction textarea { text-align: center; }
-.formula-catalog-grid.is-symbol-palette { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
-.formula-catalog-grid.is-symbol-palette .formula-recipe { min-height: 46px; padding: 4px; }
-.formula-catalog-grid.is-symbol-palette .formula-recipe > span { font-size: 17px; }
-.formula-catalog-grid.is-symbol-palette small { display: none; }
-.formula-workspace-columns { display: grid; grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.15fr); gap: 22px; align-items: start; }
-.formula-library, .formula-composer { min-width: 0; }
-.formula-library { padding-right: 20px; border-right: 1px solid var(--border, #e3e8f0); }
-.formula-panels { display: flex; gap: 4px; padding-bottom: 12px; }
-.formula-panels button { flex: 1; padding: 8px 4px; min-width: 0; font-size: 12px; }
-.formula-panels button > span { font-size: 18px; }
-.formula-panels button[aria-pressed=true] { background: #edf1ff; border-color: #9aa9de; color: #3b52a4; }
-.formula-search, .formula-category, .formula-grid-builder label { display: grid; gap: 5px; font-size: 12px; min-width: 0; }
-.formula-search { margin: 0 0 10px; }
-.formula-library input, .formula-library select { width: 100%; min-width: 0; box-sizing: border-box; }
-.formula-library .hint { font-size: 12px; line-height: 1.65; margin: 10px 0; }
-.formula-catalog-scroll { max-height: 360px; overflow: auto; padding: 2px 5px 6px 2px; scrollbar-gutter: stable; }
-.formula-catalog-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-.formula-catalog-grid .formula-recipe { min-width: 0; min-height: 78px; display: flex; flex-direction: column; align-items: stretch; justify-content: center; gap: 8px; padding: 10px 6px; background: #fff; }
-.formula-recipe:hover { border-color: #aabce8; background: #f7f9ff; }
-.formula-recipe > span { display: block; max-width: 100%; overflow: auto; padding: 3px 0; font-size: 12px; pointer-events: none; }
-.formula-recipe .katex-display { margin: 0; }
-.formula-recipe small { color: #69768d; font-size: 11px; white-space: normal; }
-.formula-composer { display: grid; gap: 14px; }
-.formula-edit-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.formula-edit-actions strong { margin-right: auto; font-size: 13px; }
-.formula-edit-actions button { min-width: 36px; min-height: 36px; padding: 5px 9px; }
-.formula-edit-actions button[aria-label] { font-size: 21px; }
-.formula-workspace .formula-source-label textarea { min-height: 165px; }
-.formula-composer.has-fields .formula-source-label textarea { min-height: 90px; height: 100px; }
-.formula-workspace .formula-tip { margin: 0; font-size: 12px; color: #69768d; line-height: 1.6; }
-.formula-parameters { background: #f7f9fc; padding: 10px; border-radius: 10px; }
-.formula-parameter-heading { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-.formula-parameter-heading small { color: #687994; font-size: 11px; }
-.formula-parameter-list { display: flex; flex-wrap: wrap; gap: 6px; max-height: 150px; overflow: auto; }
-.formula-parameter-list button { display: flex; gap: 6px; align-items: center; max-width: 100%; padding: 7px 9px; font-size: 12px; }
-.formula-parameter-list code { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; color: #465eae; }
-.formula-guide { max-height: 480px; overflow: auto; }
-.formula-guide details { border-bottom: 1px solid #e4e9f1; padding: 8px 0; }
-.formula-guide summary { cursor: pointer; padding: 6px 2px; font-weight: 600; font-size: 13px; }
-.formula-guide p { font-size: 12px; line-height: 1.8; margin: 8px 0; }
-.formula-guide code { display: block; white-space: pre-wrap; overflow-wrap: anywhere; background: #f6f8fb; border-radius: 6px; padding: 8px; font-size: 12px; margin-bottom: 8px; }
-.formula-grid-builder { display: grid; gap: 10px; }
-.formula-grid-dimensions { display: flex; gap: 10px; }
-.formula-grid-dimensions > label { flex: 1; }
-.formula-cell-scroll { overflow: auto; max-width: 100%; padding: 3px; }
-.formula-cells { display: grid; gap: 6px; }
-.formula-cells input { font-family: Consolas, monospace; padding: 7px; }
-.formula-grid-preview { min-width: 0; overflow: auto; max-height: 210px; background: #f7f9fc; padding: 8px; border-radius: 8px; font-size: 12px; }
-.formula-workspace .formula-actions { position: sticky; bottom: -1px; background: #fff; z-index: 1; padding: 12px 0; box-shadow: 0 -8px 14px #fff; }
-@media (pointer: coarse), (max-width: 760px) {
-  .formula-workspace button, .formula-workspace select, .formula-workspace input, .formula-guide summary { min-height: 44px; }
-  .formula-edit-actions button { min-width: 44px; }
-  .formula-workspace input, .formula-workspace select, .formula-workspace textarea { font-size: 16px; }
-  .formula-workspace .formula-graphic { width: 44px; height: 44px; flex-basis: 44px; }
-  .formula-workspace .formula-graphic.is-structure { width: 64px; height: 50px; flex-basis: 64px; }
+.notes-dialog.formula-dialog { width:min(1120px, calc(100vw - 32px)); }
+.formula-workspace [hidden] { display:none !important; }
+.formula-quick-tools { border:1px solid #dfe6f2; background:var(--surface-muted); border-radius:12px; padding:10px 12px; min-width:0; }
+.formula-quick-heading { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:8px; }
+.formula-quick-heading strong { font-size:13px; }
+.formula-quick-heading small { color:#718099; font-size:11px; }
+.formula-symbol-tabs { display:flex; gap:5px; margin-bottom:8px; overflow:auto; }
+.formula-symbol-tabs button { display:flex; align-items:center; gap:6px; white-space:nowrap; padding:5px 10px; min-height:36px; }
+.formula-symbol-tabs button > span { font:19px Georgia, serif; }
+.formula-symbol-tabs button > small { font-size:11px; }
+.formula-symbol-tabs button[aria-pressed=true] { background:#e7edff; border-color:#9aa9de; color:var(--accent-ink); }
+.formula-symbol-ribbon, .formula-structure-ribbon { display:flex; flex-wrap:wrap; gap:5px; min-width:0; }
+.formula-structure-ribbon { padding-top:8px; margin-top:8px; border-top:1px solid #e0e6f2; }
+.formula-workspace .formula-graphic { display:grid; place-items:center; width:40px; height:40px; padding:2px; flex:0 0 40px; background:var(--surface); }
+.formula-workspace .formula-graphic:hover { border-color:#8195d4; background:var(--accent-soft); }
+.formula-graphic > span { pointer-events:none; font-size:17px; }
+.formula-workspace .formula-graphic.is-structure { width:64px; flex-basis:64px; height:50px; }
+.formula-graphic.is-structure > span { font-size:14px; }
+.formula-recent { margin-top:8px; font-size:11px; color:#6a7891; }
+.formula-recent summary { cursor:pointer; padding:5px 0; }
+.formula-recent button { font-size:12px; }
+.formula-field-controls { display:flex; flex-wrap:wrap; gap:5px; }
+.formula-field-controls button { font-size:12px; padding:6px 9px; }
+.formula-field-controls button[aria-pressed=true] { background:#e7edff; border-color:#9aa9de; color:var(--accent-ink); }
+.formula-fields { padding:10px; border:1px solid #dce4f3; border-radius:10px; background:var(--surface-muted); }
+.formula-fields > .hint { margin:0 0 10px; font-size:11px; line-height:1.65; }
+.formula-field-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px; max-height:240px; overflow:auto; padding:2px; }
+.formula-field-cell { display:grid; gap:5px; min-width:0; }
+.formula-field-cell > span { font-size:11px; color:#53647d; }
+.formula-field-cell b { color:#7b8fb9; font-size:10px; margin-right:5px; font-weight:400; }
+.formula-field-cell textarea { box-sizing:border-box; width:100%; min-width:0; min-height:40px; resize:vertical; font:14px/1.5 Consolas, monospace; padding:8px; border-radius:7px; background:var(--surface); }
+.formula-field-grid.is-fraction { grid-template-columns:minmax(0, 1fr); max-width:340px; margin:auto; gap:8px; }
+.formula-field-grid.is-fraction .formula-field-cell:first-child { padding-bottom:9px; border-bottom:1px solid #6f809a; }
+.formula-field-grid.is-fraction textarea { text-align:center; }
+.formula-catalog-grid.is-symbol-palette { grid-template-columns:repeat(6, minmax(0, 1fr)); gap:6px; }
+.formula-catalog-grid.is-symbol-palette .formula-recipe { min-height:46px; padding:4px; }
+.formula-catalog-grid.is-symbol-palette .formula-recipe > span { font-size:17px; }
+.formula-catalog-grid.is-symbol-palette small { display:none; }
+.formula-workspace-columns { display:grid; grid-template-columns:minmax(0, 0.95fr) minmax(0, 1.15fr); gap:22px; align-items:start; }
+.formula-library, .formula-composer { min-width:0; }
+.formula-library { padding-right:20px; border-right:1px solid var(--border, #e3e8f0); }
+.formula-panels { display:flex; gap:4px; padding-bottom:12px; }
+.formula-panels button { flex:1; padding:8px 4px; min-width:0; font-size:12px; }
+.formula-panels button > span { font-size:18px; }
+.formula-panels button[aria-pressed=true] { background:var(--accent-soft); border-color:#9aa9de; color:var(--accent-ink); }
+.formula-search, .formula-category, .formula-grid-builder label { display:grid; gap:5px; font-size:12px; min-width:0; }
+.formula-search { margin:0 0 10px; }
+.formula-library input, .formula-library select { width:100%; min-width:0; box-sizing:border-box; }
+.formula-library .hint { font-size:12px; line-height:1.65; margin:10px 0; }
+.formula-catalog-scroll { max-height:360px; overflow:auto; padding:2px 5px 6px 2px; scrollbar-gutter:stable; }
+.formula-catalog-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:8px; }
+.formula-catalog-grid .formula-recipe { min-width:0; min-height:78px; display:flex; flex-direction:column; align-items:stretch; justify-content:center; gap:8px; padding:10px 6px; background:var(--surface); }
+.formula-recipe:hover { border-color:#aabce8; background:var(--surface-muted); }
+.formula-recipe > span { display:block; max-width:100%; overflow:auto; padding:3px 0; font-size:12px; pointer-events:none; }
+.formula-recipe .katex-display { margin:0; }
+.formula-recipe small { color:#69768d; font-size:11px; white-space:normal; }
+.formula-composer { display:grid; gap:14px; }
+.formula-edit-actions { display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
+.formula-edit-actions strong { margin-right:auto; font-size:13px; }
+.formula-edit-actions button { min-width:36px; min-height:36px; padding:5px 9px; }
+.formula-edit-actions button[aria-label] { font-size:21px; }
+.formula-workspace .formula-source-label textarea { min-height:165px; }
+.formula-composer.has-fields .formula-source-label textarea { min-height:90px; height:100px; }
+.formula-workspace .formula-tip { margin:0; font-size:12px; color:#69768d; line-height:1.6; }
+.formula-parameters { background:var(--surface-muted); padding:10px; border-radius:10px; }
+.formula-parameter-heading { display:flex; flex-wrap:wrap; gap:6px; align-items:center; justify-content:space-between; margin-bottom:8px; }
+.formula-parameter-heading small { color:#687994; font-size:11px; }
+.formula-parameter-list { display:flex; flex-wrap:wrap; gap:6px; max-height:150px; overflow:auto; }
+.formula-parameter-list button { display:flex; gap:6px; align-items:center; max-width:100%; padding:7px 9px; font-size:12px; }
+.formula-parameter-list code { max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11px; color:#465eae; }
+.formula-guide { max-height:480px; overflow:auto; }
+.formula-guide details { border-bottom:1px solid #e4e9f1; padding:8px 0; }
+.formula-guide summary { cursor:pointer; padding:6px 2px; font-weight:600; font-size:13px; }
+.formula-guide p { font-size:12px; line-height:1.8; margin:8px 0; }
+.formula-guide code { display:block; white-space:pre-wrap; overflow-wrap:anywhere; background:#f6f8fb; border-radius:6px; padding:8px; font-size:12px; margin-bottom:8px; }
+.formula-grid-builder { display:grid; gap:10px; }
+.formula-grid-dimensions { display:flex; gap:10px; }
+.formula-grid-dimensions > label { flex:1; }
+.formula-cell-scroll { overflow:auto; max-width:100%; padding:3px; }
+.formula-cells { display:grid; gap:6px; }
+.formula-cells input { font-family:Consolas, monospace; padding:7px; }
+.formula-grid-preview { min-width:0; overflow:auto; max-height:210px; background:var(--surface-muted); padding:8px; border-radius:8px; font-size:12px; }
+.formula-workspace .formula-actions { position:sticky; bottom:-1px; background:var(--surface); z-index:1; padding:12px 0; box-shadow:0 -8px 14px #fff; }
+@media (pointer:coarse), (max-width: 760px) {
+  .formula-workspace button, .formula-workspace select, .formula-workspace input, .formula-guide summary { min-height:44px; }
+  .formula-edit-actions button { min-width:44px; }
+  .formula-workspace input, .formula-workspace select, .formula-workspace textarea { font-size:16px; }
+  .formula-workspace .formula-graphic { width:44px; height:44px; flex-basis:44px; }
+  .formula-workspace .formula-graphic.is-structure { width:64px; height:50px; flex-basis:64px; }
 }
-@media (max-width: 760px) {
-  .notes-dialog.formula-dialog { width: calc(100vw - 16px); }
-  .formula-workspace-columns { grid-template-columns: minmax(0, 1fr); gap: 18px; }
-  .formula-composer { order: -1; gap: 12px; }
-  .formula-library { border-right: 0; padding-right: 0; border-top: 1px solid #e4e9f1; padding-top: 14px; }
-  .formula-workspace .formula-source-label textarea { min-height: 100px; height: 120px; }
-  .formula-workspace .formula-preview { min-height: 85px; }
-  .formula-catalog-scroll { max-height: 260px; }
-  .formula-guide { max-height: 330px; }
-  .formula-parameter-list { max-height: 100px; }
-  .formula-panels button { font-size: 11px; }
-  .formula-panels button > span { display: block; }
-  .formula-quick-tools { padding: 8px; }
-  .formula-symbol-ribbon, .formula-structure-ribbon { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 6px; }
-  .formula-symbol-tabs button { flex-shrink: 0; }
-  .formula-symbol-tabs button small { display: none; }
-  .formula-quick-heading small { display: none; }
-  .formula-workspace .formula-graphic { min-width: 44px; }
-  .formula-field-grid { max-height: 220px; }
-  .formula-field-controls button { flex: 1 1 40%; }
-  .formula-catalog-grid.is-symbol-palette { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+@media (max-width:760px) {
+  .notes-dialog.formula-dialog { width:calc(100vw - 16px); }
+  .formula-workspace-columns { grid-template-columns:minmax(0, 1fr); gap:18px; }
+  .formula-composer { order:-1; gap:12px; }
+  .formula-library { border-right:0; padding-right:0; border-top:1px solid #e4e9f1; padding-top:14px; }
+  .formula-workspace .formula-source-label textarea { min-height:100px; height:120px; }
+  .formula-workspace .formula-preview { min-height:85px; }
+  .formula-catalog-scroll { max-height:260px; }
+  .formula-guide { max-height:330px; }
+  .formula-parameter-list { max-height:100px; }
+  .formula-panels button { font-size:11px; }
+  .formula-panels button > span { display:block; }
+  .formula-quick-tools { padding:8px; }
+  .formula-symbol-ribbon, .formula-structure-ribbon { flex-wrap:nowrap; overflow-x:auto; padding-bottom:6px; }
+  .formula-symbol-tabs button { flex-shrink:0; }
+  .formula-symbol-tabs button small { display:none; }
+  .formula-quick-heading small { display:none; }
+  .formula-workspace .formula-graphic { min-width:44px; }
+  .formula-field-grid { max-height:220px; }
+  .formula-field-controls button { flex:1 1 40%; }
+  .formula-catalog-grid.is-symbol-palette { grid-template-columns:repeat(5, minmax(0, 1fr)); }
 }

@@ -1,5 +1,46 @@
 # Hustudy 需求实现与验收追踪
 
+2026-10-24 M1-REFERENCE-NOTES-28 → A06/A07/A08/A10与M3引用/笔记集成可用性增量：原文→聚合笔记检索→按需预览→显式保存/编辑→原片段，保留归属、UUID、正文/revision与离开保护；旧引用查询不再读取Note.content。478后端/2跳过、187单元/类型/构建/迁移/安全检查及84个不同双引擎场景经修正复验通过，user.md与121项人工清单同步。[证据](zhy/materialhub/reference_notes_acceptance.md)。无新表/迁移/依赖，不代签正式40任务/成员/真人/实机。
+
+2026-10-24 PLATFORM-COURSE-AGENDA-27 → 共享总览与M4计划只读集成、学习连续性/界面可用性增量：课程日程六视图、字面标题查找、真实计数/分页、账户日期和原错题回顾；不自动重做/完成/掌握。473后端/2跳过、187单元/类型/构建/迁移/安全检查及58个不同双引擎场景经修正复验通过；user.md和118项人工清单同步。[证据](zhy/integration/course_agenda_acceptance.md)。正式40任务与成员/实机接收不据此代签。
+
+2026-10-23–24 PLATFORM-USER-MANUAL-26 → 共享基础层/M1与M2/M3/M4现行学习流程集成、帮助引导与验收增量：根[user.md](../user.md)24章，站内阅读/查找/下载和配套资料/题库示例；资料、引用笔记、人工题库、错题回原题、知识点回讲义、计划重做和备份实际验证。469后端/2跳过、187单元、类型/构建/迁移/安全检查及240个不同双引擎场景经复验通过。[证据](zhy/integration/user_manual_acceptance.md)。无新API/schema/迁移/依赖/真实模型，正式40任务、真人与实机不自动签收。
+
+2026-10-23 M1-READING-NAVIGATOR-25 → A06/A07/A08/A10、B03/B04/C06集成与可用性增量：当前课件知识点搜索/分页/真实页反查/逐点讲解，保留完整总结和笔记保护；183单元/构建，44个不同双引擎场景经修正复验通过。无新API/schema/依赖/迁移，不代签实际模型质量/实机或40任务。[验收](zhy/materialhub/reading_navigator_acceptance.md)。
+
+2026-10-23 M1-TOPIC-NOTES-23 / PPT-COMPANION-24 → A06/A07/A08/A10、B03/B04/B05与C06集成：当前课件专用总结、版本化提示词、知识点引用页码与单点笔记/标题，469后端/2跳过、179单元/构建及46双引擎通过。无新API/schema/依赖/迁移，不改变Topic/掌握或代签成员/真人。[验收与边界](zhy/materialhub/ppt_companion_acceptance.md)。
+
+2026-10-23 PLATFORM-CLOUD-ACCOUNT-22 → A01/A02/A03/A08/A10共享认证/部署与跨端一致性增量：生产同源API默认、开发公共后端覆盖、账号与数据迁移文档，173单元/构建及26双引擎场景通过。无API/schema/迁移/依赖变化；正式云部署/真实两机/成员接收不代填。[范围与验收](zhy/shared_platform/cloud_accounts.md)。
+
+2026-10-23 M1-LEARNING-LAYOUT-18 → A07/A08/A10、B03/C06/D03/D08集成，FR-06/07/09/10/13/17/19/36及NFR-06/09/10：已有数据隔离测试、PPT单页/文本分页、完整查找与旧引用定位、知识点分区/移动目录/草稿保持。无新API/迁移，正式40任务/成员状态不代填。[实际验收](zhy/materialhub/learning_layout_acceptance.md)。
+
+2026-10-23 M1-READINESS-17 → A04/A05/A07/A08/A10及FR-03/05–09/13/36：补当前版本就绪检查、正文/人工状态与任务恢复、历史失败不留首页误提醒；归属/分页/无写入与原预算/草稿保护有隔离证据。正式40任务与成员接收不代填。[验收](zhy/materialhub/readiness_acceptance.md)。
+
+2026-10-23 M1-SOURCE-REVIEW-16 → A07/A08/A10、D08/D09及FR-06/07/09/25–31：固定原文到已有错题/计划元数据，原UUID回看路由、明确重做、日期/掌握独立、归属与撤回隔离。正式40任务与成员接收不据此代填。[实际验收](zhy/materialhub/source_reviews_acceptance.md)。
+
+2026-10-23 M1-LEARNING-CONNECTIONS-15 → A07/A08/A10、B03–B05、C06/C08、D03/D08/D09以及FR-06/07/09–13/17/19/25–31：只读有效引用关联、固定来源和原UUID导航，补版本/片段权限、撤回/分页去重、零自动抽题/模型及闭环连续性证据。正式40任务状态/成员签收不据此代填。[验收](zhy/materialhub/source_connections_acceptance.md)。
+
+2026-10-23 PLATFORM-UNIFIED-TONE-12：NFR-06/09/10统一主色、旧偏好兼容和跨页一致；保留语义状态与正文。163单元、62项双引擎专项和26项最终复验通过（含重复），不改变四域业务或正式40任务状态。[实际范围](zhy/integration/unified_tone_acceptance.md)。
+
+2026-10-23 PLATFORM-CONTROLS-07/COLOR-STUDIO-08/TYPOGRAPHY-09/RECORDS-10/WORKSPACE-POLISH-11 → A08/A10集成及NFR-06/09/10，补FR-06/09–20/25–31的来源/笔记/结果/作答回跳连续性和可用性证据。新增只读记录API与4项API风险测试、字体/控件/全分界面浏览器场景；不代签40任务Done或无障碍认证。[总验收](zhy/integration/all_workspaces_acceptance.md)。
+
+2026-10-22 PLATFORM-APPEARANCE-06 → A10集成与NFR-06/09/10展示/可用性增量：共享主题/布局设备偏好与四模块视觉角色；新增appearance单元/浏览器回归，不将局部对比度门槛当全站无障碍认证。[契约](contracts.md#platform-appearance-06)与[验证](zhy/integration/appearance_acceptance.md)。
+
+2026-10-22 M1-READING-TOOLS-05 → A06/A07/A08/A10、C06及FR-05–07/12：阅读书签固定历史来源，版本文本对照只读复用M1接口；新增reading-tools单元/双引擎回归，正式40任务仍按原接收流程，不代签Done。[实际范围](zhy/materialhub/reading_tools_acceptance.md)。
+
+2026-10-22 LEARNING-HUB-04 → A07/A08/A10、B03、C06、D03/D08，FR-07/09–13/25–31、NFR-06/09/10：新增test_learning_hub、material-views及learning-hub浏览器用例，覆盖只读/归属/合并/来源/错题与本机视图；不代签40任务完成。 [功能与验证](zhy/integration/learning_hub_acceptance.md)。
+
+2026-10-22 PLATFORM-CONTINUITY-03 → A08/A10、B03、C01/C02/C08/C09与D02/D04展示优化，FR-09–13/17/19、NFR-06/10；新增test_note_catalog/test_question_directory、note-recovery与continuity-workspace/note-continuity用例，旧双链/导出/引用/练习/报告继续回归；不将正式40任务标全部Done。 [使用、验证与边界](zhy/integration/continuity_acceptance.md)。
+
+2026-10-22 M1连续完善：FR-03/06/09/13、NFR-06/10及A05/A07/A08/A10、C06补充跨页原子整理与引用候选分页隔离证据，原文/引用/版本不变。[使用与验证](zhy/materialhub/organize_acceptance.md)。
+
+2026-10-22 后续整合：FR-03/06–20/25–31，A07/A08/A10、B04/B05、C06/C08、D07–D09补充跨模块自动证据：真实摘要、原文摘录/阅读继续、结果/笔记/作答定位、错题来源与复习计划；正式任务状态不代签。[实现与验收](zhy/integration/learning_loop_acceptance.md)。
+
+## M1-BATCH-STUDY-01（2026-10-22）
+
+A05/A07/A10、B03/B04/B05；FR-03/06/07/16–20及NFR-06/08/09：有界资料批量上传/逐项状态、服务异常暂停/不自动重放、历史版本/片段学习预选、来源错配/撤权及坏地址拒绝、移动布局与旧草稿保护。复用既有API/UUID/确认流程，无迁移；新增17项前端风险用例、12项双引擎新流程，及原有36项不同浏览器场景最终通过（含旧测试步骤修正后定向复验）。[实际证据](zhy/integration/material_study_acceptance.md)，[40任务核查](zhy/integration/project_review_2026_10_22.md)不作为成员签收。
+
+
 ## CR-M4-PDF-ZIP-03 / AI-EXTRACT-04
 
 FR-39/40：PDF自动拆题/分组与跨页解答/ZIP逐条安全导入；FR-20/45（用户覆盖）：免费固定模型拆分现有原题，原文预览/发送确认、结构化行号/完整性校验，非AI出新题；FR-25–28：解答参考文本只在提交后显示、不评分；NFR-06/08/09：来源撤回、ZIP预算、旧快照/恢复、立即展示。18项专项、Chrome11及全量边界见[验收](m4/pdf_zip_ai_acceptance.md)，未真实调用或代签。

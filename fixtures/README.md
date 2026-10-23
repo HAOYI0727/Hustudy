@@ -1,5 +1,7 @@
 # Fixtures
 
+新增`learning_loop_material.md`与`learning_loop_questions.md`为项目自制传输层闭环体验材料：配套3选择题/1解答题，没有新填空题或真实用户内容。根user.md说明先上传题库原件并从版本导入以保留原题出处，讲义来源另行确认到知识点；网站使用指南提供显式下载，不自动导入或调用模型。原`materialhub_demo.md`的固定报告演示仍仅适配操作系统材料。
+
 仅放自制或已获授权的小型测试资料。当前尚未加入真实课程文件，避免把未核实版权材料提交到仓库。
 
 materialhub_demo.md 为自制 Markdown 上传/目录/中文搜索/引用回源样例，不是教师课件或官方真题。后端 test_materialhub.py 在临时目录自行生成 PPTX、DOCX、PDF 和图片样本，不写入用户账户。

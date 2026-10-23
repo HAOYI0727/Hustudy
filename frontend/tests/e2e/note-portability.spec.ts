@@ -265,9 +265,9 @@ test('图片校验失败保留正文，上传中继续输入不被覆盖', async
   let release!: () => void;
   const pending = new Promise<void>(resolve => { release = resolve; });
   await page.route(`**/api/v1/courses/${s.course.id}/assets?*`, async route => {
-    const response = await route.fetch();
     await pending;
-    await route.fulfill({response});
+    // Keep the browser's original multipart body (WebKit route.fetch omits file bytes).
+    await route.continue();
   });
   await input.setInputFiles(file);
   await expect(page.locator('.save-indicator')).toHaveText('正在上传图片…');

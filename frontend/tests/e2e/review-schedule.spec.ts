@@ -1,0 +1,46 @@
+import {test,expect} from "@playwright/test";
+const base="http://127.0.0.1:8056/api/v1";
+
+for(const width of [1440,390])test(`复习计划安排未来日期、改期冲突重试、完成独立于掌握 ${width}px`,async({page,request})=>{
+  test.setTimeout(90000);await page.setViewportSize({width,height:1000});
+  const auth=await(await request.post(base+"/auth/register",{data:{username:"plan_"+crypto.randomUUID().replaceAll("-",""),password:"Test-password-2026"}})).json();
+  const headers={Authorization:"Bearer "+auth.access_token};
+  const course=await(await request.post(base+"/courses",{headers,data:{name:"复习计划课程"}})).json();
+  const bank=await(await request.post(base+`/courses/${course.id}/question-bank/import`,{headers,data:{title:"自制题库",content:"1. 选择正确项。\nA. 正确\nB. 错误一\nC. 错误二\nD. 错误三\n答案：A\n知识标签：自制标签"}})).json();
+  expect((await request.post(base+`/past-papers/${bank.id}/confirm`,{headers})).status()).toBe(200);
+  const paper=await(await request.post(base+`/courses/${course.id}/question-bank/draw`,{headers,data:{request_id:crypto.randomUUID(),topic_ids:[],count:1,duration_minutes:30}})).json();
+  expect((await request.post(base+`/exam-papers/${paper.id}/review`,{headers})).status()).toBe(200);
+  const attempt=await(await request.post(base+`/exam-papers/${paper.id}/attempts`,{headers})).json();
+  const question=paper.questions[0],wrong="ABCD"[question.options.findIndex((text:string)=>text==="错误一")];
+  expect((await request.put(base+`/attempts/${attempt.id}/answers/${question.id}`,{headers,data:{answer:wrong}})).status()).toBe(200);
+  expect((await request.post(base+`/attempts/${attempt.id}/submit`,{headers})).status()).toBe(200);
+  const mistake=(await(await request.get(base+"/mistakes",{headers})).json())[0];
+  await page.addInitScript(auth=>{localStorage.setItem("hustudy_token",auth.access_token);localStorage.setItem("hustudy_user",auth.user.username);},auth);
+  await page.goto(`/review?course=${course.id}&mistake=${mistake.id}`);
+  await page.getByLabel("安排复习日期",{exact:true}).fill("2099-12-31");
+  await page.getByRole("button",{name:"安排这道错题复习",exact:true}).click();
+  await expect(page.getByRole("region",{name:"安排错题复习"})).toContainText("已安排在 2099-12-31");
+  await page.getByRole("button",{name:"← 返回错题库",exact:true}).click();
+  const plans=page.locator(".review-schedule");await expect(plans).toContainText("2099-12-31");
+  const date=page.getByLabel("调整复习日期：回顾错题与相关原文",{exact:true});
+  await date.fill("2099-12-30");let patches=0;
+  await page.route("**/api/v1/review-tasks/*",async route=>{
+    if(route.request().method()!=="PATCH")return route.continue();
+    patches++;if(patches===1)return route.fulfill({status:409,json:{error:{code:"TEST_CONFLICT",message:"模拟复习日期已变化"}}});
+    expect(route.request().postDataJSON()).toEqual({due_date:"2099-12-30",expected_due_date:patches===2?"2099-12-31":"2099-12-30"});return route.continue();
+  });
+  await page.getByRole("button",{name:"保存改期",exact:true}).click();
+  await expect(page.locator(".toast.error")).toContainText("模拟复习日期已变化");await expect(date).toHaveValue("2099-12-30");expect(patches).toBe(1);
+  await page.getByRole("button",{name:"保存改期",exact:true}).click();
+  await expect(plans).toContainText("复习日期已更新");expect(patches).toBe(2);
+  await page.getByLabel("复习计划范围",{exact:true}).selectOption("all");
+  await page.getByRole("button",{name:"完成计划",exact:true}).click();
+  await expect(plans).toContainText("计划已完成");
+  const latest=(await(await request.get(base+"/mistakes",{headers})).json()).find((row:{id:string})=>row.id===mistake.id);expect(latest.mastered).toBe(false);
+  expect((await(await request.get(base+"/mistakes/daily-progress?goal=3",{headers})).json()).completed).toBe(0);
+  await page.getByRole("button",{name:"重新安排",exact:true}).click();
+  await expect(plans).toContainText("等待计划日期");
+  expect((await(await request.get(base+"/review-tasks",{headers})).json()).total).toBe(1);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+  await page.screenshot({path:test.info().outputPath(`review-schedule-${width}.png`),fullPage:true});
+});
