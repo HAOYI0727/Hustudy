@@ -1,5 +1,20 @@
 # P0 公共任务与集成记录
 
+2026-10-23 共享控件、模块色、系统字体、全部分界面与真实学习记录完成实现和自动核验。443后端通过/2跳过、163前端单元及构建/迁移检查通过；434项浏览器首轮415通过/13失败/6跳过，修复后82项专项全通过，不同场景428项经修复复验通过。正式40任务/成员/实机验收仍由本人，实际过程与剩余关口见[全站功能核查](../docs/zhy/integration/project_review_2026_10_23.md)。
+
+2026-10-22 队长增量H-20261022-ZHY-005：官方设计研究、只读知识点聚合与M1常用视图，跨模块消费影响gcx/fzk/xtc，接收仍由本人复验。 [功能与验证](../docs/zhy/integration/learning_hub_acceptance.md)。
+
+2026-10-22 队长增量：PLATFORM-CONTINUITY-03阅读侧栏/草稿恢复/按需目录已实施，H-20261022-ZHY-004待接收；不覆盖成员既有状态或代签验收。 [使用、验证与边界](../docs/zhy/integration/continuity_acceptance.md)。
+
+2026-10-22 M1连续完善：M1-ORGANIZE-02实现与自动复验完成（Review）：资料分类/标签批量原子操作、单份冲突保护与独立恢复，影响M3只读笔记候选及共享弹窗；成员接收待实际填写。[使用与验证](../docs/zhy/materialhub/organize_acceptance.md)。
+
+2026-10-22 后续整合：PLATFORM-LEARNING-LOOP-02进入Review：工作台真实摘要、阅读/笔记/作答定位、错题回源与复习计划、统一视觉已通过隔离自动验证，跨模块接收待实际填写。[实现与验收](../docs/zhy/integration/learning_loop_acceptance.md)。
+
+## 2026-10-22 队长共享层/M1增量（Review，待接收）
+
+M1-BATCH-STUDY-01的批量导入、历史版本/片段继续学习、当前帮助/指南及异常保护已实现并有隔离自动证据；不将A01–A10/B/C/D整体标Done。正式40任务覆盖、依赖与后续顺序见[当前核查](../docs/zhy/integration/project_review_2026_10_22.md)，[验证结果](../docs/zhy/integration/material_study_acceptance.md)与[交接](handoff.md#h-20261022-zhy-001)。
+
+
 ## 2026-10-20 M4-PDF-ZIP-03 / AI-EXTRACT-04（Review）
 
 用户实际PDF17题自动展示、ZIP导入及免费模型结构化识别接口已有实现与隔离证据；本机缺Key，真实调用待用户本机配置，参考答案与成员签收待人工核实。未提交/推送。[验收](../docs/m4/pdf_zip_ai_acceptance.md)。

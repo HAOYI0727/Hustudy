@@ -24,6 +24,9 @@ try {
     if (!name.endsWith('.js')) continue;
     const file=join(scratch,name);
     const compiled=(await readFile(file,'utf8'))
+      // This Node-only renderer has no Vite runtime. Use a fixed public
+      // development environment; never load local configuration or credentials.
+      .replace(/\bimport\.meta\.env\b/g,'({PROD:false,VITE_API_BASE_URL:undefined})')
       .replace(/import\s+(['"])[^'"\n]+\.css\1\s*;?/g,'')
       .replace(/\bfrom\s+(['"])(\.{1,2}\/[^'"]+)\1/g,(all,quote,target)=>
         existsSync(resolve(dirname(file),target+'.js')) ? `from ${quote}${target}.js${quote}` : all);

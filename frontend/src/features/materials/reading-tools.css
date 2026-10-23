@@ -1,0 +1,71 @@
+.reading-tool-intro {display:flex;align-items:flex-start;gap:16px;padding:20px;border:1px solid #e1e6fa;border-radius:16px;background:linear-gradient(120deg,var(--accent-soft),var(--surface-muted));margin-bottom:20px;}
+.reading-tool-symbol {display:grid;place-items:center;flex-shrink:0;width:48px;height:48px;border-radius:14px;color:var(--accent-ink);background:var(--accent-soft);}
+.reading-tool-intro h3 {margin:1px 0 7px;font-size:17px;overflow-wrap:anywhere;}
+.reading-tool-intro p {margin:0;font-size:12px;line-height:1.8;color:var(--muted);}
+.notes-dialog.reading-bookmarks-dialog {width:min(780px,calc(100vw - 32px));}
+.reading-tool-error {padding:12px 14px;border:1px solid #ecd9bc;border-radius:10px;background:#fff9ef;color:#8a572e;line-height:1.8;overflow-wrap:anywhere;font-size:13px;}
+.reading-tool-notice {padding:12px 14px;background:#edf8f2;border-radius:10px;color:#327761;font-size:13px;}
+.bookmark-save {padding:16px;margin:18px 0;border:1px solid var(--accent-border);border-radius:12px;background:var(--surface-muted);}
+.bookmark-save>p {margin:0 0 12px;font-size:12px;color:var(--muted);overflow-wrap:anywhere;}
+.bookmark-save label {display:grid;gap:8px;font-size:13px;}
+.bookmark-save>div {display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;}
+.bookmark-search {display:flex;align-items:center;gap:10px;}
+.bookmark-search>label {flex:1;min-width:0;}
+.reading-bookmark-list {margin:12px 0;}
+.reading-bookmark-list article {border-bottom:1px solid var(--line);padding:16px 2px;}
+.bookmark-identity {display:flex;gap:10px;align-items:flex-start;color:#6b71c1;}
+.bookmark-identity>div {min-width:0;}
+.bookmark-identity strong {display:block;color:var(--ink);font-size:14px;overflow-wrap:anywhere;}
+.bookmark-identity p {margin:7px 0 0;color:var(--muted);font-size:12px;overflow-wrap:anywhere;line-height:1.6;}
+.bookmark-actions {display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:12px 0 0 28px;}
+.bookmark-actions button {font-size:12px;}
+.bookmark-rename {display:flex;gap:8px;flex-wrap:wrap;}
+.bookmark-rename input {flex:1 1 180px;min-width:0;}
+.reading-tool-empty {display:grid;justify-items:center;gap:12px;padding:38px 20px;text-align:center;color:var(--muted);}
+.reading-tool-empty strong {font-size:14px;color:#536380;}
+.reading-tool-empty p {font-size:12px;line-height:1.8;margin:0;}
+.notes-dialog.version-compare-dialog {width:min(1120px,calc(100vw - 32px));}
+.compare-versions {display:grid;grid-template-columns:minmax(0,1fr) 20px minmax(0,1fr) auto;gap:12px;align-items:end;margin-bottom:14px;}
+.compare-versions label {display:grid;gap:8px;min-width:0;font-size:12px;color:var(--muted);}
+.compare-versions select {width:100%;min-width:0;}
+.compare-versions>.ui-icon {margin-bottom:12px;color:#909abc;}
+.compare-scope {line-height:1.8;}
+.compare-stats {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:20px 0;}
+.compare-stats>div {display:grid;gap:6px;padding:16px;border:1px solid var(--line);border-radius:12px;background:var(--surface-muted);}
+.compare-stats strong {font-size:23px;font-weight:600;color:#566587;}
+.compare-stats span {font-size:12px;color:var(--muted);}
+.compare-stats [data-status="changed"] {background:var(--accent-soft);border-color:var(--accent-border);}
+.compare-stats [data-status="changed"] strong {color:var(--accent-ink);}
+.compare-filters {display:flex;gap:12px;flex-wrap:wrap;margin:18px 0;}
+.compare-filters>label {flex:1 1 200px;min-width:0;}
+.compare-filters>select {flex:0 1 200px;}
+.compare-row {margin:10px 0;border:1px solid var(--line);border-radius:12px;overflow:hidden;}
+.compare-row>summary {display:flex;align-items:center;flex-wrap:wrap;gap:10px;cursor:pointer;padding:15px;background:var(--surface-muted);list-style:none;}
+.compare-row>summary::before {content:"＋";color:#8491ab;}
+.compare-row[open]>summary::before {content:"−";}
+.compare-row>summary strong {flex:1;min-width:80px;font-size:13px;color:var(--ink);overflow-wrap:anywhere;}
+.compare-row>summary small {font-size:11px;color:var(--muted);}
+.compare-status {border-radius:6px;padding:4px 7px;font-size:11px;color:#677a91;background:#eaf0f6;}
+.compare-row[data-status="changed"] .compare-status {background:var(--accent-soft);color:var(--accent-ink);}
+.compare-row[data-status="left"] .compare-status {background:#fff1e4;color:#986c3d;}
+.compare-row[data-status="right"] .compare-status {background:#e6f4ef;color:#478171;}
+.compare-columns {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border-top:1px solid var(--line);}
+.compare-columns>section {min-width:0;padding:16px;}
+.compare-columns>section+section {border-left:1px solid var(--line);}
+.compare-columns header {display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding-bottom:12px;font-size:11px;color:#8190a6;overflow-wrap:anywhere;}
+.compare-columns pre {white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;font-family:inherit;line-height:1.9;font-size:13px;margin:0;color:var(--ink);max-height:440px;overflow:auto;}
+.compare-absent {font-size:12px;color:#98a2b6;}
+.reading-tool-loading {display:flex;align-items:center;gap:10px;padding:30px 12px;font-size:13px;color:var(--muted);}
+.reading-paper .chunk:focus {outline:2px solid var(--accent-border);outline-offset:4px;}
+.reader-stage .reading-tools {max-width:100%;min-width:0;flex-shrink:1;}
+@media(max-width:700px){
+ .notes-dialog.reading-bookmarks-dialog,.notes-dialog.version-compare-dialog {width:calc(100vw - 16px);}
+ .reading-tool-intro {padding:14px;gap:12px;}.reading-tool-symbol {width:36px;height:36px;border-radius:10px;}
+ .reading-tool-intro h3 {font-size:15px;}
+ .compare-versions {grid-template-columns:minmax(0,1fr);gap:12px;}.compare-versions>.ui-icon {display:none;}
+ .compare-stats {grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}.compare-stats>div {padding:12px;}
+ .compare-columns {grid-template-columns:minmax(0,1fr);}.compare-columns>section+section {border-left:0;border-top:1px solid var(--line);}
+ .compare-row>summary {gap:7px;padding:12px;}.compare-row>summary small {width:100%;padding-left:24px;}
+ .compare-filters>select {flex:1;}.compare-columns pre {max-height:320px;}
+ .bookmark-actions {padding-left:0;gap:10px;}
+}

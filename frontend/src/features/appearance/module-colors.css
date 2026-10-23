@@ -1,0 +1,120 @@
+/* Every workspace follows one chosen theme; state colors remain independent. */
+.app-shell {--module-color:var(--material-color);--module-ink:var(--material-ink);--module-wash:var(--material-wash);--module-tint:var(--material-tint);--module-line:var(--material-line);}
+
+/* A tinted cover, a geometric seal, and a distinct icon give each workspace a cover. */
+.app-shell .page-title {isolation:isolate;overflow:hidden;border:1px solid var(--module-line);border-left:4px solid var(--module-color);background:linear-gradient(112deg,var(--module-wash),var(--module-tint));box-shadow:0 5px 18px #25334c06;}
+.app-shell .page-title::after {content:"";position:absolute;z-index:-1;width:210px;height:210px;right:-55px;top:-110px;border:25px solid var(--module-line);border-radius:50%;opacity:.3;pointer-events:none;}
+.app-shell .page-title .eyebrow {display:inline-flex;align-items:center;gap:8px;padding:4px 9px;border:1px solid var(--module-line);border-radius:6px;background:var(--surface);color:var(--module-ink);font-size:9px;letter-spacing:.1em;}
+.app-shell .page-title h2 {color:var(--module-ink);}
+.app-shell .page-title .module-title-copy>p:not(.eyebrow) {color:var(--ink);}
+.app-shell .page-title .module-illustration {color:var(--module-color);opacity:.85;filter:drop-shadow(0 6px 4px #25334c08);}
+.app-shell .workspace-context>.ui-icon {color:var(--module-color);}
+.app-shell .learning-path {background:linear-gradient(95deg,var(--surface),var(--module-tint));border-color:var(--module-line);}
+.app-shell .primary,.notes-dialog .primary {background-image:linear-gradient(180deg,transparent,#0000000d);box-shadow:inset 0 1px 0 #ffffff30,0 3px 6px #25334c10,0 7px 16px var(--accent-glow);}
+.app-shell .content .secondary:not(.danger):not(.button-selected):not([aria-pressed=true]) {background-color:var(--module-tint);border-color:var(--module-line);color:var(--module-ink);}
+.app-shell .panel-title h3>.ui-icon {color:var(--module-color);}
+
+/* Domain aliases all use the chosen theme; icons and labels distinguish the tools. */
+[data-workspace-link=materials] {--nav-module:var(--material-ink);--nav-module-bg:var(--material-wash);}
+[data-workspace-link=ai] {--nav-module:var(--ai-ink);--nav-module-bg:var(--ai-wash);}
+[data-workspace-link=notes] {--nav-module:var(--notes-ink);--nav-module-bg:var(--notes-wash);}
+[data-workspace-link=exam] {--nav-module:var(--exam-ink);--nav-module-bg:var(--exam-wash);}
+[data-workspace-link=review] {--nav-module:var(--review-ink);--nav-module-bg:var(--review-wash);}
+.navigation-group [data-workspace-link]>.ui-icon {width:27px;height:27px;padding:5px;flex-shrink:0;border-radius:8px;color:var(--nav-module,var(--accent-ink));background:var(--nav-module-bg,var(--accent-soft));opacity:1;}
+.app-shell .sidebar .navigation-group [data-workspace-link]>.ui-icon,.navigation-drawer .navigation-group [data-workspace-link]>.ui-icon {color:var(--nav-module,var(--accent-ink));opacity:1;}
+
+/* The dashboard shares one hue and a quiet range of tinted surfaces. */
+.app-shell .dashboard-hero {background:radial-gradient(ellipse at 90% 0,var(--accent-border),transparent 65%),linear-gradient(110deg,var(--accent-soft),var(--surface) 62%,var(--notes-tint));border-color:var(--accent-border);}
+.app-shell .hero-date {border:1px solid var(--accent-border);background:var(--surface);color:var(--accent-ink);}
+.app-shell .knowledge-orbit .orbit-core {background:var(--accent);background-image:linear-gradient(145deg,transparent,#00000015);color:white;border:1px solid var(--accent-strong);border-radius:30px;box-shadow:inset 0 1px 0 #ffffff40,0 14px 34px var(--accent-glow);transform:rotate(-8deg);}
+.app-shell .orbit-core>span {color:white;opacity:.9;}
+.app-shell .orbit-note {background:var(--material-wash);color:var(--material-ink);border-color:var(--material-line);box-shadow:0 5px 12px #25334c0a;}
+.app-shell .orbit-note.two {background:var(--notes-wash);color:var(--notes-ink);border-color:var(--notes-line);}
+.app-shell .orbit-note.three {background:var(--exam-wash);color:var(--exam-ink);border-color:var(--exam-line);}
+.metric-card,.learning-stage,.course-card {--card-color:var(--accent);--card-ink:var(--accent-ink);--card-wash:var(--accent-soft);--card-tint:var(--surface);--card-line:var(--accent-border);}
+.metric-material,.stage-materials,.course-color-1 {--card-color:var(--material-color);--card-ink:var(--material-ink);--card-wash:var(--material-wash);--card-tint:var(--material-tint);--card-line:var(--material-line);}
+.stage-study,.course-color-2 {--card-color:var(--ai-color);--card-ink:var(--ai-ink);--card-wash:var(--ai-wash);--card-tint:var(--ai-tint);--card-line:var(--ai-line);}
+.metric-notes,.stage-notes,.course-color-0 {--card-color:var(--notes-color);--card-ink:var(--notes-ink);--card-wash:var(--notes-wash);--card-tint:var(--notes-tint);--card-line:var(--notes-line);}
+.stage-practice {--card-color:var(--exam-color);--card-ink:var(--exam-ink);--card-wash:var(--exam-wash);--card-tint:var(--exam-tint);--card-line:var(--exam-line);}
+.metric-review {--card-color:var(--review-color);--card-ink:var(--review-ink);--card-wash:var(--review-wash);--card-tint:var(--review-tint);--card-line:var(--review-line);}
+.app-shell .metric-card {position:relative;isolation:isolate;overflow:hidden;background:linear-gradient(140deg,var(--card-wash),var(--card-tint));border-color:var(--card-line);}
+.app-shell .metric-card::after {content:"";position:absolute;z-index:-1;right:-28px;bottom:-40px;width:115px;height:115px;border:16px solid var(--card-line);border-radius:50%;opacity:.3;pointer-events:none;}
+.app-shell .metric-card strong {color:var(--card-ink);}
+.app-shell .metric-card span,.app-shell .metric-card small {color:var(--card-ink);}
+.app-shell .metric-card .metric-icon {background:var(--card-color);color:white;border-radius:11px;box-shadow:inset 0 1px 0 #ffffff35,0 4px 10px #25334c0d;}
+.app-shell .learning-stage {position:relative;isolation:isolate;overflow:hidden;background:linear-gradient(145deg,var(--card-wash),var(--card-tint));border-color:var(--card-line);--stage-color:var(--card-color);--stage-soft:var(--card-tint);}
+.learning-stage .stage-watermark {position:absolute;z-index:-1;right:-12px;top:39px;width:105px;height:105px;transform:rotate(-16deg);color:var(--card-color);opacity:.08;pointer-events:none;}
+.app-shell .stage-symbol {width:44px;height:44px;background:var(--card-color);color:white;border:1px solid #ffffff30;box-shadow:inset 0 1px 0 #ffffff35,0 5px 10px #25334c0d;transform:rotate(-5deg);}
+.app-shell .stage-number {padding:4px 7px;border:1px solid var(--card-line);border-radius:6px;background:var(--card-tint);color:var(--card-ink);font-size:10px;}
+.app-shell .learning-stage h3 {color:var(--card-ink);}
+.app-shell .learning-stage>p {color:var(--ink);}
+.app-shell .stage-count strong,.app-shell .stage-count>span {color:var(--card-ink);}
+.app-shell .learning-stage .stage-action {justify-content:space-between;margin-top:2px;padding:8px 11px;border:1px solid var(--card-color);border-radius:9px;background:var(--card-color);background-image:linear-gradient(180deg,transparent,#0000000a);color:white;box-shadow:inset 0 1px 0 #ffffff25,0 3px 8px #25334c0b;}
+.stage-action>.ui-icon {width:23px;height:23px;padding:4px;background:#ffffff20;border-radius:50%;}
+.app-shell .course-card {position:relative;overflow:hidden;border-color:var(--card-line);background:linear-gradient(160deg,var(--card-wash),var(--card-tint) 65%);}
+.app-shell .course-card::before {content:"";position:absolute;inset:0 0 auto;height:4px;background:var(--card-color);pointer-events:none;}
+.app-shell .course-card .course-icon {color:white;background:var(--card-color);box-shadow:0 5px 11px #25334c10;border-radius:12px;}
+.app-shell .course-card>strong,.app-shell .course-card .course-description {color:var(--card-ink);}
+.app-shell .course-card-actions {border-color:var(--card-line);}
+.app-shell .course-card-actions .link-button {color:var(--card-ink);}
+.app-shell .hub-overview-link {background:linear-gradient(110deg,var(--accent-soft),var(--ai-wash));border-color:var(--accent-border);box-shadow:0 4px 12px #25334c05;}
+.app-shell .next-actions {background:linear-gradient(100deg,var(--exam-wash),var(--exam-tint));border-color:var(--exam-line);}
+.app-shell .next-actions .eyebrow {color:var(--exam-ink);}
+.app-shell .next-action-icon {padding:8px;border-radius:9px;background:var(--exam-wash);color:var(--exam-ink);}
+.app-shell .dashboard-aside>.panel:first-child {background:linear-gradient(150deg,var(--notes-tint),var(--surface));border-color:var(--notes-line);border-top:3px solid var(--notes-color);}
+.app-shell .dashboard-aside>.review-preview {background:linear-gradient(150deg,var(--review-wash),var(--review-tint));border-color:var(--review-line);}
+.app-shell .review-preview .review-summary-numbers strong {color:var(--review-ink);}
+
+/* Carry the same identity into tools; authored content and editing surfaces stay calm. */
+.app-shell .module-stats article {position:relative;overflow:hidden;border:1px solid var(--module-line);background:linear-gradient(125deg,var(--module-wash),var(--module-tint));box-shadow:var(--elevation-rest);}
+.app-shell .module-stats article::after {content:"";position:absolute;right:-24px;bottom:-40px;width:95px;height:95px;border:14px solid var(--module-line);border-radius:50%;opacity:.3;pointer-events:none;}
+.app-shell .module-stats article>span,.app-shell .module-stats article>strong {color:var(--module-ink);}
+.app-shell .module-stats article>small {color:var(--module-ink);}
+.app-shell .notes-workspace-heading {padding:20px 22px;border:1px solid var(--notes-line);border-left:4px solid var(--notes-color);border-radius:15px;background:linear-gradient(115deg,var(--notes-wash),var(--notes-tint));box-shadow:var(--elevation-rest);}
+.app-shell .notes-workspace-heading .eyebrow,.app-shell .notes-workspace-heading h1 {color:var(--notes-ink);}
+.app-shell .notes-view-tabs {padding:6px;gap:6px;border:1px solid var(--notes-line);background:var(--notes-tint);border-radius:11px;}
+.app-shell .notes-view-tabs>button[aria-pressed=true] {color:var(--notes-ink);border-color:var(--notes-line);background:var(--notes-wash);box-shadow:0 2px 4px #25334c06;}
+.app-shell .ai-mode-tabs {background:var(--ai-wash);border-color:var(--ai-line);}
+.app-shell .bank-tabs {background:var(--exam-wash);border-color:var(--exam-line);}
+.app-shell .mode-card {background:linear-gradient(110deg,var(--ai-wash),var(--ai-tint));border-color:var(--ai-line);color:var(--ai-ink);}
+.app-shell .material-upload {border-color:var(--material-line);background:linear-gradient(150deg,var(--material-tint),var(--material-wash));}
+.app-shell .reader-directory>summary {color:var(--material-ink);background:var(--material-tint);}
+.app-shell .hub-introduction {background:linear-gradient(105deg,var(--ai-wash),var(--material-tint) 60%,var(--notes-wash));border-color:var(--ai-line);}
+.app-shell .hub-source-card {border-color:var(--material-line);background:var(--material-tint);border-left:3px solid var(--material-color);}
+.app-shell .hub-note-card {border-color:var(--notes-line);background:var(--notes-tint);color:var(--notes-ink);}
+.app-shell .hub-detail>.panel[aria-label="知识点错题与复习"] {background:linear-gradient(160deg,var(--review-tint),var(--surface));border-color:var(--review-line);}
+.app-shell .review-page .daily-redo {border-color:var(--review-line);background:linear-gradient(110deg,var(--review-wash),var(--review-tint));}
+.app-shell .review-page .daily-redo h3 {color:var(--review-ink);}
+.app-shell .hub-topic-list>button.is-selected {border-color:var(--accent-border);background:var(--accent-soft);box-shadow:inset 3px 0 var(--accent);}
+.app-shell .hub-topic-list>button:hover {border-color:var(--accent-border);}
+.app-shell .hub-metrics strong,.app-shell .hub-section-heading>span,.app-shell .hub-mini-path {color:var(--accent-ink);}
+.app-shell .hub-mini-path span {border-color:var(--accent-border);background:var(--material-tint);}
+.app-shell .course-current,.app-shell .course-card .course-labels button {color:var(--accent-ink)!important;}
+.app-shell .evidence-tip {background:var(--material-tint);border:1px solid var(--material-line);color:var(--material-ink);}
+.app-shell .activity-icon {background:var(--material-wash);color:var(--material-ink);}
+.app-shell .aside-icon {color:var(--accent-ink);}
+.app-shell .dashboard-note small {color:var(--muted);}
+.app-shell .study-report .report-label {background:var(--ai-tint);border:1px solid var(--ai-line);}
+.app-shell .review-tag {background:var(--review-tint);color:var(--review-ink);}
+.app-shell .bank-full-context {background:var(--surface);border-color:var(--exam-line);}
+.app-shell .bank-full-context>.bank-context-heading>h4,.app-shell .bank-full-context>h4 {color:var(--exam-ink);}
+.bank-context-heading .secondary {background:var(--exam-tint);border-color:var(--exam-line);color:var(--exam-ink);}
+.bank-topic-drag-preview {background:var(--exam-tint);border-color:var(--exam-line);color:var(--exam-ink);}
+.app-shell .bank-topic-search .bank-topic-search-clear {background:var(--exam-tint);color:var(--exam-ink);}
+.app-shell .bank-question-editor>summary::before {background:var(--exam-tint);}
+@media(hover:hover) and (pointer:fine){
+ .app-shell .learning-stage:hover,.app-shell .metric-card:hover,.app-shell .course-card:hover {border-color:var(--card-color);}
+ .app-shell .stage-action:hover:not(:disabled) {filter:brightness(.94);box-shadow:0 5px 12px #25334c18;}
+ .app-shell .content .secondary:not(.danger):not(.button-selected):not([aria-pressed=true]):hover:not(:disabled) {background:var(--module-wash);border-color:var(--module-color);}
+}
+@media(max-width:760px){
+ .app-shell .notes-workspace-heading {padding:17px;}
+ .app-shell .stage-symbol {width:38px;height:38px;}
+ .app-shell .stage-number {font-size:9px;padding:4px;}
+ .stage-heading {gap:6px;flex-wrap:wrap;}
+ .app-shell .learning-stage .stage-action {min-height:44px;padding:8px;}
+ .app-shell .metric-card .metric-icon {display:none;}
+}
+@media(prefers-reduced-motion:reduce){
+ .app-shell .stage-symbol,.app-shell .knowledge-orbit .orbit-core {transform:none;}
+}

@@ -1,11 +1,11 @@
 import {useEffect, useState, type DragEvent} from 'react';
-import {api, type Note, type NoteFolder} from '../../api/client';
+import {api, type NoteSummary, type NoteFolder} from '../../api/client';
 import {folderOptions, insideFolder} from './organization';
 import {NotesDialog} from './NotesDialog';
 import {canDropNotes, type NoteDrag} from './noteDragging';
 
 export function FolderLibrary({token, courseId, folders, notes, selected, onSelect, disabled, perform, refresh, drag, startDrag, endDrag, drop, error}: {
-  token: string; courseId: string; folders: NoteFolder[]; notes: Note[]; selected: string; onSelect: (id: string) => void;
+  token: string; courseId: string; folders: NoteFolder[]; notes: NoteSummary[]; selected: string; onSelect: (id: string) => void;
   disabled: boolean; perform: (action: () => Promise<void>) => Promise<void>; refresh: () => Promise<void>;
   drag: NoteDrag | null; startDrag: (event: DragEvent, value: NoteDrag) => void; endDrag: () => void; drop: (target: string | null) => void;
   error: string;

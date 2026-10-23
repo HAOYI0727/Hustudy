@@ -4,11 +4,26 @@ from uuid import UUID
 from typing import Annotated, List, Optional
 from pydantic import (
     BaseModel,
+    ConfigDict,
     Field,
     StringConstraints,
     AfterValidator,
     field_validator,
 )
+
+
+class NoteOption(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    title: str
+    updated_at: datetime
+
+
+class NoteOptionPage(BaseModel):
+    items: list[NoteOption]
+    total: int
+    offset: int
+    limit: int
 
 
 def normalize_tags(tags: list[str]) -> list[str]:
@@ -81,6 +96,24 @@ class NoteResponse(BaseModel):
     revision: int
     created_at: datetime
     updated_at: datetime
+
+
+class NoteMetadata(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    course_id: Optional[str]
+    folder_id: str | None
+    title: str
+    tags: list[str]
+    revision: int
+    updated_at: datetime
+
+
+class NoteCatalog(BaseModel):
+    items: list[NoteMetadata]
+    total: int
+    offset: int
+    limit: int
 
 
 class CitationResponse(BaseModel):

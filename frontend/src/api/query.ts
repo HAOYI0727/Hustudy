@@ -1,6 +1,6 @@
 import { QueryClient } from "@tanstack/react-query";
 
-export const queryClient = new QueryClient({defaultOptions:{queries:{retry:false,staleTime:0,gcTime:60_000,refetchOnWindowFocus:false,refetchOnReconnect:false},mutations:{retry:false}}});
+export const queryClient = new QueryClient({defaultOptions:{queries:{networkMode:"always",retry:false,staleTime:0,gcTime:60_000,refetchOnWindowFocus:false,refetchOnReconnect:false},mutations:{retry:false}}});
 const partitions = new Map<string,string>();
 const generations = new Map<string,number>();
 let serial = 0;

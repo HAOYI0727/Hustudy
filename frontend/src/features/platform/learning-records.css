@@ -1,0 +1,35 @@
+.learning-records-dialog {width:min(940px,calc(100vw - 32px));}
+.records-intro {display:flex;align-items:center;gap:14px;padding:18px;margin:0 0 20px;border:1px solid var(--accent-border);border-radius:12px;background:linear-gradient(110deg,var(--accent-soft),var(--material-tint));}
+.records-intro>span {display:grid;place-items:center;width:44px;height:44px;flex-shrink:0;border-radius:12px;color:white;background:var(--accent);box-shadow:0 4px 10px var(--accent-glow);}
+.records-intro>div {min-width:0;flex:1;}
+.records-course {display:block;margin:3px 0 6px;color:var(--accent-ink);font-size:12px;line-height:1.7;overflow-wrap:anywhere;}
+.records-intro h3 {margin:0 0 5px;font-size:17px;color:var(--accent-ink);}
+.records-intro p {margin:0;font-family:var(--font-reading);font-size:13px;color:var(--ink);line-height:1.8;}
+.records-filters {display:grid;grid-template-columns:minmax(140px,.7fr) minmax(0,1.8fr) auto;align-items:end;gap:12px;margin-bottom:18px;}
+.records-filters>label {display:grid;gap:7px;min-width:0;font-size:12px;color:var(--muted);}
+.records-filters :is(input,select) {width:100%;min-width:0;font-family:var(--font-ui);}
+.records-filters>button {min-height:38px;}
+.record-tone-material {--record-color:var(--material-color);--record-ink:var(--material-ink);--record-tint:var(--material-tint);--record-line:var(--material-line);}
+.record-tone-note {--record-color:var(--notes-color);--record-ink:var(--notes-ink);--record-tint:var(--notes-tint);--record-line:var(--notes-line);}
+.record-tone-qa,.record-tone-report {--record-color:var(--ai-color);--record-ink:var(--ai-ink);--record-tint:var(--ai-tint);--record-line:var(--ai-line);}
+.record-tone-attempt {--record-color:var(--exam-color);--record-ink:var(--exam-ink);--record-tint:var(--exam-tint);--record-line:var(--exam-line);}
+.record-tone-mistake {--record-color:var(--review-color);--record-ink:var(--review-ink);--record-tint:var(--review-tint);--record-line:var(--review-line);}
+.records-type-counts {display:flex;flex-wrap:wrap;gap:7px;margin-bottom:18px;}
+.records-type-counts>span {display:inline-flex;align-items:center;gap:6px;padding:5px 8px;font-size:11px;color:var(--record-ink);background:var(--record-tint);border:1px solid var(--record-line);border-radius:7px;}
+.records-type-counts strong {font-size:12px;}
+.records-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+.learning-records-dialog .record-card {display:flex;align-items:center;gap:12px;width:100%;min-width:0;padding:16px;text-align:left;white-space:normal;border:1px solid var(--record-line);border-left:3px solid var(--record-color);border-radius:12px;color:var(--record-ink);background:linear-gradient(130deg,var(--record-tint),var(--surface));box-shadow:0 2px 7px #25334c05;}
+.record-symbol {display:grid;place-items:center;flex-shrink:0;width:35px;height:35px;border-radius:10px;background:var(--record-color);color:white;}
+.record-copy {flex:1;min-width:0;display:grid;gap:6px;}
+.record-copy>small {font-size:10px;}
+.record-copy>strong {font-size:13px;line-height:1.65;overflow-wrap:anywhere;}
+.record-copy>span {display:flex;align-items:center;flex-wrap:wrap;gap:8px;}
+.record-copy time {font-size:11px;color:var(--muted);}
+.record-card>.ui-icon {flex-shrink:0;}
+.records-pages {display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:10px;margin-top:20px;}
+.records-pages>span {font-size:12px;color:var(--muted);}
+.records-empty {display:grid;justify-items:center;gap:8px;min-height:160px;align-content:center;padding:20px;text-align:center;color:var(--muted);font-size:13px;}
+.records-footnote {margin:20px 0 0;padding-top:15px;border-top:1px solid var(--line);font-size:11px;line-height:1.8;color:var(--muted);}
+@media(hover:hover) and (pointer:fine){.learning-records-dialog .record-card:hover {border-color:var(--record-color);box-shadow:0 5px 14px #25334c10;transform:translateY(-2px);}}
+@media(max-width:760px){.learning-records-dialog {width:calc(100vw - 24px);}.records-filters {grid-template-columns:1fr;}.records-filters>button {min-height:44px;}.records-grid {grid-template-columns:1fr;}.records-intro {padding:14px;align-items:start;}.records-intro h3 {font-size:16px;}.learning-records-dialog .record-card {padding:14px;}.records-pages>button {min-height:44px;}.records-filters :is(input,select) {font-size:16px;min-height:44px;}}
+@media(prefers-reduced-motion:reduce){.learning-records-dialog .record-card:hover {transform:none;}}

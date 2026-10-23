@@ -517,6 +517,30 @@ def list_questions(
     }
 
 
+@router.get("/courses/{course_id}/question-directory")
+def question_directory(
+    course_id: str,
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=200, ge=1, le=200),
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    from ..services.question_directory import page
+
+    return page(db, user.id, course_id, offset, limit)
+
+
+@router.get("/past-questions/{question_id}")
+def question_detail(
+    question_id: str,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    from ..services.question_directory import detail
+
+    return detail(db, user.id, question_id)
+
+
 @router.patch("/past-questions/{question_id}")
 def edit_question(
     question_id: str,
@@ -658,9 +682,14 @@ def statistics(
 
 @router.get("/attempts/{attempt_id}")
 def restore_attempt(
-    attempt_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)
+    attempt_id: str,
+    course_id: str | None = None,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
 ):
-    check_attempt_course(db, user.id, attempt_id)
+    course = check_attempt_course(db, user.id, attempt_id)
+    if course_id is not None and course_id != course.id:
+        raise HTTPException(404, "作答不属于当前课程")
     attempt = db.get(ExamAttempt, attempt_id)
     from .exams import _attempt_response
 

@@ -46,7 +46,7 @@ for(const candidate of [false,true])test(`AI预览确认、轮询与${candidate?
  if(candidate){await editor.getByRole('button',{name:'＋ 窗口调整策略',exact:true}).click();await expect(editor.locator('.bank-topic-option').filter({hasText:'窗口调整策略'}).locator('input')).toBeChecked();}
  else{const first=editor.locator('.bank-topic-option').first();await expect(first).toHaveClass(/bank-topic-match/);await expect(first).toContainText('丢包后的窗口调整');await expect(first.locator('input')).toBeChecked();}
  await editor.getByRole('button',{name:'保存本题校正',exact:true}).click();
- await expect(page.getByText('已保存校正，仍需确认所属题库',{exact:true})).toBeVisible();
+ await expect(page.getByText('已保存校正，请核验修改后的题目',{exact:true})).toBeVisible();
  expect(confirmed).toBe(1);expect(previewCount).toBe(1);
  const data=await(await request.get(`${base}/courses/${s.course.id}/question-bank`,{headers:s.headers})).json();expect(data.items[0].bank_data.topic_ids).toHaveLength(1);
  if(!candidate){const checkbox=editor.locator('.bank-topic-option').first().locator('input');await checkbox.uncheck();await editor.getByRole('button',{name:'保存本题校正',exact:true}).click();await expect(checkbox).not.toBeChecked();await page.reload();await expect(page.locator('.bank-question-editor').first().locator('.bank-topic-option input').first()).not.toBeChecked();}

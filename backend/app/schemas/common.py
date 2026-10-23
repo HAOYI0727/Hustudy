@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Optional
+from typing import Literal, Optional
 from pydantic import BaseModel, Field
 
 
@@ -30,6 +30,12 @@ class HealthResponse(BaseModel):
     service: str
     environment: str
     database: str
+
+
+class ProcessingStatusResponse(BaseModel):
+    state: Literal["ready", "starting", "unavailable"]
+    checked_at: str
+    message: str
 
 
 class ExcerptSpan(BaseModel):

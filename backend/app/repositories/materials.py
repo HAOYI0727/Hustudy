@@ -82,12 +82,14 @@ def checked_chunk(
     quote: str,
     user_id: str,
     course_id: str | None = None,
+    *,
+    lock_course: bool = True,
 ):
     version = active_version(db, version_id, user_id, course_id)
     document = db.get(Document, version.document_id)
     from ..services.courses import owned_course
 
-    owned_course(db, user_id, document.course_id, lock=True)
+    owned_course(db, user_id, document.course_id, lock=lock_course)
     row = db.scalar(
         select(DocumentChunk).where(
             DocumentChunk.id == chunk_id,

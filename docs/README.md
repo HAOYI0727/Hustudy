@@ -1,5 +1,52 @@
 # Hustudy 文档导航
 
+2026-10-24 新增[原文关联笔记检索验收](zhy/materialhub/reference_notes_acceptance.md)：资料与笔记的搜索/分页/预览/编辑回源，使用方法同步根[user.md](../user.md)；[121项人工清单](zhy/materialhub/captain_acceptance_2026_10_23.md#manual-checklist)为当前逐项入口。
+
+2026-10-24 新增[当前课程复习日程验收](zhy/integration/course_agenda_acceptance.md)，操作已同步根[user.md](../user.md)；[118项人工清单](zhy/materialhub/captain_acceptance_2026_10_23.md#manual-checklist)为当前逐项入口。
+
+- [现行完整用户手册](../user.md)：24章、下载示例和可实际走完的学习闭环；[本轮全站核查](zhy/integration/user_manual_acceptance.md)区分自动证据、真实模型/设备及正式接收。
+
+- [课件知识点导航](zhy/materialhub/reading_navigator_acceptance.md)：本地搜索、当前页引用反查、每页8项与逐点讲解/草稿保护。
+
+- [当前PPT专用阅读助手](zhy/materialhub/ppt_companion_acceptance.md)：固定课件总结、提示词v7、知识点与引用页码、逐点摘记/标题和真实笔记闭环，云部署暂缓。
+
+- [跨电脑账号与云端学习数据](zhy/shared_platform/cloud_accounts.md)：为什么GitHub不迁移账号、生产同源API默认、已有test两条迁移路径与真实两机验收，未实际上线。
+
+- [阅读页AI助手与30MiB资料上限](zhy/materialhub/reader_ai_acceptance.md)：当前版本总结、逐次预览确认、原文回跳、标签审阅与笔记幂等保存；正常连接提示隐藏。
+
+
+- [现有长PPT与知识点学习排版](zhy/materialhub/learning_layout_acceptance.md)：145页私有本机样例的隔离前后指标、PPT单页/文本分页与知识点分区；原件不入仓库。
+
+- [最新版本资料检查与恢复](zhy/materialhub/readiness_acceptance.md)：当前问题与历史失败分开，正文/解析/索引/兼容预览检查、原任务恢复及7步体验。
+
+- [原文相关错题与复习日期](zhy/materialhub/source_reviews_acceptance.md)：固定来源、只读回顾、明确重做与计划独立更新，含7步操作。
+
+- [资料学习关联：原文到笔记/报告/知识点/练习与错题回源](zhy/materialhub/source_connections_acceptance.md)，含自制可上传样例、7步闭环与异常验收。
+
+- [全站统一主色：当前主题与所有分界面联动](zhy/integration/unified_tone_acceptance.md)
+
+- [2026-10-23全站功能核查与当前关口](zhy/integration/project_review_2026_10_23.md)
+
+- [全分界面与共享记录总验收](zhy/integration/all_workspaces_acceptance.md)、[字体与记录后端](zhy/integration/records_typography_acceptance.md)：覆盖内部工具、支持页面与六类型真实分页/回跳。
+
+- [模块配色与彩色卡片](zhy/integration/color_studio_acceptance.md)：08历史方案，当前已由统一主色12替代。
+
+- [共享控件与卡片细化](zhy/integration/controls_acceptance.md)：按钮、桌面选项浮层、适中字级与柔和阴影。
+
+- [全站外观与布局](zhy/integration/appearance_acceptance.md)、[官方设计研究](zhy/integration/appearance_research.md)：主题色、底色、导航、密度与内容宽度。
+
+- [M1阅读书签与版本文本对照](zhy/materialhub/reading_tools_acceptance.md)：当前浏览器书签、历史定位、精确文本对照和验证记录。
+
+2026-10-22 新增知识点学习中心、常用资料视图及官方同类产品研究记录；实现与原四模块接口衔接，保留原文版本和显式确认。 [功能与验证](zhy/integration/learning_hub_acceptance.md)。
+
+2026-10-22 学习连续性增量：阅读侧边笔记、刷新草稿恢复、笔记/考点目录摘要与按需正文、AI资料范围分页。 [使用、验证与边界](zhy/integration/continuity_acceptance.md)。
+
+2026-10-22 M1连续完善：新增资料原子批量整理/独立加载验收，含操作、接口、真实测试与边界。[使用与验证](zhy/materialhub/organize_acceptance.md)。
+
+2026-10-22 后续整合：新增全站学习闭环与视觉整合验收，含实现、接口、操作、自动证据及剩余关口。[实现与验收](zhy/integration/learning_loop_acceptance.md)。
+
+2026-10-22 当前总览：[项目思想、四模块与40任务核查/优化路线](zhy/integration/project_review_2026_10_22.md)，[资料批量导入与来源学习衔接](zhy/integration/material_study_acceptance.md)。以下早期状态按原日期保留；当前M4仅选择题/解答题、本地题库抽题，M3识别仅插入当前笔记，不能从旧“待办”推断最新实现。
+
 最新M2：[逐题知识点与已有结果复用](gcx/topics_reuse_2026_10_17.md)。原文中的“尚无缓存/全部知识点统一附加”描述按时间保留，当前以本记录为准。
 
 ## 2026-10-16 M2继续推进（最新要求）

@@ -6,8 +6,8 @@ GlobalWorkerOptions.workerSrc = workerUrl;
 const localAssets = `${import.meta.env.BASE_URL}pdfjs-assets/`;
 const MAX_PIXELS = 3_000_000;
 
-type Props = { url: string; initialPage?: number; sourceType: string; name: string; onCapture: (file: File, page: number) => Promise<void>; onDownload: () => void; onTranscribe?: (page:number) => void };
-export default function PdfReader({ url, initialPage = 1, sourceType, name, onCapture, onDownload, onTranscribe }: Props) {
+type Props = { onPageChange?: (page:number)=>void; url: string; initialPage?: number; sourceType: string; name: string; onCapture: (file: File, page: number) => Promise<void>; onDownload: () => void; onTranscribe?: (page:number) => void };
+export default function PdfReader({ url, initialPage = 1, sourceType, name, onCapture, onDownload, onTranscribe, onPageChange }: Props) {
   const [loadAttempt,setLoadAttempt] = useState(0);
   const [pdf, setPdf] = useState<PDFDocumentProxy>();
   const [page, setPage] = useState(initialPage);
@@ -24,6 +24,8 @@ export default function PdfReader({ url, initialPage = 1, sourceType, name, onCa
   const rendered = useRef<{canvas: HTMLCanvasElement; page: number; url: string} | undefined>(undefined);
   const generation = useRef(0);
   const mounted = useRef(true);
+  const pageCallback=useRef(onPageChange);pageCallback.current=onPageChange;
+  useEffect(()=>{if(ready)pageCallback.current?.(page);},[ready,page]);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const pageLabel = sourceType === "slide" ? "幻灯片" : sourceType === "preview_page" ? "预览页" : "页";
   useEffect(() => {

@@ -1,5 +1,239 @@
 # Hustudy
 
+Hustudy 是面向大学生的本地优先学习网站，以课程为中心连接资料、AI理解、知识笔记、题库练习和错题复习。前端采用 React / TypeScript / Vite，后端采用 FastAPI、SQLite / Alembic 与本地文件存储。
+
+更新日期：**2026-10-24**。当前已实现并自动验证多条学习闭环；正式40项课程任务、成员接收、真人试用与实机验收按各自记录核对。
+
+**使用入口：**[完整使用手册 user.md](user.md) · [121项人工验收清单](docs/zhy/materialhub/captain_acceptance_2026_10_23.md#manual-checklist) · [安装指南](docs/setup_guide.md) · [GitHub提交指令](#github提交与推送)
+
+## 学习闭环
+
+```text
+注册/登录 → 创建课程 → 上传资料 → 阅读与核对原文
+→ 当前PPT知识点总结 / 课程问答 → 整理带引用的笔记
+→ 上传题库 → 校正并核验 → 随机练习 → 保存/提交/自评
+→ 错题回源 → 补充笔记 → 安排复习 → 重做与再次核对
+→ 导出学习成果 / 完整账户备份
+```
+
+阅读、笔记与本地题库练习可以独立使用。真实AI须先配置后端模型连接，每次发送前预览并确认；未配置模型也可以完成手册中的本地学习示例。
+
+## 当前功能
+
+| 范围 | 已实现的主要能力 |
+| --- | --- |
+| 共享基础层 | 注册/JWT登录、课程分类与标签、课程归属隔离、带来源的路由与离开保护、401原账户恢复、共享学习记录、完整账户备份与空账户恢复 |
+| M1 MaterialHub资料库 | PPTX/PDF/DOCX/Markdown上传、批量分类/标签整理、固定版本、解析/索引/预览独立任务、资料检查、中文关键词检索、原格式阅读、文本分页、书签、版本文本对照、人工补录、图片管理和资料包 |
+| 当前PPT阅读助手 | 固定当前版本、全面总结/复习提纲/笔记写作、可编辑学习目标、发送覆盖与分批确认、按知识点组织总结、真实引用页码导航、单知识点摘记与可编辑笔记草稿 |
+| M2 AI Study | 课程原文检索、资料问答、多资料学习报告、逐次确认、引用核验、历史与符合条件的成功结果复用；API接入页配置当前后端共用连接 |
+| M3 NoteGraph | Markdown编辑/安全预览、自动保存与冲突保护、目录/标签/批量整理、UUID双链与原文引用、图片和公式工具、文字/音频识别后核对插入、本机草稿恢复、选择导出和回收站 |
+| M4 ExamPilot | 用户题库导入/OCR/确认后AI转写、人工校正与核验、分级知识标签、统计快照与蓝图、选择题/解答题随机练习、选项打乱与答案映射、作答恢复、自评、错题重做与日期计划 |
+| 学习工作台 | 课程真实摘要、继续原对象、知识点学习中心、课程复习日程、资料/笔记查找，以及手册、反馈和备份入口 |
+| 全站外观 | 统一主色、六预设/自定色、页面基调/导航/密度/宽度选择、英文字体Times New Roman与中文系统字体后备、卡片阴影/轻浮动、电脑/平板/手机布局 |
+
+资料单文件上限为 **30MiB（31,457,280字节）**，资料批量最多20份、总计100MiB。其他图片、识别、导入与备份预算分别见[user.md](user.md)，不要把资料上限套用到所有工具。
+
+当前新增题型仅选择题和解答题；练习使用已经核验的本地题库。AI自动出新题、笔记AI整理及识别后直接新建笔记已停用，历史记录与兼容读取按原契约保留。
+
+## 最近完善与体验入口
+
+| 更新 | 如何体验 | 实现与验证 |
+| --- | --- | --- |
+| 原文关联笔记检索 | 资料阅读下方“引用这份原文的笔记”，或“阅读笔记 → 关联笔记”：按标题/原文片段检索，每页6篇，同笔记聚合引用条数，选中后读取正文 | [关联笔记验收](docs/zhy/materialhub/reference_notes_acceptance.md) |
+| 当前课程复习日程 | 课程总览展开日程，查看到期/逾期/今天/未来/完成/全部待办；搜索、分页后回原错题回顾 | [复习日程验收](docs/zhy/integration/course_agenda_acceptance.md) |
+| 站内完整手册与示例 | 使用指南按章阅读、搜索或下载手册，下载配套自制资料/题库，按第3章完成实际闭环 | [手册验收](docs/zhy/integration/user_manual_acceptance.md) |
+| 当前PPT专用总结 | 阅读页打开AI阅读助手，核对固定版本与发送范围；生成后按知识点/真实页码导航并整理笔记 | [专用助手](docs/zhy/materialhub/ppt_companion_acceptance.md)、[知识点导航](docs/zhy/materialhub/reading_navigator_acceptance.md) |
+| 长课件与草稿连续性 | 原格式单页、文本按组阅读；原文/笔记/复习分区，切换预览保留编辑区，跨页仍受离开保护 | [长资料排版](docs/zhy/materialhub/learning_layout_acceptance.md)、[关联笔记排版修正](docs/zhy/materialhub/reference_notes_acceptance.md) |
+
+本轮关联笔记卡片采用统一主题、引用徽标、更新时间、轻阴影与宽窄布局。无引用时收拢空态；80页自制PPT复验的阅读区由1582px降至1309px，保留原高度门槛。后端引用列表改为必要元数据投影，严格核对有效引用，避免读取列表用不到的笔记正文。数据示例指标不代表全部课件或真实设备。
+
+## 快速开始
+
+macOS/Linux可用项目脚本初始化；Windows步骤见[环境指南](docs/setup_guide.md)。脚本支持Python 3.11/3.12，推荐3.12；前端PDF.js要求Node满足 `>=22.13.0 || >=24`，依赖使用锁文件安装。
+
+```bash
+# 在仓库根目录初始化；已有有效配置会保留
+bash scripts/setup.sh
+
+# 仅新建环境时需要指定Python
+# PYTHON_BIN=python3.12 bash scripts/setup.sh
+```
+
+分别在两个终端启动：
+
+```bash
+# 终端一：API，开发模式默认自动管理资料worker
+bash scripts/dev.sh
+```
+
+```bash
+# 终端二：前端
+npm run dev --prefix frontend
+```
+
+- 网站：`http://localhost:5173/`
+- 后端健康检查：`http://127.0.0.1:8000/health`
+- OpenAPI文档：`http://127.0.0.1:8000/docs`
+
+API启动会执行已有迁移，当前迁移头为 `0021_bank_library`；本轮关联笔记与复习日程没有新增迁移或依赖。更新前先保存草稿；开发API可自动重载，未启用重载的服务需重启后端，单独运行的worker也需加载新代码。
+
+开发API默认托管worker并在异常退出后退避重启。只有明确关闭托管（`HUSTUDY_WORKER_AUTOSTART=false`）或采用外部进程管理时，才另行启动：
+
+```bash
+bash scripts/worker.sh
+```
+
+PPTX/DOCX可本地原格式阅读；兼容PDF转换依赖LibreOffice，解析、索引与兼容预览分别反馈状态。正常连接安静显示，异常可检查重试。[处理服务与部署示例](docs/zhy/shared_platform/worker_deployment.md)说明生产守护方式；模板准备不等于已经上线。
+
+首次体验可下载[传输层资料](fixtures/learning_loop_material.md)和[配套题库](fixtures/learning_loop_questions.md)，按手册第3章操作；[操作系统演示资料](fixtures/materialhub_demo.md)另用于固定报告演示，不冒充对任意课件的真实理解。
+
+## 验证与当前范围
+
+最近一次业务验证来自2026-10-24的[关联笔记验收记录](docs/zhy/materialhub/reference_notes_acceptance.md)：
+
+| 检查 | 已执行结果 |
+| --- | --- |
+| 后端全量 | 478项通过、2项私有样例跳过，保留5项既有弃用警告 |
+| 前端单元测试 | 187项通过，31个文件 |
+| Chrome/WebKit | 84个不同场景经修正复验通过；首轮82通过/2空态高度失败，修正后52项专项全部通过，重复不累加 |
+| 共享检查 | Ruff、临时迁移升级/模型漂移、TypeScript、生产构建、Markdown安全渲染与PDF实际渲染通过 |
+
+业务测试使用临时数据库、隔离账号、自制资料和固定演示/替身，不写日常test账号数据，不调用真实模型。本次README整理只检查文档链接与格式，未重跑上述业务测试。
+
+```bash
+# 后端、单元、类型/构建、迁移与渲染等共享检查
+bash scripts/check.sh
+
+# Chrome使用已安装的本机channel，WebKit使用准备好的测试浏览器
+HUSTUDY_E2E_CHROME_CHANNEL=chrome npm run test:e2e --prefix frontend -- \
+  reference-notes.spec.ts continuity-workspace.spec.ts note-citations.spec.ts \
+  reading-layout.spec.ts reader-ai.spec.ts user-manual.spec.ts \
+  learning-loop.spec.ts responsive-layout.spec.ts
+```
+
+浏览器测试使用8056/5178端口与临时数据。运行前按[环境指南](docs/setup_guide.md)准备对应浏览器。真实AI教学质量、复杂私人课件、Safari/iPhone/Windows实机、长期容量和正式40任务/成员签收另行验收，自动测试不代替这些结果。
+
+## 协作与文档
+
+| 成员 | 主要职责 |
+| --- | --- |
+| zhy | 队长，共享基础层、M1 MaterialHub与最终集成 |
+| gcx | M2 AI Study |
+| fzk | M3 NoteGraph |
+| xtc | M4 ExamPilot |
+
+职责以[roles.md](collaboration/roles.md)为准。跨模块变化先记契约与交接，各域保留自己的业务事实；源码实现、自动验证与本人接收分别记录。
+
+- 产品思想与40项任务：[main_idea.md](main_idea.md)。
+- 完整现行操作：[user.md](user.md)；历史增量：[docs/user_guide.md](docs/user_guide.md)。
+- 队长人工体验：[121项清单](docs/zhy/materialhub/captain_acceptance_2026_10_23.md#manual-checklist)。
+- API与领域契约：[docs/api.md](docs/api.md)、[docs/contracts.md](docs/contracts.md)。
+- 进度与交接：[docs/progress.md](docs/progress.md)、[collaboration/handoff.md](collaboration/handoff.md)。
+- 队长状态与完成度：[任务状态](collaboration/zhy/task_status.md)、[完成度核查](docs/zhy/completion_audit.md)。
+- 各模块与环境文档：[docs/README.md](docs/README.md)、[collaboration/README.md](collaboration/README.md)。
+- 第三方依赖与许可：[docs/third_party.md](docs/third_party.md)。
+
+## 账号、数据与部署
+
+GitHub同步源码，不同步本机SQLite账号、资料、笔记或密码。另一台电脑运行自己的localhost会使用独立数据；跨电脑共用须连接同一后端与持久存储，见[云端账号说明](docs/zhy/shared_platform/cloud_accounts.md)。当前继续本地使用，云部署暂缓。
+
+真实密钥保留在后端环境或加密配置中；`.env`、运行数据和在线备份不进入源码提交。完整账户ZIP用于符合条件的空账户恢复，资料包/笔记ZIP用于导出阅读，不能互相替代。旧二进制PPT/DOC应先另存为PPTX/DOCX；复杂动画、特殊版式与识别结果需人工核对。
+
+## GitHub提交与推送
+
+本机已是Git仓库，工作分支为 `feature/platform-materialhub`，主分支为 `main`，`origin` 对应 `HAOYI0727/Hustudy`。本机已通过仓库级地址映射使用现有HTTPS认证，未修改全局Git配置。按本项目当前约定：**先提交并推送功能分支，再将它合并到main并推送main**。
+
+在功能分支提交当前累计源码、测试和文档：
+
+```bash
+cd "/Users/zhy/Desktop/hustudy"
+
+git switch feature/platform-materialhub
+git status --short
+
+git add -- .gitignore .env.example AGENTS.md README.md user.md main_idea.md \
+  backend/ frontend/ docs/ collaboration/ fixtures/ scripts/ deploy/ \
+  hustudy/Hustudy_requirements.md
+
+git diff --cached --stat
+git diff --cached
+git diff --cached --check
+
+git commit -m "feat(platform): 完善学习闭环、资料阅读与笔记检索并同步文档"
+git push -u origin feature/platform-materialhub
+```
+
+确认功能分支推送成功后，更新并合并main：
+
+```bash
+git switch main
+git pull --ff-only origin main
+git merge --no-ff feature/platform-materialhub -m "merge: integrate MaterialHub learning loop improvements"
+git push origin main
+```
+
+如仓库要求PR或受保护分支检查，在GitHub从 `feature/platform-materialhub` 向 `main` 发起Pull Request并按仓库规则合并。推送需要可用的GitHub认证（SSH或HTTPS）与仓库写权限；遇到认证错误应先恢复认证，不使用强制推送覆盖远端历史。
+
+下一轮在功能分支继续开发、提交和推送，再更新main合并。若只打算提交README，暂存命令改为 `git add -- README.md`，提交前仍核对 `git diff --cached` 的全部内容。
+
+`.gitignore`已排除本机环境、数据库、运行文件、`local_only`、依赖与构建产物和临时浏览器截图；已有受控文件仍以暂存区实际列表为准。保留公开的环境示例和自制fixtures，勿把本机配置、用户备份或临时测试材料另外加入。
+
+## 历史说明
+
+下面保留整理前的README内容，便于追溯各成员和日期的记录。旧模型、停用入口、测试数量及“尚未提交/没有Git历史”等旧结论只代表当时状态，现行功能与提交方法以上文为准。
+
+<details>
+<summary>展开历史README（含原有分阶段记录）</summary>
+
+2026-10-24 原文关联笔记增强：资料底部和阅读笔记侧栏共用按笔记聚合的检索，标题/片段查找、每页6篇、引用条数与摘录，正文按需预览。无引用时简短提示，已有笔记保持检索；切换预览保留编辑区，原笔记编辑后可回原版本。[使用与实际验收](docs/zhy/materialhub/reference_notes_acceptance.md)，[121项人工清单](docs/zhy/materialhub/captain_acceptance_2026_10_23.md#manual-checklist)。
+
+2026-10-24 新增“当前课程复习日程”：总览按需查看到期/逾期/今天/未来/完成与全部待办，标题查找、真实分页和原错题回顾；主题日期卡片、手机两列、有界列表。后端复用计划接口做课程归属、时区及SQL聚合，不自动重做或改掌握。[使用与验收](docs/zhy/integration/course_agenda_acceptance.md)，[121项人工清单](docs/zhy/materialhub/captain_acceptance_2026_10_23.md#manual-checklist)。
+
+现行完整使用说明见 **[user.md](user.md)**：24章覆盖建课、资料/PPT总结、笔记、题库练习、错题复习和备份，含可下载的传输层资料/题库闭环实例。网站“使用指南”可按章阅读、查找和下载同一份手册；示例下载不会自动导入。
+
+2026-10-23 课件总结增加知识点导航：关键词搜索、每页8项、跟随当前阅读页反查有效引用、直达讲解与逐点切换，保留总结和笔记草稿。[体验与核验](docs/zhy/materialhub/reading_navigator_acceptance.md)，[121项人工Checklist](docs/zhy/materialhub/captain_acceptance_2026_10_23.md#manual-checklist)。
+
+2026-10-23 阅读助手已按当前课件重新收拢：固定单版本、全面梳理/复习提纲/笔记写作、可编辑提示词，新增知识点与真实PPT引用页码导览、单知识点摘记和自定义笔记标题。独立AI学习工作区保持课程范围能力，底层服务复用；云部署暂缓。[体验与验证](docs/zhy/materialhub/ppt_companion_acceptance.md)，[121项人工Checklist](docs/zhy/materialhub/captain_acceptance_2026_10_23.md#manual-checklist)。
+
+2026-10-23 跨电脑账号说明与部署适配：GitHub同步代码不含本机账号/资料库；正式构建默认访问网站同源`/api/v1`，开发默认保持本机，可显式连接公共后端。真正共用账号须部署同一后端与持久数据库/文件存储；[现有test迁移、配置与逐项验收](docs/zhy/shared_platform/cloud_accounts.md)。本轮未实际上线或上传日常数据。
+
+2026-10-23 资料阅读新增「AI阅读助手」：原页预览确认、展示知识点总结与原文依据、标签审阅后保存笔记；两个阅读侧栏保留草稿，未知保存沿原请求重试。资料单文件上限现为30MiB，正常连接提示移除。[使用与验证](docs/zhy/materialhub/reader_ai_acceptance.md)，[121项人工Checklist](docs/zhy/materialhub/captain_acceptance_2026_10_23.md#manual-checklist)。
+
+
+2026-10-23 按现有长PPT继续优化资料阅读/知识点学习排版：PPT默认单页原格式，文本分页、有界滚动和整版本查找；知识点原文/笔记/复习分区、手机目录收拢，图片工具按需展开。日常原件只读导入隔离账户，同145页样例高度从约7.46万px降至2137px。[实际指标与操作](docs/zhy/materialhub/learning_layout_acceptance.md)。
+
+2026-10-23 队长模块新增「资料检查」：按当前课程每份资料最新版本核对可用正文、解析/索引/兼容预览及处理中状态，支持名称/类型筛选、真实分页和原任务恢复。首页提醒改用当前问题份数，旧失败记录继续保留。[7步体验与验收](docs/zhy/materialhub/readiness_acceptance.md)。
+
+2026-10-23 原文关联继续补齐复习：资料「学习关联→相关错题」可查看原错题的掌握状态、待办/到期数量和最早日期；「错题与复习」先回看与安排日期，明确点击重做才开始。固定来源、原作答和计划分别保持。[功能与7步体验](docs/zhy/materialhub/source_reviews_acceptance.md)。
+
+2026-10-23 新增资料「学习关联」：从当前版本或某段原文找回具有有效引用的笔记、问答、报告和知识点，真实分页/标题查找并回原对象；知识点一键带入练习设置，仍显式抽题。兼顾历史版本、撤权、首次离线和未保存草稿。[自制样例与7步闭环验收](docs/zhy/materialhub/source_connections_acceptance.md)。
+
+2026-10-23 队长模块继续完善：M1支持跨页勾选后导出固定资料版本与来源图片；提交结果不明确时保留原请求，显式核对不扩大范围。处理记录支持类型/状态组合筛选和历史版本回跳，资料/任务独立加载。[完整功能体验与验收清单](docs/zhy/materialhub/captain_acceptance_2026_10_23.md)包含自制样例、10步主流程与共享层/M1矩阵。
+
+2026-10-23 学习卡片增加当前课程真实记录快捷入口，直达原资料版本/笔记/结果/未完成作答；资料卡片新增折角封面、当前打开标记、解析/索引/预览独立状态及详细/精简显示，保留统一主色和当前阅读/勾选/整理输入。[设计与验证](docs/zhy/integration/action_cards_acceptance.md)。
+
+2026-10-23 全站现在采用当前主题的一套主色，以深浅、留白和边线分层，图标与标题区分模块；覆盖此前五模块固定配色。外观切换同步到所有分界面、卡片、导航与学习记录。[设计与验证](docs/zhy/integration/unified_tone_acceptance.md)。
+
+2026-10-23 全分界面继续统一：阅读、笔记管理/编辑、AI设置/报告、题库三模式、错题计划、搜索、备份、API、指南和反馈均细化内部工具/卡片；英文Times New Roman、中文宋黑楷按用途搭配。新增真实后端分页「学习记录」，各工作区顶部与首页共用同一入口，回原版本/笔记/结果/作答并保护草稿。[本轮实现与验证](docs/zhy/integration/all_workspaces_acceptance.md)。
+
+2026-10-23 历史08配色（已由统一主色12替代）：资料蓝、AI紫、笔记青绿、题库琥珀、复习莓粉贯穿首页彩色卡片、实色入口、模块标题、导航与工具栏；个人主题继续控制主动作/焦点，正文保持舒适可读。[设计与验证](docs/zhy/integration/color_studio_acceptance.md)。
+
+2026-10-23 控件与卡片细化：全站主次/图标/文字按钮、桌面主题下拉与工具折叠栏统一；标题适度收敛，卡片柔和阴影与轻微悬浮，手机保留原生选择与触控空间。[实现及验证](docs/zhy/integration/controls_acceptance.md)。
+
+2026-10-22 全站外观升级：右上角「外观」可选择六预设/自定色、云白/暖纸/柔雾底色、浅深导航、舒适/紧凑和聚焦/舒展布局；四模块共享色彩/控件/层级。偏好仅此浏览器，切换保留当前编辑。[研究依据](docs/zhy/integration/appearance_research.md)与[实现/验证](docs/zhy/integration/appearance_acceptance.md)。
+
+2026-10-22 阅读工具增量：原文片段支持本机书签、重命名/搜索/历史回跳；同资料两个解析成功版本可分页对照提取文本并分别回原文。书签按账户UUID/课程隔离，仅当前浏览器；对照不推断图片/排版或语义变化。[使用与验证](docs/zhy/materialhub/reading_tools_acceptance.md)。
+
+2026-10-22 新增「知识点学习」：在同一知识点查看已确认原文、同源笔记/标签候选、题目与待复盘错题，并带入标签设置练习；资料库支持保存/应用/改名/删除本机常用筛选视图。[功能与验证](docs/zhy/integration/learning_hub_acceptance.md)，[官方设计研究](docs/zhy/integration/learning_hub_research.md)。无新依赖或迁移。
+
+2026-10-22 学习连续性：新增阅读侧边笔记（原文引用/关联预览/完整编辑器）、账户/课程隔离的本机草稿恢复，笔记与考点目录改用元数据索引及按需正文，AI资料范围支持分页检索并保留选择。无新增依赖或迁移，保留原有未提交工作。[功能、使用与实际验证](docs/zhy/integration/continuity_acceptance.md)。
+
+2026-10-22 M1连续完善：资料库新增跨页选择最多100份、原子批量分类与标签整理；单份整理增加冲突核对，资料/任务/笔记候选独立重试，引用目标按标题分页。公共弹窗样式复用。无新迁移/依赖，保存草稿后刷新；非reload后端需重启。[使用与验证](docs/zhy/materialhub/organize_acceptance.md)。
+
+2026-10-22 学习闭环整合：课程总览提供四模块真实摘要/待办和最近学习入口；新增阅读继续、摘录带引用笔记、报告笔记直达、指定作答恢复、错题回源及未来复习计划；统一全站视觉。无新依赖/迁移，保存草稿后刷新即可体验。实现、验证与边界见[本轮闭环验收](docs/zhy/integration/learning_loop_acceptance.md)。下方旧日期记录保留，当前规则以最新记录为准。
+
+2026-10-22 队长整合：资料库新增多选/拖放批量导入、逐项结果与显式重试；原文可直接进入当前版本问答/学习报告或就某片段提问。刷新前请先保存笔记草稿；本轮无后端/依赖/迁移更新。项目思想、四模块现状、40任务核对与后续优先级见[当前项目核查](docs/zhy/integration/project_review_2026_10_22.md)，使用与实际验证见[本轮验收](docs/zhy/integration/material_study_acceptance.md)。下方按日期保留历史记录；当前仅选择题/解答题，旧AI候选与填空说明不作为当前操作要求。
+
 当前源码提交说明与验证限制见[2026-10-22版本记录](docs/m4/release_2026_10_22.md)。
 
 2026-10-22 当前题型更新：填空题已取消，题库中的空位题统一作为解答题，保留原题干与参考解答，提交后可自评；选择题仍按原规则判分。旧库首次启动在线备份后自动转换，旧试卷/作答成绩保留。详见[使用说明](docs/user_guide.md)。
@@ -8,13 +242,13 @@
 
 2026-10-20 M4：新增可选本地图片识别、批量阅读顺序/双栏切分、题目与答案/解析判别、原图核对和插图拖框裁剪；审核可直接勾选、批量标签/删除和统一确认。OCR已安装于本机项目.venv，重启后端/worker后刷新前端；其他机器可安装backend/requirements-bank-ocr.lock。实际样例、测试与限制见[图片题库验收](docs/m4/import_images_acceptance.md)。
 
-## 2026-10-19 用户题库练习
+## 用户题库练习（2026-10-22现行规则）
 
-「真题与模拟卷」现提供用户题库上传/规则识别/校正确认和随机练习。上传PPTX/PDF/DOCX/Markdown，或粘贴带题号、A–D选项、答案、知识标签的正文；也可选已解析资料及已确认人工补录。识别不确定或无答案先保留草稿，不猜答案。四选项随机重排并同步标准答案；填空由用户设置唯一性，多空答案用 `||` 分隔，唯一答案保存后精确批改，非唯一答案交卷后自评；解答只检查提交，不判分。
+「真题与模拟卷」现提供用户题库上传/规则识别/校正确认和随机练习。上传PPTX/PDF/DOCX/Markdown，或粘贴带题号、A–D选项、答案、知识标签的正文；也可选已解析资料及已确认人工补录。识别不确定或无答案先保留草稿，不猜答案。四选项随机重排并同步标准答案；解答题保留参考解答，只检查提交，交卷后可自行核对与自评。
 
 「历史统计与蓝图」提供已确认样本统计、标签改名/合并、资料缺口候选、可重算快照与题型/标签配额；题库可拆分合并题目、人工设置重复卷，复习任务支持改期。
 
-AI学习仅保留资料原文检索、资料问答和学习报告；「练习题生成」整个入口与嵌入式练习已移除。练习统一在「真题与模拟卷→随机练习与作答」，本地抽题不要求模型密钥。首次体验可上传自制 [题库示例](fixtures/question_bank_demo.md)，设置填空唯一性、确认题库，再选择「计算机网络」标签抽题。旧AI候选只保留历史读取，新生成入口返回410。迁移0019–0020在后端启动时执行，已有数据库会先自动备份；更新后需重启后端与worker。实施范围/真实结果/限制见 [M4验收](docs/m4/question_bank_acceptance.md)。
+AI学习仅保留资料原文检索、资料问答和学习报告；「练习题生成」整个入口与嵌入式练习已移除。练习统一在「真题与模拟卷→随机练习与作答」，本地抽题不要求模型密钥。首次体验可上传自制 [题库示例](fixtures/question_bank_demo.md)，核对题型与参考解答、确认题库，再选择「计算机网络」标签抽题。旧AI候选只保留历史读取，新生成入口返回410。迁移0019–0020在后端启动时执行，已有数据库会先自动备份；更新后需重启后端与worker。实施范围/真实结果/限制见 [M4验收](docs/m4/question_bank_acceptance.md)。
 
 2026-10-19 M3提交说明：笔记/目录/批量整理、图片与选择导出、回收站、公式编辑和识别文本插入已完成；用户验收第1–8项通过，第9项跨课程/独立完整恢复暂缓。M3 AI整理与API启用已停用。当前使用、验收和更新说明统一见[fzk文档](docs/fzk/README.md)。以下按日期保留其他模块与功能切片记录，当前M3状态以该文档为准。
 
@@ -104,7 +338,7 @@ PYTHON_BIN=python3.12 ./scripts/setup.sh
 setup会为JWT空值或旧占位自动生成强随机密钥并保留有效配置。密钥仅保存在根目录 `.env` 并由后端读取，不要重复轮换；然后分别在两个终端启动：
 
 ```bash
-# 终端一：后端 + 资料 worker
+# 终端一：开发API自动管理资料worker（含退出重启）
 bash scripts/dev.sh
 ```
 
@@ -119,7 +353,7 @@ npm run dev --prefix frontend
 - 后端健康检查：`http://127.0.0.1:8000/health`
 - OpenAPI：`http://127.0.0.1:8000/docs`
 
-后端依赖按 `backend/requirements.lock` 安装。PDF 用 PDF.js 直接按页阅读；PPTX/DOCX 直接本地原格式预览，无需等待转换。LibreOffice 仅用于“兼容预览（PDF）”和现有截图路径，缺失/失败时保留原格式与文本入口。当前使用本地打包的 PDF.js 按页阅读，可保存当前页图片并记录来源版本/页号；截图可从课程图片回到原页。若后端已在运行，可在新终端执行 `bash scripts/worker.sh` 启动资料处理。自制样例位于 `fixtures/materialhub_demo.md`。
+后端依赖按 `backend/requirements.lock` 安装。development下API默认托管资料worker并在其异常退出后退避重启；同数据库/存储的进程锁防止重复启动。PPTX/DOCX本地原格式可直接打开，兼容PDF转换使用独立执行道，不阻塞新资料解析/索引；LibreOffice缺失/失败时原格式与文本仍可用。上传区显示实际处理服务连接状态，原件保存与后续处理分别反馈，不自动重传。若显式关闭托管（`HUSTUDY_WORKER_AUTOSTART=false`），才需另行运行 `bash scripts/worker.sh` 或外部守护。production默认外部管理，参阅[故障原因、自动恢复与Linux部署示例](docs/zhy/shared_platform/worker_deployment.md)；这些示例尚未部署上线。自制样例位于 `fixtures/materialhub_demo.md`。
 
 课程图片可整理名称、说明和标签，并按元数据/标签/来源筛选与分页；改名保留原文件、UUID和来源。并发修改显示409冲突并保留本地输入；查找不识别图中文字。操作见 [docs/user_guide.md](docs/user_guide.md)，最新交接见 [handoff.md](collaboration/handoff.md)。
 
@@ -385,3 +619,6 @@ ZIP先列目录，答案文件默认不选，可删除内部项/批量文件后�
 2026-10-21 标签上限按最新要求改为每题5个；批量追加超限时逐题提示题库名、原题号及添加后标签数，整批不修改，历史标签不自动删减。
 
 2026-10-21 题库校正交互：离开多题草稿只询问一次，取消可继续编辑；仅待审核无修改不阻塞。折叠题目直接显示具体待核对原因，填空判分方式移到题目顶部，选择框/展开入口增大并适配手机。
+
+
+</details>

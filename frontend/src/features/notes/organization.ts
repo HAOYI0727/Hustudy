@@ -1,4 +1,4 @@
-import type {Note, NoteFolder} from '../../api/client';
+import type {NoteSummary, NoteFolder} from '../../api/client';
 import {addNoteTag} from './tags';
 
 export function parseTags(input: string): string[] {
@@ -38,7 +38,7 @@ function words(text: string): string[] {
   return [...new Set(segments.filter(p => p.isWordLike && Array.from(p.segment).length >= 2 && !stop.has(p.segment)).map(p => p.segment))];
 }
 
-export function suggestNotes(notes: Note[], folder: NoteFolder, folders: NoteFolder[]) {
+export function suggestNotes(notes: NoteSummary[], folder: NoteFolder, folders: NoteFolder[]) {
   const examples = notes.filter(n => insideFolder(folders, n.folder_id, folder.id));
   const tags = new Set(examples.flatMap(n => n.tags));
   const terms = [...new Set(words(folder.name + ' ' + examples.map(n => n.title).join(' ')))];

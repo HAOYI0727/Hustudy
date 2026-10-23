@@ -11,6 +11,32 @@ from .courses import owned_course
 from .note_filters import text_matches
 
 
+def note_options(db, user_id, course_id, query="", offset=0, limit=20):
+    """Select citation targets without ever loading note bodies."""
+    begin_read_snapshot(db)
+    owned_course(db, user_id, course_id)
+    predicate = [
+        Note.user_id == user_id,
+        Note.course_id == course_id,
+        Note.deleted.is_(False),
+    ]
+    if query.strip():
+        predicate.append(func.instr(func.lower(Note.title), query.strip().lower()) > 0)
+    return {
+        "total": db.scalar(select(func.count()).select_from(Note).where(*predicate))
+        or 0,
+        "items": db.execute(
+            select(Note.id, Note.title, Note.updated_at)
+            .where(*predicate)
+            .order_by(Note.updated_at.desc(), Note.id)
+            .offset(offset)
+            .limit(limit)
+        ).all(),
+        "offset": offset,
+        "limit": limit,
+    }
+
+
 def search_notes(
     db: Session,
     user_id: str,

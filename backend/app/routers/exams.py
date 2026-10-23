@@ -4,9 +4,9 @@ import json
 import re
 from datetime import datetime
 from zoneinfo import ZoneInfo
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Literal
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
@@ -25,6 +25,7 @@ from ..models import (
     Topic,
     User,
 )
+from ..schemas.workspace import MistakeSources, ReviewSchedulePage
 from ..schemas.exams import (
     AnswerRequest,
     AttemptResponse,
@@ -643,6 +644,12 @@ def list_mistakes(
     return sorted(result, key=lambda item: item["mastered"])
 
 
+@router.get("/mistakes/{mistake_id}/sources", response_model=MistakeSources)
+def mistake_source_links(mistake_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    from ..services.exam_workspace import mistake_sources
+    return MistakeSources.model_validate(mistake_sources(db, user, mistake_id))
+
+
 @router.post("/review-tasks", response_model=ReviewTaskResponse, status_code=201)
 def create_review_task(
     payload: ReviewTaskCreate,
@@ -703,6 +710,22 @@ def today_tasks(
             .order_by(ReviewTask.due_date)
         ).all()
     ]
+
+
+@router.get("/review-tasks", response_model=ReviewSchedulePage)
+def review_schedule(
+    state: Literal["pending", "all", "completed"] = "pending",
+    offset: int = Query(default=0, ge=0, le=1000000), limit: int = Query(default=20, ge=1, le=100),
+    course_id: str | None = Query(default=None, min_length=1, max_length=36),
+    q: str = Query(default="", max_length=200),
+    period: Literal["all", "due", "overdue", "today", "upcoming"] = "all",
+    user: User = Depends(current_user), db: Session = Depends(get_db),
+):
+    from ..services.review_schedule import page
+    return ReviewSchedulePage.model_validate(
+        page(db, user, state, offset, limit, course_id=course_id, q=q, period=period),
+        from_attributes=True,
+    )
 
 
 @router.post("/review-tasks/{task_id}/complete", response_model=ReviewTaskResponse)

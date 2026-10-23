@@ -12,7 +12,7 @@ async function sample(request:APIRequestContext,page:Page,ext:string) {
   const job=await uploaded.json();
   await expect.poll(async()=>{const r=await request.get(base+`/versions/${job.resource_id}`,{headers});return (await r.json()).preview_status;},{timeout:35_000}).toBe('SUCCEEDED');
   const version=await (await request.get(base+`/versions/${job.resource_id}`,{headers})).json();
-  await page.addInitScript(({token,username})=>{localStorage.setItem('hustudy_token',token);localStorage.setItem('hustudy_user',username);},{token:auth.access_token,username});
+  await page.addInitScript(({token,username})=>{if(window===window.top){localStorage.setItem('hustudy_token',token);localStorage.setItem('hustudy_user',username);}},{token:auth.access_token,username});
   await page.goto(`/materials?course=${course.id}&document=${version.document_id}&version=${version.id}`);
   return {course,version,headers};
 }
@@ -22,6 +22,9 @@ for(const ext of ['pdf','pptx','docx']) test(`${ext} 真实原页预览与截图
   // Reproduce the actual Safari failure: modern Map upsert APIs are absent.
   await page.addInitScript(()=>{Reflect.deleteProperty(Map.prototype,'getOrInsertComputed');Reflect.deleteProperty(WeakMap.prototype,'getOrInsertComputed');});
   const s=await sample(request,page,ext);
+  // PPT now opens the original-format reader by default. Finish that explicit
+  // opening before testing a normal switch to the compatibility PDF reader.
+  if(ext==='pptx')await expect(page.getByRole('region',{name:'PPT 原格式阅读',exact:true})).toHaveAttribute('aria-busy','false',{timeout:30_000});
   await page.getByRole('button',{name:ext==='pdf'?'PDF 预览':'兼容预览（PDF）',exact:true}).click();
   const canvas=page.locator('.pdf-canvas-stage canvas');await expect(canvas).toBeVisible({timeout:20_000});
   const original=await canvas.evaluate(node=>(node as HTMLCanvasElement).toDataURL());

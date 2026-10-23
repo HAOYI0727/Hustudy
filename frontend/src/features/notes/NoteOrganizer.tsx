@@ -1,9 +1,9 @@
 import {useState} from 'react';
-import {api, type Note, type NoteFolder, type NoteBatchChange} from '../../api/client';
+import {api, type Note, NoteSummary, type NoteFolder, type NoteBatchChange} from '../../api/client';
 import {folderOptions, parseTags, suggestNotes} from './organization';
 
 export function NoteOrganizer({token, notes, folders, selected, setSelected, disabled, perform, onChanged, suggestedFolder, mode}: {
-  token: string; notes: Note[]; folders: NoteFolder[]; selected: string[]; setSelected: (ids: string[]) => void;
+  token: string; notes: NoteSummary[]; folders: NoteFolder[]; selected: string[]; setSelected: (ids: string[]) => void;
   disabled: boolean; perform: (action: () => Promise<void>) => Promise<void>; onChanged: (notes: Note[]) => void; suggestedFolder: string;
   mode: 'batch' | 'tags' | 'recommend';
 }) {
@@ -14,7 +14,7 @@ export function NoteOrganizer({token, notes, folders, selected, setSelected, dis
   const options = folderOptions(folders);
   const destinationFolder = folders.find(f => f.id === (recommendFolder || suggestedFolder));
   const suggestions = destinationFolder ? suggestNotes(notes, destinationFolder, folders) : [];
-  const apply = (scope: Note[], change: NoteBatchChange, message: string) => {
+  const apply = (scope: NoteSummary[], change: NoteBatchChange, message: string) => {
     setError(''); setNotice('');
     if (!scope.length || scope.length > 200) {setError('每次请选择1–200篇笔记；超过200篇时请分批整理。'); return;}
     if (!window.confirm(`${message}，共 ${scope.length} 篇笔记？`)) return;

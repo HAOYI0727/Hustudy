@@ -1,5 +1,102 @@
 # Hustudy API（Phase 0）
 
+## 原文关联笔记分页（2026-10-24，M1-REFERENCE-NOTES-28）
+
+新增GET /api/v1/versions/{version_id}/reference-notes：q≤200、可选chunk_id、offset=0..1000000、limit=1..50（默认6）。响应固定课程/资料/版本/片段身份与真实items/total/offset/limit/checked_at；每项为note_id/note_title/note_course_id/updated_at/citation_count及最近有效引用样本citation_id/chunk_id/locator_type/locator_value/quote_excerpt（≤180字符）。同笔记仅一项，引用数仅当前范围有效逐字引用，按笔记更新时间/UUID稳定排序；不返笔记正文。本人未归课程/已有跨课程引用保留原归属；非法版本/题库原件/不属当前版本片段404。删除/撤回/假引用不纳入。旧GET references列表兼容，改安全元数据投影，不返回Note.content。[契约](contracts.md#m1-reference-notes-28)。
+
+
+## 课程复习日程（2026-10-24，PLATFORM-COURSE-AGENDA-27）
+
+兼容扩展GET /api/v1/review-tasks：state=pending（默认）/all/completed；period=all（默认）/due（今天及逾期）/overdue/today/upcoming；course_id可选，必须本人未删除课程；q≤200字，按标题字面子串查找；offset=0..1000000、limit=1..100。新增响应course_id（无筛选为null）、counts={pending,due,overdue,today,upcoming,completed}，按课程/标题基础集合统计，列表再按状态/时间筛选。today为账户时区日期；total真实分页，按due_date/id稳定排序；原items仅ReviewTask元数据。无课程旧独立计划只在不筛课程时保留，移出错题/删除课程排除；404不泄漏外部课程。旧GET不改变默认可见范围/排序，不改写计划、作答或掌握。[契约](contracts.md#platform-course-agenda-27)。
+
+
+## 阅读知识点导航（2026-10-23，M1-READING-NAVIGATOR-25）
+
+无接口或数据契约变化：当前报告内关键词/页码筛选、每页8项和逐点讲解均本地执行。当前阅读页仅用于反查原citation，不查询或修改Topic/笔记；原文读取和笔记保存沿既有端点与授权，翻PPT不因页码同步重新请求原件。见[契约25](contracts.md#m1-reading-navigator-25)与[验收](zhy/materialhub/reading_navigator_acceptance.md)。
+
+## 当前PPT总结与知识点摘记（2026-10-23）
+
+无新端点/schema：阅读专用视图仍通过study-reports/preview提交当前唯一version_ids和空chunk_ids，沿服务端全可用文字/分批预算；提示词版本现为zhipu-study-report-v7。知识点页码从服务端citation.locator只读派生，摘记用原notes接口保存本知识点精确引用与用户标题；request_id/正文/标题/引用同冻。见[契约24](contracts.md#m1-ppt-companion-24)与[体验](zhy/materialhub/ppt_companion_acceptance.md)。
+
+## 公共后端连接（2026-10-23，PLATFORM-CLOUD-ACCOUNT-22）
+
+接口/认证协议保持。前端显式VITE_API_BASE_URL优先，未配置时开发为http://127.0.0.1:8000/api/v1、生产同源/api/v1；所有认证读取和文件下载沿统一基址。部署与现有账号迁移见[云端账号说明](zhy/shared_platform/cloud_accounts.md)，不是GitHub账号库同步或自动云部署。
+
+## 资料上限与阅读AI集成（2026-10-23）
+
+原有`POST /courses/{course_id}/documents`、`POST /documents/{document_id}/versions`单文件上限现为30MiB（31457280字节，含上限），超限仍422且不入库/不建任务。前端单批20份/100MiB保持；Office原格式输入与部署代理同步。阅读AI复用既有study-reports/remote-queries及notes接口，无新AI端点；笔记保存传冻结request_id，未知结果不重放为新身份。见[契约20](contracts.md#m1-upload-limit-20)、[契约21](contracts.md#m1-reader-ai-21)。
+
+## 资料处理服务状态（2026-10-23，M1-UPLOAD-RELIABILITY-19）
+
+认证GET `/api/v1/processing/status`返回`state=ready/starting/unavailable`、`checked_at`与受控`message`；只读核对本机worker锁/有界新鲜心跳，不创建任务，不返回PID/路径/数据库信息/其他账户队列。`ready`只表示服务连接状态，不是任务完成或时延保证。原`/health`继续仅表示API/数据库可用。开发生命周期托管、生产外部守护与上传不自动重放见[契约19](contracts.md#m1-upload-reliability-19)及[部署准备](zhy/shared_platform/worker_deployment.md)。
+
+## M1最新版本资料检查（2026-10-23）
+
+GET `/api/v1/courses/{course_id}/material-health?issue=attention&q=&offset=0&limit=12`：issue支持attention/all/text/parse/index/preview/processing，返回最新版本元数据、当前问题/正文标记、本页最新阶段任务与匹配范围counts。只读、同账户有效课程，真实分页；不返回正文/文件路径/租约。恢复复用既有POST `/jobs/{id}/retry`，检查页不新建任务。课程工作台materials.counts增加attention_materials（当前资料份数），原failed_jobs仍为历史任务数。[契约17](contracts.md#m1-readiness-17)。
+
+## M1原文关联错题与复习摘要（2026-10-23）
+
+GET `/api/v1/versions/{version_id}/learning-links`兼容15，kind新增mistake、counts增加mistake。错题项补source_relation（citation/version）及review.mastered/pending_count/due_count/next_due_date；响应增加today/timezone，按账户时区统计到期。整版本来源只在无引用且source_version_id匹配时纳入整版本查询，不用于片段；坏引用不降级。复用原分页/权限/只读及无题干答案契约。[详细边界](contracts.md#m1-source-review-16)。
+
+## 2026-10-23 资料学习关联（M1-LEARNING-CONNECTIONS-15）
+
+`GET /api/v1/versions/{version_id}/learning-links?kind=all&q=&offset=0&limit=12[&chunk_id=<uuid>]`：kind仅all/note/qa/report/topic，q最多200字标题字面搜索，offset≤1000000、limit1–50。先验证本人有效课程/material版本及可选片段；仅列至少一条当前有效逐字原文引用的笔记、完整grounded问答/报告和有效知识点，各域SQL适配返回元数据并真实计数/去重/分页。响应course_id/document_id/version_id/chunk_id、items、counts、total/offset/limit/checked_at，无正文/题干/答案/摘录/路径/模型配置；旧AI无顶层引用不猜关联。无写入或新迁移，401/404/422保持统一错误。[完整契约](contracts.md#m1-learning-connections-15)。
+
+## 2026-10-23 M1选择范围导出与任务定位
+
+`POST /api/v1/courses/{course_id}/material-exports`新增可选`document_ids`（1–100个唯一UUID）。省略/null兼容原课程包；选择时服务端核对全部归属、捕获当前全部版本，保存既有sources_json.request，失败重试不扩大范围。相同request_id只接受相同课程/选择集合，范围不同409，越权404、空/重复/超限422。响应新增scope=course/selected和selected_count，下载/重试/移除接口不变；选择包只包含固定版本的来源图片，原预算/hash/撤权保持。[完整契约](contracts.md#m1-scoped-export-14)。
+
+`GET /api/v1/courses/{course_id}/jobs/page`已有kind=all/PARSE/INDEX/PREVIEW和status=all/pending/failed/cancelled/succeeded，本轮前端补齐组合筛选与原版本回跳。JobResponse.document_id/resource_id分别为资料/版本UUID；不使用文件名猜定位，无新增任务接口或schema。
+
+## 2026-10-23 课程学习记录（PLATFORM-RECORDS-10）
+
+`GET /api/v1/courses/{course_id}/learning-records?kind=all&q=&offset=0&limit=12`：kind仅all/material/note/qa/report/attempt/mistake，标题q最多200字，offset 0–1000000，limit 1–50。返回course_id、items（WorkspaceItem元数据，资料含版本UUID）、total、counts（标题匹配的各类型计数）、offset/limit、checked_at。SQL分页、同一read snapshot及归属/删除过滤；401/404/422沿统一错误。AI报告使用可读标题，绝不返回笔记/AI正文、题干/答案/作答或路径。仅当前可用内容汇总，不是不可变操作日志；打开目标时原接口重新授权。完整[契约](contracts.md#platform-records-10)。
+
+M1-READING-TOOLS-05（2026-10-22）：阅读书签在浏览器按auth/me.id与课程隔离；版本对照复用GET documents/{id}/versions与versions/{id}/chunks，无新增API、数据库或迁移。回跳重验document.course_id、版本归属及chunk.version_id/UUID，缺失不得静默回退。书签不属于Note/Citation或账户备份。[契约](contracts.md#m1-reading-tools-05)。
+
+## LEARNING-HUB-04：知识点只读聚合（2026-10-22）
+
+| 接口 | 行为 |
+|---|---|
+| `GET /courses/{id}/learning-topics?q=&state=all&offset=0&limit=12` | state=all/needs_review/without_questions；limit≤50，q≤200。items为Topic元数据、含子标签的confirmed/pending题目记录数及当前needs_review错题数，返回total/offset/limit/checked_at/course_id；无题干/答案/笔记正文 |
+| `GET /courses/{id}/learning-topics/{topic_id}` | 本考点元数据/计数、固定版本人工确认sources（失效不返回原文/资料名）、关键词candidates、M3同源/同标签候选notes、当前mistakes与PENDING reviews；含账户today/timezone。关系类别独立，不自动创建任务或修改统计 |
+
+Pydantic输出白名单；有效本人课程、只读快照，错配/删除404，合并409且details.target_id仅本人同课程目标，超出2000 Topic/20000题目/20000错题预算422。不改变原抽题/答案隔离。确认原文复用`PUT /topics/{id}/sources`与revision；练习仅通过URL预填Topic，最终仍经原抽题校验。本机资料视图无服务端写入。[契约](contracts.md#learning-hub-04)与[实现/验证](zhy/integration/learning_hub_acceptance.md)。
+
+## 学习连续性与按需目录（2026-10-22）
+
+以下均为已登录用户的只读接口，无新迁移；旧接口保持兼容。
+
+| 接口 | 返回与边界 |
+|---|---|
+| `GET /notes/catalog?offset=0&limit=200` | items/total/offset/limit；limit≤200，只含有效本人笔记id/course_id/folder_id/title/tags/revision/updated_at；排除撤权课程，保留全局笔记，无正文 |
+| `GET /courses/{id}/note-matches?q=&tag=` | 原标题/正文/标签搜索规则，返回匹配ids；最多20000，超限422；课程归属校验 |
+| `GET /notes/{id}/backlink-options` | 反链来源元数据；源/目标均须本人可访问，无正文 |
+| `GET /courses/{id}/question-directory?offset=0&limit=200` | items/total/offset/limit，limit≤200；题号/状态/revision/Topic ID/70字符题干摘要/展示去重hash，不返回答案/解析/完整正文 |
+| `GET /past-questions/{id}` | 已授权且未移出题目的原管理question_payload，含paper_id；作答期间禁止管理读取，详情失败可重试 |
+
+笔记管理仅选中时读取正文；AI资料选择复用documents/page，每页12份、所选版本跨页独立保留。阅读笔记复用POST /notes及Citation原子创建，不新增AI接口。本机恢复副本无后端写入接口，恢复后仍走原revision/request_id。[完整契约](contracts.md#platform-continuity-03)与[使用及验证](zhy/integration/continuity_acceptance.md)。
+
+## M1资料批量整理与引用目标（2026-10-22）
+
+- POST `/api/v1/courses/{id}/documents/organize`：items含唯一id及expected_updated_at，1–100项；可选category、tags_mode（keep/add/remove/replace/clear）及tags。200返回items元数据与changed；404无权/撤权/非material，409快照冲突，422操作/最终标签超限，失败整批不写。
+- PATCH `/api/v1/documents/{id}`增加可选带时区expected_updated_at，409的details.server_document为当前元数据；旧省略调用兼容。
+- GET `/api/v1/courses/{id}/note-options?q=&offset=0&limit=20`：只返回本人当前课程有效笔记id/title/updated_at及total/offset/limit；limit≤100、q≤200，标题字面匹配，空查询按最近更新排序，不返回正文。
+
+完整规则见[契约](contracts.md#m1-organize-02)，[使用/验证](zhy/materialhub/organize_acceptance.md)。
+
+
+## PLATFORM-LEARNING-LOOP-02：工作台与复习计划（2026-10-22）
+
+| 接口 | 契约 |
+|---|---|
+| `GET /courses/{course_id}/workspace/{domain}` | domain=materials/notes/study/practice。授权有效课程后由本域只读适配器返回course_id/domain/counts/recent/checked_at；最多6项近期元数据，不含笔记正文/题干/答案。各域独立失败/重试，统计使用只读快照 |
+| `GET /mistakes/{mistake_id}/sources` | 沿原作答验证课程/归属，返回course_id与最多50项历史来源的version_id/chunk_id/document_id/title/locator/availability；失效来源不返回可访问文档身份，不猜测关联，不写历史成绩 |
+| `GET /review-tasks?state=pending&offset=0&limit=20` | state=pending/all，limit 1–100。本人可访问的分页计划及账户today/timezone，排除已删课程或移出错题；返回items/total/offset/limit。旧today接口保留 |
+| `GET /attempts/{attempt_id}?course_id={course_id}` | 新增可选课程复核，错配404；原省略参数调用保持兼容。不从最近100项列表猜测作答所属课程 |
+
+计划创建/完成及改期复用原接口；改期继续传expected_due_date，409不重放。完成计划不改变错题掌握或每日答对数。前端result/mode/tab/attempt等参数只用于经授权定位，无自动生成/提交/远程发送。实现及验证见[全站整合验收](zhy/integration/learning_loop_acceptance.md)。
+
 ## M4-BANK-01 用户题库（2026-10-19）
 
 完整补齐接口：PATCH /topics/{id}（revision/name/aliases）、POST /topics/{id}/merge（revision/target_id/target_revision）、PUT /topics/{id}/sources（revision/version_id/chunk_id/quote）；POST/GET /courses/{id}/exam-analyses、GET /exam-analyses/{id}及/gaps；POST /past-questions/{id}/split（revision/parts）、POST /courses/{id}/question-bank/merge（question_ids/revisions/stem）、GET /courses/{id}/question-bank/papers、PATCH /past-papers/{id}/metadata（expected_revision/year/variant/provenance/duplicate_of），PATCH /review-tasks/{id}（expected_due_date/due_date）。所有变更仍检查归属/课程，校正冲突409；拆合只对同卷当前题目，父题历史不重复计分。新迁移/备份版本为0020，显式兼容0019及此前版本。统计报告返回输入样本/修订、未知值和真实分母；资料/笔记/图片候选不等于已确认匹配，掌握度只从已判定作答计算。

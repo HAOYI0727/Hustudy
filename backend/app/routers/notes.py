@@ -26,6 +26,9 @@ from ..schemas.notes import (
     NoteSearchPage,
     NoteResponse,
     NoteUpdate,
+    NoteOptionPage,
+    NoteCatalog,
+    NoteMetadata,
 )
 
 from ..services.courses import owned_course
@@ -129,6 +132,56 @@ def find_notes(
     from ..services.note_search import search_notes
 
     return search_notes(db, user.id, course_id, q, offset, limit)
+
+
+@router.get("/notes/catalog", response_model=NoteCatalog)
+def note_catalog(
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=200, ge=1, le=200),
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    from ..services.note_catalog import catalog
+
+    return catalog(db, user.id, offset, limit)
+
+
+@router.get("/courses/{course_id}/note-matches")
+def note_matches(
+    course_id: str,
+    q: str = Query(default="", max_length=200),
+    tag: str = Query(default="", max_length=32),
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    from ..services.note_catalog import matches
+
+    return matches(db, user.id, course_id, q, tag)
+
+
+@router.get("/notes/{note_id}/backlink-options", response_model=list[NoteMetadata])
+def backlink_options(
+    note_id: str,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    from ..services.note_catalog import backlinks
+
+    return backlinks(db, user.id, note_id)
+
+
+@router.get("/courses/{course_id}/note-options", response_model=NoteOptionPage)
+def citation_targets(
+    course_id: str,
+    q: str = Query(default="", max_length=200),
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=20, ge=1, le=100),
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    from ..services.note_search import note_options
+
+    return note_options(db, user.id, course_id, q, offset, limit)
 
 
 @router.post("/notes", response_model=NoteResponse, status_code=status.HTTP_201_CREATED)
