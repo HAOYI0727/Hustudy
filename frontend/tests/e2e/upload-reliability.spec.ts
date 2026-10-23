@@ -28,4 +28,3 @@ test("异常重试401让出重登，正常状态安静且不自动上传",async(
  unavailable=false;unauthorized=false;await dialog.getByLabel("密码",{exact:true}).fill("Test-password-2026");await dialog.getByRole("button",{name:"登录",exact:true}).click();await expect(dialog).not.toBeVisible();
  await expect(page.getByRole("region",{name:"资料上传队列",exact:true})).toContainText("重登后待确认.md");await expect(service).toHaveCount(0);await expect(page.getByRole("button",{name:"刷新处理服务",exact:true})).toHaveCount(0);expect(posts).toBe(0);
 });
-
