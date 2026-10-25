@@ -27,8 +27,10 @@ def block(number="一", continuation=False):
 
 def configured(monkeypatch):
     s = get_settings().model_copy(update={"llm_provider": "zhipu"})
-    monkeypatch.setattr(bank_vision, "get_settings", lambda: s)
-    monkeypatch.setattr(bank_ai, "get_settings", lambda: s)
+    import ai_account_test_support as support
+
+    monkeypatch.setattr(support, "AUTO_ACCOUNT_KEYS", True)
+    monkeypatch.setattr(support, "TEST_ACCOUNT_SETTINGS", s)
     return s
 
 
@@ -329,7 +331,7 @@ def test_vision_upload_automatically_schedules_semantic_topics(monkeypatch):
                 ]
             ), {}
 
-    monkeypatch.setattr(bank_ai, "provider", lambda: Fake())
+    monkeypatch.setattr(bank_ai, "provider", lambda *args: Fake())
     with TestClient(app) as client:
         h, c, v = setup(client)
         topic = client.post(

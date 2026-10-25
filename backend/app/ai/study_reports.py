@@ -94,6 +94,9 @@ def generate_report(provider, request, sources):
     for data, topic in zip(report["topics"], output.report.topics):
         attach(data, topic.evidence)
         data["topic_id"] = str(uuid4())
+    from ..services.m2_supplements import apply_labels
+
+    apply_labels(report, getattr(provider, "m2_supplement", {}))
     for field in ("examples", "self_checks"):
         for index, (data, exercise) in enumerate(
             zip(report[field], getattr(output.report, field))
@@ -104,7 +107,9 @@ def generate_report(provider, request, sources):
     citations = list(all_citations.values())
     report["citations"] = citations
     if len(citations) > 256:
-        raise ProviderFailure("CITATION_BUDGET", "报告引用超过256条，请按更小章节生成；未截断引用")
+        raise ProviderFailure(
+            "CITATION_BUDGET", "报告引用超过256条，请按更小章节生成；未截断引用"
+        )
     report.update(
         {
             "scope_version_ids": common["scope_version_ids"],
@@ -201,7 +206,18 @@ def report_markdown(report):
             name = {"key": "重点", "difficult": "难点", "exam": "考点建议"}[
                 label["kind"]
             ]
-            lines.append(f"- {name}（AI建议）：{label['reason']}")
+            from ..services.m2_supplements import ORIGINS
+
+            lines.append(f"- {name}（{ORIGINS[label['origin']]}）：{label['reason']}")
+            if label.get("notice"):
+                lines.append("  - " + label["notice"])
+            for evidence in label.get("evidence", []):
+                if label["origin"] == "teacher_mark":
+                    lines.append("  - 本人记录的原文依据：" + evidence["quote"])
+                else:
+                    lines.append(
+                        f"  - {evidence['paper_title']} · {evidence['year'] or '年份未知'} · 题目ID {evidence['question_id']}"
+                    )
         lines += ["- 易错点：" + item for item in topic["misconceptions"]]
         if topic.get("breakthrough_steps"):
             lines += ["### 难点突破步骤"] + [

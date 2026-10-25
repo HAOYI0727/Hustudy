@@ -160,7 +160,14 @@ def query_history(
             AIResult.user_id == user.id,
             AIResult.course_id == course_id,
             AIResult.prompt_version.in_(
-                [PROMPT_VERSION, "zhipu-grounded-qa-v1", "mock-v1"]
+                [
+                    PROMPT_VERSION,
+                    "zhipu-grounded-qa-v4",
+                    "zhipu-grounded-qa-v3",
+                    "zhipu-grounded-qa-v2",
+                    "zhipu-grounded-qa-v1",
+                    "mock-v1",
+                ]
             ),
             ~AIResult.query.startswith("study-report:"),
         )
@@ -209,6 +216,10 @@ def report_history(
                     "zhipu-study-report-v3",
                     "zhipu-study-report-v4",
                     "zhipu-study-report-v5",
+                    "zhipu-study-report-v6",
+                    "zhipu-study-report-v7",
+                    "zhipu-study-report-v8",
+                    "zhipu-study-report-v9",
                 ]
             ),
         )
@@ -235,6 +246,10 @@ def saved_report(
                     "zhipu-study-report-v3",
                     "zhipu-study-report-v4",
                     "zhipu-study-report-v5",
+                    "zhipu-study-report-v6",
+                    "zhipu-study-report-v7",
+                    "zhipu-study-report-v8",
+                    "zhipu-study-report-v9",
                 ]
             ),
         )
@@ -247,7 +262,7 @@ def saved_report(
 
 @router.get("/ai/provider")
 def provider(user: User = Depends(current_user)):
-    return remote_ai.provider_status()
+    return remote_ai.provider_status(user.id)
 
 
 @router.post(
@@ -305,4 +320,7 @@ def resume_report(
 ):
     from ..services.report_batches import resume
 
-    return resume(db, remote_ai.owned_query(db, user.id, query_id))
+    row = remote_ai.owned_query(db, user.id, query_id)
+    from ..services import qa_batches
+
+    return qa_batches.resume(db, row) if qa_batches.batched(row) else resume(db, row)

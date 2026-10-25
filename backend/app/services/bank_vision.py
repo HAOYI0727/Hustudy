@@ -8,7 +8,7 @@ from typing import Literal
 from fastapi import HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 from ..ai.providers import ZhipuProvider, ProviderFailure
-from ..core.config import get_settings
+from ..core.config import get_user_settings
 from . import question_bank as bank
 
 MODEL = "glm-5.3-flash"
@@ -88,11 +88,12 @@ class VerifiedPage(Page):
     blocks: list[VerifiedBlock] = Field(max_length=40)
 
 
-def fingerprint():
-    s = get_settings()
+def fingerprint(user_id):
+    s = get_user_settings(user_id)
     return {
         "endpoint": s.llm_endpoint,
         "model": MODEL,
+        "credential_revision": s.credential_revision,
         "prompt_hash": hashlib.sha256(
             (PROMPT + ANSWER_PROMPT + VERIFY_PROMPT).encode()
         ).hexdigest(),
@@ -102,15 +103,23 @@ def fingerprint():
     }
 
 
-def require_config():
-    s = get_settings()
+def require_config(user_id):
+    s = get_user_settings(user_id)
     if s.llm_provider != "zhipu" or not s.zhipu_api_key.get_secret_value():
-        raise HTTPException(409, "请先配置智谱API Key并重启API与worker")
-    return fingerprint()
+        raise HTTPException(409, "请先在API接入保存本账户的智谱API Key")
+    return fingerprint(user_id)
 
 
-def provider():
-    return ZhipuProvider(get_settings().model_copy(update={"llm_model": MODEL}))
+def provider(user_id=None, expected_revision=None):
+    if user_id is None:
+        raise ProviderFailure("NOT_CONFIGURED", "AI调用缺少账户身份，未发送")
+    settings = get_user_settings(user_id)
+    if (
+        expected_revision is not None
+        and settings.credential_revision != expected_revision
+    ):
+        raise ProviderFailure("CONFIG_CHANGED", "本账户API配置已变化，未继续识别")
+    return ZhipuProvider(settings.model_copy(update={"llm_model": MODEL}))
 
 
 def local_image_hints(path):
@@ -471,6 +480,7 @@ def check_job(db, paper_id, job_id, token):
     if (
         not paper
         or not job
+        or paper.user_id != job.user_id
         or job.status != "RUNNING"
         or job.lease_token != token
         or not job.lease_until
@@ -488,7 +498,7 @@ def check_job(db, paper_id, job_id, token):
         meta.get("pdf_import", {}).get("confirm_remote_send", False),
     ):
         raise ValueError("未确认发送原页")
-    if require_config() != config.get("vision_config"):
+    if require_config(paper.user_id) != config.get("vision_config"):
         raise ValueError("AI配置发生变化，请重新上传并确认")
     if meta.get("pdf_import"):
         bank_pdf.validate(db, paper)
@@ -532,6 +542,10 @@ def recognize_job(paper_id, job_id, token, items):
             job.lease_until = utc_now() + timedelta(seconds=480)
             job.progress = 20 + int(70 * index / len(items))
             questions_only = meta["image_import"].get("questions_only", True)
+            account_adapter = provider(
+                paper.user_id,
+                meta["image_import"]["vision_config"].get("credential_revision"),
+            )
             db.commit()
 
         def verify_guard():
@@ -539,7 +553,11 @@ def recognize_job(paper_id, job_id, token, items):
                 check_job(verify_db, paper_id, job_id, token)
 
         result = transcribe(
-            item["path"], context, questions_only, before_verify=verify_guard
+            item["path"],
+            context,
+            questions_only,
+            adapter=account_adapter,
+            before_verify=verify_guard,
         )
         with SessionLocal() as db:
             paper, job, meta = check_job(db, paper_id, job_id, token)
@@ -571,7 +589,7 @@ def resume(db, user_id, paper_id):
         or meta.get("image_import", {}).get("engine") != "ai"
     ):
         raise HTTPException(409, "不是可续跑的AI识别任务")
-    if require_config() != meta["image_import"].get("vision_config"):
+    if require_config(user_id) != meta["image_import"].get("vision_config"):
         raise HTTPException(409, "模型配置改变，请重新确认上传")
     if db.scalar(
         select(PastQuestion.id).where(PastQuestion.paper_id == paper_id).limit(1)

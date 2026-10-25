@@ -163,7 +163,10 @@ def configure(monkeypatch):
             "zhipu_api_key": SecretStr("isolated-fake-not-a-real-key"),
         }
     )
-    monkeypatch.setattr(bank_ai, "get_settings", lambda: settings)
+    import ai_account_test_support as support
+
+    monkeypatch.setattr(support, "AUTO_ACCOUNT_KEYS", True)
+    monkeypatch.setattr(support, "TEST_ACCOUNT_SETTINGS", settings)
 
 
 def test_ai_consent_and_original_line_validation(monkeypatch):
@@ -189,7 +192,7 @@ def test_ai_consent_and_original_line_validation(monkeypatch):
                 {},
             )
 
-    monkeypatch.setattr(bank_ai, "provider", lambda: Fake())
+    monkeypatch.setattr(bank_ai, "provider", lambda *args: Fake())
     with TestClient(app) as client:
         h, c = context(client)
         version = upload(
@@ -287,7 +290,9 @@ def test_free_provider_http_contract_uses_structured_tuple_without_network(monke
             },
         )
 
-    settings = bank_ai.get_settings().model_copy(update={"llm_model": "glm-4.7-flash"})
+    from ai_account_test_support import TEST_ACCOUNT_SETTINGS
+
+    settings = TEST_ACCOUNT_SETTINGS.model_copy(update={"llm_model": "glm-4.7-flash"})
     rows = bank_ai.extract(
         "1. 说明协议。\n原文提供的解答。",
         ZhipuProvider(settings, transport=httpx.MockTransport(respond)),
@@ -379,7 +384,7 @@ def test_ai_terminal_job_and_sources_survive_account_restore(monkeypatch):
                 }
             ), {}
 
-    monkeypatch.setattr(bank_ai, "provider", lambda: Fake())
+    monkeypatch.setattr(bank_ai, "provider", lambda *args: Fake())
     with TestClient(app) as client:
         h, c = context(client)
         owner = client.get("/api/v1/auth/me", headers=h).json()["id"]

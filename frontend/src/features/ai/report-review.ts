@@ -1,3 +1,4 @@
+import {labelSourceText} from "./ReportLabelSource";
 import type {StudyReport} from "../../api/client";
 
 export type ReviewLabel = Pick<StudyReport["topics"][number]["labels"][number], "kind" | "reason">;
@@ -6,7 +7,7 @@ export const labelNames = {key:"重点", difficult:"难点", exam:"考点建议"
 
 export function beginReportReview(report:StudyReport):ReportReview {
   const snapshot = structuredClone(report);
-  return {report:snapshot, labels:snapshot.topics.map(topic=>topic.labels.map(({kind,reason})=>({kind,reason})))};
+  return {report:snapshot, labels:snapshot.topics.map(topic=>Array.from(new Map(topic.labels.map(({kind,reason})=>[kind,{kind,reason}])).values()))};
 }
 
 export function beginTopicReview(report:StudyReport, topicId:string):ReportReview {
@@ -42,8 +43,8 @@ export function reviewedReportMarkdown(review:ReportReview):string {
   if(!topicOnly)for (const [items,title] of [[report.learning_goals,"学习目标"],[report.prerequisites,"前置知识"],[report.learning_sequence,"建议学习顺序"]] as const)
     lines.push(`## ${title}`, ...(items.length?items.map(item=>`- ${item}`):["资料未明确要求前置知识。"]));
   report.topics.forEach((topic,index)=>{
-    lines.push(`## ${topic.name}`,topic.explanation,"### 原始AI建议（保留供核对）",
-      ...topic.labels.map(label=>`- ${labelNames[label.kind]}（AI建议）：${label.reason}`),
+    lines.push(`## ${topic.name}`,topic.explanation,"### 原始AI建议及来源标签（保留供核对）",
+      ...topic.labels.flatMap(label=>[`- ${labelNames[label.kind]}（${labelSourceText(label)}）：${label.reason}`,...(label.notice?[label.notice]:[]),...(label.evidence||[]).map(e=>e.quote?`本人记录原文：${e.quote}`:`真题依据：${e.paper_title} · ${e.year??"年份未知"} · 题目ID ${e.question_id}`)]),
       "### 我的标签整理（用户编辑，待核实）",
       ...(labels[index].length?labels[index].map(label=>`- ${labelNames[label.kind]}：${label.reason.trim()}`):["未保留标签。"]),
       ...topic.misconceptions.map(item=>`- 易错点：${item}`));

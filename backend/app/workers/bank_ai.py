@@ -75,8 +75,11 @@ def run_bank_ai_once():
             return True
         job = db.get(ProcessingJob, jid)
         pid = job.resource_id
+        owner_id = job.user_id
         row = db.get(PastPaper, pid)
         try:
+            if not row or row.user_id != owner_id:
+                raise ValueError("任务归属不匹配")
             meta = json.loads(row.bank_meta_json)
             topic_mode = meta.get("ai_topic_index", {}).get("job_id") == jid
             scope = meta["ai_topic_index" if topic_mode else "ai_extract"]
@@ -93,9 +96,13 @@ def run_bank_ai_once():
     output, error = None, None
     try:
         output = (
-            bank_topic_ai.classify(scope, bank_ai.provider())
+            bank_topic_ai.classify(
+                scope, bank_ai.provider(owner_id, scope.get("credential_revision"))
+            )
             if topic_mode
-            else bank_ai.extract(content, bank_ai.provider())
+            else bank_ai.extract(
+                content, bank_ai.provider(owner_id, scope.get("credential_revision"))
+            )
         )
     except ProviderFailure as exc:
         error = f"{exc.code}：{exc.message}"

@@ -157,7 +157,7 @@ def topic_ai_confirm(
 def ai_capabilities(user: User = Depends(current_user)):
     from ..services.bank_ai import capabilities
 
-    return capabilities()
+    return capabilities(user.id)
 
 
 @router.post("/courses/{course_id}/question-bank/ai-preview", status_code=201)

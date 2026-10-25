@@ -1,5 +1,9 @@
 # Hustudy 环境与验收指南
 
+2026-10-24个人API升级：`.env`继续用于服务端JWT/存储等配置；旧HUSTUDY_ZHIPU_API_KEY及ai-connection.json不再作为网站用户的真实AI回退。登录后通过API接入保存个人Key；无需新环境、依赖或数据库迁移。[详情](gcx/account_api_2026_10_24.md)。
+
+2026-10-24 Windows/gcx当前说明（优先于下方10月16日历史）：工作目录Hustudy-gcx3，复用E:\Anaconda\python.exe；首次python -m pip install -r backend/requirements.txt与python scripts/configure_auth.py，前端npm ci。开发API默认托管worker，通常只开后端和前端两个终端；不要沿用旧三终端流程。修改worker后重启后端，前端刷新。M2浏览器可用playwright.m2.config.ts及HUSTUDY_TEST_PYTHON指定已有解释器，不新建环境。[命令](gcx/execution_budget_2026_10_24.md)。
+
 2026-10-17 M2真实课件更新：需停止并重启后端与worker，前端运行时Ctrl+F5即可；无新依赖/迁移，无需重设密钥。报告新预览纳入完整有界正文并分批，旧预览范围不变。重启命令、普通python与Anaconda完整路径见[本轮说明](gcx/real_materials_2026_10_17.md#重启与人工验收)。
 
 ## Windows当前复现（2026-10-16，gcx电脑）

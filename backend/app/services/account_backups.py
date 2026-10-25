@@ -13,7 +13,7 @@ import zipfile
 from fastapi import HTTPException
 from sqlalchemy import select, update, func
 from ..core import backup_contract as contract
-from ..core.config import get_settings
+from ..core.config import get_settings, get_user_settings
 from ..core.storage import LocalFileStorage, check_capacity, map_disk_error
 from ..models import User, Course, ProcessingJob, AccountArchive
 from . import material_backup, note_backup, ai_backup, exam_backup
@@ -231,6 +231,7 @@ def export_package(db, user_id, output):
             for secret in (
                 get_settings().jwt_secret,
                 get_settings().zhipu_api_key.get_secret_value(),
+                get_user_settings(user_id).zhipu_api_key.get_secret_value(),
             ):
                 if secret and secret.encode() in encoded:
                     raise ValueError(

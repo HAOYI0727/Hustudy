@@ -20,6 +20,9 @@ def context(client):
         json={"username": "m1_" + uuid4().hex[:10], "password": "test-password-123"},
     )
     headers = {"Authorization": "Bearer " + result.json()["access_token"]}
+    from ai_account_test_support import maybe_seed_account
+
+    maybe_seed_account(client, headers)
     course = client.post(
         "/api/v1/courses", headers=headers, json={"name": "资料测试"}
     ).json()["id"]
