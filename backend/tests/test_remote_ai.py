@@ -20,6 +20,9 @@ from test_material_organization import setup_course, import_document
 
 @pytest.fixture
 def configured(monkeypatch):
+    import ai_account_test_support as support
+
+    monkeypatch.setattr(support, "AUTO_ACCOUNT_KEYS", True)
     monkeypatch.setenv("HUSTUDY_LLM_PROVIDER", "zhipu")
     get_settings.cache_clear()
     yield
@@ -480,8 +483,9 @@ def test_selected_chunk_scope_budget_and_manual_withdrawal(configured):
         chosen = preview(
             client, owner, course, chunk_ids=[chunks[0]["id"]], version_ids=[version]
         )
-        assert len(chosen["sources"]) == 1 and len(chosen["sources"][0]["text"]) <= 2000
-        assert chosen["sources"][0]["text"] in chunks[0]["text"]
+        assert all(s["source_id"] == chunks[0]["id"] and len(s["text"]) <= 2000 for s in chosen["sources"])
+        assert "".join(s["text"] for s in chosen["sources"]) == chunks[0]["text"]
+        assert chosen["qa_scope"]["mode"] == "selected_chunks"
         _, other_version = import_document(
             client, foreign, foreign_course, "# 苹果\n\n他人片段。"
         )

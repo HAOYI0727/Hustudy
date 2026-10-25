@@ -15,6 +15,9 @@ def setup_course(client):
         },
     ).json()
     headers = {"Authorization": "Bearer " + user["access_token"]}
+    from ai_account_test_support import maybe_seed_account
+
+    maybe_seed_account(client, headers)
     course = client.post(
         "/api/v1/courses", headers=headers, json={"name": "资料分类"}
     ).json()["id"]

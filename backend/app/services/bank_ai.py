@@ -9,7 +9,7 @@ from fastapi import HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
 from ..ai.providers import ProviderFailure, ZhipuProvider
-from ..core.config import get_settings
+from ..core.config import get_user_settings
 from ..models import PastPaper, ProcessingJob
 from ..models.base import utc_now
 from .ai_material_scope import full_context
@@ -38,8 +38,8 @@ class Extraction(BaseModel):
     questions: list[ExtractedQuestion] = Field(min_length=1, max_length=32)
 
 
-def capabilities():
-    s = get_settings()
+def capabilities(user_id):
+    s = get_user_settings(user_id)
     return {
         "configured": s.llm_provider == "zhipu"
         and bool(s.zhipu_api_key.get_secret_value()),
@@ -77,9 +77,10 @@ def response(db, paper, include_sources=True):
 def preview(db, user_id, course_id, payload):
     owned_course(db, user_id, course_id, lock=True)
     bank.no_active_attempt(db, user_id, course_id)
-    if not capabilities()["configured"]:
+    if not capabilities(user_id)["configured"]:
         raise HTTPException(
-            409, "AI识别未配置智谱API Key；可先使用本地规则导入，密钥只在本机后端配置"
+            409,
+            "AI识别未配置智谱API Key；可先使用本地规则导入，请在API接入中保存本账户密钥",
         )
     bank.topic_rows(db, user_id, course_id, payload.default_topic_ids)
     sources, _ = full_context(
@@ -95,7 +96,7 @@ def preview(db, user_id, course_id, payload):
     content = "\n".join(s["text"] for s in sources)
     if len(bank.parse_text(content)) > 32:
         raise HTTPException(422, "本次最多32题，请拆分资料；不会截取前32题")
-    key = get_settings().zhipu_api_key.get_secret_value()
+    key = get_user_settings(user_id).zhipu_api_key.get_secret_value()
     if key and key in content:
         raise HTTPException(422, "资料包含服务密钥，已阻止发送")
     row = PastPaper(
@@ -114,10 +115,13 @@ def preview(db, user_id, course_id, payload):
                 "ai_extract": {
                     "sources": sources,
                     "default_topic_ids": [str(t) for t in payload.default_topic_ids],
-                    "endpoint": get_settings().llm_endpoint,
+                    "endpoint": get_user_settings(user_id).llm_endpoint,
                     "model": MODEL,
                     "expires_at": (utc_now() + timedelta(minutes=15)).isoformat(),
                     "key_hash": hashlib.sha256(key.encode()).hexdigest(),
+                    "credential_revision": get_user_settings(
+                        user_id
+                    ).credential_revision,
                 },
             }
         ),
@@ -165,10 +169,11 @@ def validate_scope(db, row, scope):
 
     owned_course(db, row.user_id, row.course_id)
     validate_context(db, row.user_id, row.course_id, scope["sources"])
-    settings = get_settings()
+    settings = get_user_settings(row.user_id)
     if (
-        scope.get("model") != MODEL
-        or not capabilities()["configured"]
+        scope.get("credential_revision") != settings.credential_revision
+        or scope.get("model") != MODEL
+        or not capabilities(row.user_id)["configured"]
         or settings.llm_endpoint != scope["endpoint"]
         or hashlib.sha256(
             settings.zhipu_api_key.get_secret_value().encode()
@@ -258,5 +263,11 @@ def extract(content, provider):
     return parsed
 
 
-def provider():
-    return ZhipuProvider(get_settings().model_copy(update={"llm_model": MODEL}))
+def provider(user_id, expected_revision=None):
+    settings = get_user_settings(user_id)
+    if (
+        expected_revision is not None
+        and settings.credential_revision != expected_revision
+    ):
+        raise ProviderFailure("CONFIG_CHANGED", "本账户API配置已变化，请重新预览确认")
+    return ZhipuProvider(settings.model_copy(update={"llm_model": MODEL}))

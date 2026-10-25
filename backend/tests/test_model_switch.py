@@ -102,9 +102,11 @@ def test_model_switch_rejects_old_preview_or_queued_job(monkeypatch, queued):
                     ).status_code
                     == 202
                 )
-            monkeypatch.setenv("HUSTUDY_LLM_MODEL", "glm-5.3-flash")
-            get_settings.cache_clear()
-            assert "vlm/glm-5.3-flash" in provider_status()["documentation_url"]
+            from ai_account_test_support import change_model
+
+            change_model(client, owner, "glm-5.3-flash")
+            uid = client.get("/api/v1/auth/me", headers=owner).json()["id"]
+            assert "vlm/glm-5.3-flash" in provider_status(uid)["documentation_url"]
             if queued:
                 assert run_ai_once()
                 result = client.get(base, headers=owner).json()

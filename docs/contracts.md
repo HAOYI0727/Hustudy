@@ -1,5 +1,45 @@
 # Hustudy 共享契约（Phase 0）
 
+## M2-HANDOFF-06：上游待接通提醒（2026-10-24）
+
+**教师强调与已确认真题尚未端到端完成。** M1缺阅读标记写入/持久化/查询及API、worker的install_reader注册；M4缺明确真题身份写入入口。M2既有严格消费契约保持，不新增手动标签请求字段，不把普通题库或AI推测当事实。责任、ReadingTeacherMark字段、exam_identity约定及联合验收见[交接接口清单](gcx/handoff_2026_10_24.md)。此项是现有契约状态澄清，没有新增已实现API。
+
+## M2-QA-LONG-CONTEXT-05（2026-10-24）
+
+QA preview chunk_ids上限400。明确version_ids或chunk_ids时读取完整所选正文，不依问题关键词只选六段，不截长段；材料≤400原片段/240000字符，沿用报告8000字符/32单元计划；没有显式范围时保留当前课程最新有效材料检索，不能纳入题库。首source.qa_plan冻结mode/coverage/batched/batch_count。response追加qa_scope，batch_progress可kind=qa、phase=extracting/synthesizing、total=N+1（单批不分阶段）。多批先逐批结构化选择≤32原文摘录，空依据批次也标已检查；仅验证逐字引用并保存，不保留模型自编分批答案。然后合并去重有依据摘录（≤256/128000字符）再统一问答，最终引用仍来自原发送范围。单批直接问答，回答引用上限32。
+
+QA私有AIResult checkpoint/progress采用固定ID、owner检查，不计正常历史/学习记录；中间状态QA_PROCESSING不是证据不足最终结论。每步派发前落检查点、网络不占写锁，成功单元不自动重发；取消/权限/密钥修订/来源变化拒绝后续写入，超时保留进度。原resume入口按任务类型分发，严格再次确认并开启新120秒窗口，成功批次不重发、修复额度不重置。全部批次无依据时不额外汇总调用；失败/部分结果不可复用，完整成功结果才按范围/提示词/账号配置复用。新QA提示词版本兼容旧历史，无迁移/新依赖/真实调用。
+
+## PLATFORM-ACCOUNT-AI-04（2026-10-24，覆盖机器共享API配置）
+
+GET/PUT/DELETE/POST-test `/api-connection`保持原入口，scope改为account，仅操作current_user。按后端私有目录api-connections/{user_id}.json保存，HKDF包含账户UUID后Fernet加密，原子写/修订冲突保护/进程锁，响应不含密钥；不进入账户ZIP或资料导出，无schema迁移。旧ai-connection.json/.env的密钥不作为任何账户真实AI回退，也不自动复制给登录用户。无配置明确configured=false，其他本地功能保持。
+
+同一账户每次保存/清除递增revision，模型/密钥修订绑定问答/报告预览与题库识别/分类/视觉任务，后台根据任务owner获取个人Settings；每次追加调用及采纳前复核配置。修改或清除使旧预览/未派发任务/后续批次失效，已发出的请求不能撤回；别人的修订不影响本账户。连接测试固定自制短文本、严格确认，不带课程内容；读取配置后释放锁再访问模型，保存结果前按同账户revision复核。Settings只支持智谱和现有模型，未增加任意平台/端点或付费回退。历史结果可只读保留，新复用与续跑不得绕过个人配置确认。旧停用note-ai配置仍停用，不混用历史个人笔记Key。
+
+## M2-AUTO-LABEL-SOURCES-03（2026-10-24，覆盖02手动来源输入）
+
+新问答/报告设置只保留note_ids/notes_confirmed。报告preview不接受teacher_marks、exam_paper_ids、exam_sources_confirmed；自动从所选原文查询只读依据并冻结m2_supplement.version=2。阅读标记适配契约为id/user_id/course_id/version_id/chunk_id/revision/status=active/mark_type=teacher_emphasis/kind/quote/reason/confirmed，上游读取器通过reading_report_evidence.install_reader在进程启动接入；当前未有阅读标记持久化实现，默认返回空，不新增阅读UI/写表。只采纳本人本课程已确认标记且摘录完整在实际发送范围内的记录。身份、位置、类型、修订均严格校验，不从课件文字猜“教师强调”。
+
+真题只读适配自动扫描本人本课程M4记录，卷元数据exam_identity={kind:past_exam,confirmed:true}明确其身份，再检查卷/题CONFIRMED、人工确认知识点映射、有效课件依据与报告实际引用；当前尚无该身份字段的录入入口，默认无身份记录不推断为真题。未来M4负责写入身份，不在报告页询问用户。最多200教师记录/100真题映射，越界明确拒绝。依据变化、撤回或新增后重新预览，保留来源快照与历史失效提示。既有version=1手动快照只读兼容，不能复用成新自动预览。模型仍仅允许ai_suggestion，事实标签由服务端处理。原补充笔记、安全预算和发送确认约束保持。
+
+## M2-SUPPLEMENT-LABELS-02（2026-10-24）
+
+问答/报告preview追加note_ids（去重UUID，≤5）及notes_confirmed（严格bool，选择笔记时必须true）；报告可选exam_paper_ids（去重UUID，≤20）及exam_sources_confirmed（严格bool，选择时必须true，不能把一般练习题库自动认定真题）；报告另可传teacher_marks（≤20，每项kind=key/difficult/exam、version_id/chunk_id/quote≤500/reason≤1000及confirmed严格true）。缺省空数组兼容旧调用。教师强调仅表示本人记录，不称已向教师核实。仅原文内有效标注可以冻结；普通笔记tags或AI标签不得转换为教师事实。
+
+首条材料sources追加m2_supplement快照：notes含本人同课程未删除笔记的id/title/revision/content/hash，总正文≤12000字符；teacher_marks含已确认的原文定位与理由；exam_paper_ids保存本人确认的真题选择，exam_evidence经M4只读适配从所选卷取得确认题目/卷/知识点映射和有效课件来源。映射必须selection_reviewed=true、来源与本次发送原文相交；无依据保持AI建议。原文Citation仍只允许原始课件，不把个人笔记冒充逐字课件引用。笔记仅作为用户核对过的补充输入，预览展示完整实际发送内容；未输入笔记不发送任何笔记正文。
+
+模型输出标签仅ai_suggestion，教师/真题标签由服务端对报告知识点逐项核实来源后生成，附evidence详情（用户声明/已确认题目ID与年份/原文定位），显示AI建议/教师强调/已确认真题。资料、笔记revision/hash或依据撤权后，确认/派发/修复/采纳/续跑/复用拒绝；历史显示dependency_status=stale和依据失效而不重写原结果。同类型的教师与真题依据可以并存（输出最多4项，用户编辑仍按3种类型去重）；固定演示不接受这些真实补充输入，不恢复AI出题。复用AIResult/RemoteQuery的JSON信封，无迁移/新依赖，不修改笔记或题库写入规则。
+
+## M2-EXECUTION-01（2026-10-24，优先于历史无修复/单请求超时说明）
+
+- 问答PreviewRequest、ReportPreviewRequest新增`max_structure_repairs: int=0`（严格整数0–2）；发送前显式设置，来源首项后端元数据`execution_policy={version:1,max_structure_repairs,budget_seconds:120}`冻结，不作为资料发给模型。所有原来源/归属/覆盖/预览确认/旧历史规则保持，旧预览默认0；固定演示不增加模型调用。
+- 初次派发开始120秒确认处理窗口，原生成、格式修复、跨报告批次的等待/调度共用绝对deadline；初次排队不计时。HTTP等待/响应读取以可取消的异步超时限制剩余窗口，不以每次读取110秒冒充任务总预算。窗口到期停止后续调用，返回TASK_BUDGET_EXCEEDED；保留此前成功checkpoint与笔记/历史。
+- 原调用或修复返回非法JSON/字段、且无密钥回显且原响应≤16000字符时，可在已授权额度内将错误输出（仅内存）、安全诊断和原范围发回同一模型修复，单次最多原输出token上限。全RemoteQuery累计修复≤初始授权值；失败/断点续跑不重置。其他错误（伪引用、权限、超时、限流、网络、输出截断/超预算等）不自动修复/重发。用户未授权=仍单次生成。所有引用仍逐条核验，不猜造字段依据。
+- 每窗口调用上限为未完成原生成单元数+剩余修复次数；输入数据字符与输出token预留上限按冻结来源、单元数、修复16000字符上限及问答2048/报告6000输出上限推导，累计使用受限。usage只记录实际服务返回的安全数值，不虚构失败调用token数。
+- 执行记录使用固定UUID的内部AIResult（prompt_version=m2-execution-v1，非普通结果历史），记录窗口/期限/阶段/调用计数/修复计数及预算，不存失败原文/密钥/额外来源。RemoteQueryResponse新增可空execution；成功/失败结果附同样execution快照。内部记录沿现有账户备份序列化，无新表/迁移。
+- 原POST /remote-queries/{id}/resume仅显式confirm_remote_send=true，复核所有者/来源/配置/运行任务后开启新120秒窗口，跳过已完成批次。修复累计额度不增。重复确认同一运行请求不得重置窗口；撤权/取消/租约丢失/配置变化前后均拒绝新修复和迟到写回。
+- 本策略只由M2 worker启用；题库OCR/AI分类、API连接测试等原Provider调用行为不改变。前端预览展示最多调用数与修复费用/发送范围，默认关闭修复；预算到期显示已完成部分和明确继续操作，不假称完整成功。
+
 <a id="m1-reference-notes-28"></a>
 ## M1-REFERENCE-NOTES-28（2026-10-24，实施前契约）
 

@@ -4,15 +4,17 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 from .ai import AIResultResponse
 from .material import JobResponse
+from .ai_supplements import SupplementSelection
 
 Text = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 
 
-class PreviewRequest(BaseModel):
+class PreviewRequest(SupplementSelection):
     model_config = ConfigDict(extra="forbid")
+    max_structure_repairs: int = Field(default=0, ge=0, le=2, strict=True)
     query: Text = Field(max_length=2000)
     version_ids: list[UUID] = Field(default_factory=list, max_length=20)
-    chunk_ids: list[UUID] = Field(default_factory=list, max_length=6)
+    chunk_ids: list[UUID] = Field(default_factory=list, max_length=400)
 
 
 class ConsentRequest(BaseModel):
@@ -46,7 +48,7 @@ class GroundedAnswer(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
     status: Literal["grounded", "insufficient_evidence"]
     answer: Text = Field(max_length=8000)
-    evidence: list[ExcerptReference | Evidence] = Field(max_length=6)
+    evidence: list[ExcerptReference | Evidence] = Field(max_length=32)
 
     @model_validator(mode="after")
     def valid_status(self):
@@ -61,6 +63,7 @@ class RemoteQueryResponse(BaseModel):
     query: str
     request_kind: Literal["qa", "study_report", "question_drafts"] = "qa"
     report_scope: dict | None = None
+    qa_scope: dict | None = None
     candidate_scope: dict | None = None
     batch_progress: dict | None = None
     model: str
@@ -72,3 +75,4 @@ class RemoteQueryResponse(BaseModel):
     job: JobResponse | None
     result: AIResultResponse | None
     reusable_result: AIResultResponse | None = None
+    execution: dict | None = None

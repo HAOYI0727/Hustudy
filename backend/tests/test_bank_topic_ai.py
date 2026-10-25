@@ -76,7 +76,7 @@ def install_fake(monkeypatch, q, tag, calls, during=None, candidates=None):
                 }
             ), {}
 
-    monkeypatch.setattr(bank_ai, "provider", lambda: Fake())
+    monkeypatch.setattr(bank_ai, "provider", lambda *args: Fake())
 
 
 def test_preview_consent_job_semantic_result_no_lexical_or_answer_and_no_overwrite(
@@ -121,7 +121,7 @@ def test_preview_consent_job_semantic_result_no_lexical_or_answer_and_no_overwri
 
 
 def test_missing_key_and_ownership_blocks_preview(monkeypatch):
-    monkeypatch.setattr(bank_ai, "capabilities", lambda: {"configured": False})
+    monkeypatch.setattr(bank_ai, "capabilities", lambda *args: {"configured": False})
     with TestClient(app) as client:
         h, c, tag, p, q = setup(client)
         r = client.post(
@@ -351,7 +351,7 @@ def test_network_failure_is_terminal_without_retry(monkeypatch):
             calls.append(1)
             raise ProviderFailure("TIMEOUT", "模拟超时")
 
-    monkeypatch.setattr(bank_ai, "provider", lambda: Failed())
+    monkeypatch.setattr(bank_ai, "provider", lambda *args: Failed())
     with TestClient(app) as client:
         h, c, tag, p, q = setup(client)
         preview(client, h, p, q)

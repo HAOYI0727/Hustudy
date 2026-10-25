@@ -178,7 +178,7 @@ def select_context(db, user_id, course_id, query, version_ids, chunk_ids):
             FROM chunk_search JOIN document_chunks c ON c.id=chunk_search.chunk_id
             JOIN document_versions v ON v.id=c.version_id JOIN documents d ON d.id=v.document_id
             WHERE chunk_search MATCH :q AND c.user_id=:u AND v.user_id=:u AND d.user_id=:u
-            AND d.course_id=:course AND d.deleted_at IS NULL
+            AND d.course_id=:course AND d.deleted_at IS NULL AND d.library_scope='material'
             AND ((c.source_kind='extracted' AND v.parse_status='SUCCEEDED' AND v.index_status='SUCCEEDED')
                 OR (c.source_kind='manual_transcript' AND EXISTS (SELECT 1 FROM manual_transcripts mt WHERE mt.chunk_id=c.id AND mt.user_id=:u AND mt.status='CONFIRMED')))
             AND (:scoped=0 OR v.id IN (SELECT value FROM json_each(:versions)))

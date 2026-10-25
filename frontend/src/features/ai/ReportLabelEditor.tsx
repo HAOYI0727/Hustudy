@@ -1,3 +1,4 @@
+import {labelSourceText} from "./ReportLabelSource";
 import {labelNames, ReportReview, ReviewLabel, reviewError} from "./report-review";
 
 type Props={value:ReportReview;onChange:(value:ReportReview)=>void;onContinue:()=>void;onCancel:()=>void};
@@ -12,7 +13,7 @@ export function ReportLabelEditor({value,onChange,onContinue,onCancel}:Props) {
     {value.report.topics.map((topic,index)=><fieldset key={topic.topic_id}>
       <legend>{topic.name}</legend><p>{topic.explanation}</p>
       <details><summary>核对原始AI建议与依据</summary>
-        {topic.labels.map((label,i)=><p key={i}>{labelNames[label.kind]} · AI建议：{label.reason}</p>)}
+        {topic.labels.map((label,i)=><p key={i}>{labelNames[label.kind]} · {labelSourceText(label)}：{label.reason}</p>)}
         {topic.citations.map((citation,i)=><blockquote key={i}>{citation.quote}</blockquote>)}
       </details>
       {value.labels[index].map((label,i)=><div className="report-label-row" key={i}>

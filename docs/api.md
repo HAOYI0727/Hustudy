@@ -1,5 +1,17 @@
 # Hustudy API（Phase 0）
 
+> 2026-10-24接手提醒：M2教师强调只读reader是代码集成点，不是现成的标记写入HTTP接口；M1阅读标记入口及M4真题身份确认入口仍待各自成员补齐。M2消费分支完成不等于两标签端到端已完成。[缺失接口、责任与验收](gcx/handoff_2026_10_24.md)。
+
+2026-10-24 QA preview chunk_ids扩为400，显式范围使用完整正文，qa_scope返回mode/coverage/batched/batch_count；batch_progress.kind=qa时total含最终汇总步骤，resume入口兼容QA。逐批原文依据不是最终答案，空批继续、汇总才形成结果；原权限/账户配置/引用/预算保持。[契约](contracts.md)与[验证](gcx/qa_batches_2026_10_24.md)。
+
+2026-10-24 PLATFORM-ACCOUNT-AI-04：`/api-connection`仅当前账户，scope=account；GET返回Cache-Control:no-store，PUT/DELETE按本人revision校验；POST-test严格confirm/revision，不在网络期间持锁。密钥分账户加密不回显，M2/M4后台按owner读取，无共享回退。[契约](contracts.md)与[验证](gcx/account_api_2026_10_24.md)。
+
+2026-10-24 M2-AUTO-LABEL-SOURCES-03：新report preview删除teacher_marks/exam_paper_ids/exam_sources_confirmed（提交返回422），仅保留笔记选项。自动读取阅读标记/确认真题依据，冻结m2_supplement.version=2并复核变化；旧v1手动来源预览409，历史保留。[当前契约](contracts.md)与[验收](gcx/supplements_labels_2026_10_24.md)。
+
+2026-10-24 M2-SUPPLEMENT-LABELS-02：问答/报告preview追加note_ids/notes_confirmed；报告另支持teacher_marks及exam_paper_ids/exam_sources_confirmed。严格确认、5篇/12000字符笔记、20条教师记录/20卷真题上限；冻结m2_supplement，复核修改/撤回，服务端生成事实标签，旧请求缺省空输入兼容。详情见[契约](contracts.md)及[验收](gcx/supplements_labels_2026_10_24.md)。
+
+2026-10-24 M2-EXECUTION-01：问答/报告preview新增max_structure_repairs（严格0–2，默认0），RemoteQueryResponse增加execution执行预算/窗口/调用/修复计数；结果附执行快照。原resume明确同意后开启新窗口、跳过成功批次，修复额度全请求不重置。TASK_BUDGET_EXCEEDED表示本次确认的执行预算已用尽，不当平台不可用。内部状态不是学习历史。[契约](contracts.md)、[说明](gcx/execution_budget_2026_10_24.md)。
+
 ## 原文关联笔记分页（2026-10-24，M1-REFERENCE-NOTES-28）
 
 新增GET /api/v1/versions/{version_id}/reference-notes：q≤200、可选chunk_id、offset=0..1000000、limit=1..50（默认6）。响应固定课程/资料/版本/片段身份与真实items/total/offset/limit/checked_at；每项为note_id/note_title/note_course_id/updated_at/citation_count及最近有效引用样本citation_id/chunk_id/locator_type/locator_value/quote_excerpt（≤180字符）。同笔记仅一项，引用数仅当前范围有效逐字引用，按笔记更新时间/UUID稳定排序；不返笔记正文。本人未归课程/已有跨课程引用保留原归属；非法版本/题库原件/不属当前版本片段404。删除/撤回/假引用不纳入。旧GET references列表兼容，改安全元数据投影，不返回Note.content。[契约](contracts.md#m1-reference-notes-28)。
@@ -500,7 +512,7 @@ PDF Request / BankImageImport的questions_only默认false表示自动识别与�
 
 
 2026-10-21 M4-REDO-API-GUIDE-05：GET /mistakes/daily-progress 返回账户时区date/target/completed/done/remaining_ids；POST /mistakes/{id}/redoes(request_id UUID)幂等开始，POST /mistakes/{id}/redoes/{rid}/submit(answer)冻结本次输入并规则判定，非自动题NEEDS_SELF_REVIEW后POST .../judge(correct)。同值提交幂等、冲突409，空答案422，无归属/已移出404。DELETE /mistakes/{id}仅已重做正确可软移出；旧错题快照与重做记录保存在detail_json附加元数据，备份验证结构及归属。
-GET/PUT/DELETE /api-connection 为已登录用户可操作的本机共用配置（无密钥回显）；PUT含revision/model/key（可留空保留），DELETE含revision；POST /api-connection/test含revision与confirm=true，仅明确确认后发送最小测试。状态configured与test_status分离，测试期间配置变化丢弃迟到结果。固定智谱端点/现有模型，原M2/M4 Provider复用，无新增迁移。
+GET/PUT/DELETE /api-connection 为仅当前登录账户可操作的个人配置（无密钥回显）；PUT含revision/model/key（可留空保留），DELETE含revision；POST /api-connection/test含revision与confirm=true，仅明确确认后发送最小测试。状态configured与test_status分离，测试期间配置变化丢弃迟到结果。固定智谱端点/现有模型，原M2/M4 Provider复用，无新增迁移。
 
 2026-10-21 M4-REDO-GOAL-08：GET /mistakes/daily-progress?goal=N（0–1000，默认3，0暂停）额外返回goal；target=min(goal,待掌握与今日有效掌握的不同Mistake ID并集)。available为未掌握数，completed只计当前掌握期从今日开始的题，最新错误撤销掌握与当日计数。GET /mistakes追加mastered/mastered_at，未掌握优先；重做/正常练习再次错误将已保留或移出同源题恢复，relapses只追加历史事件，不重复同一作答错误。DELETE仅当前已掌握可移出。目标由浏览器按账号保存；后端不新增用户设置表。
 

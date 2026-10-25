@@ -29,6 +29,8 @@ class Settings(BaseSettings):
         "https://open.bigmodel.cn/api/paas/v4/chat/completions"
     )
     zhipu_api_key: SecretStr = Field(default=SecretStr(""), repr=False)
+    credential_account_id: str | None = Field(default=None, repr=False)
+    credential_revision: int = 0
 
     @property
     def manage_worker(self) -> bool:
@@ -55,3 +57,9 @@ def get_settings() -> Settings:
 
 
 get_settings.cache_clear = base_settings.cache_clear
+
+
+def get_user_settings(user_id: str) -> Settings:
+    from .account_connection import effective
+
+    return effective(base_settings(), user_id)

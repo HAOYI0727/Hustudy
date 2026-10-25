@@ -93,6 +93,10 @@ class FixedReportProvider:
 
 
 def demo_report(db, user_id, course_id, request):
+    if request.note_ids:
+        from fastapi import HTTPException
+
+        raise HTTPException(422, "固定演示不支持补充笔记，请使用真实预览")
     owned_course(db, user_id, course_id, lock=True)
     ids = list(dict.fromkeys(str(v) for v in request.version_ids))
     sources, coverage = select_report_context(

@@ -2,7 +2,7 @@
 
 from fastapi import HTTPException
 from sqlalchemy import select
-from ..core.config import get_settings
+from ..core.config import get_user_settings
 from ..models import AIResult, ProcessingJob, RemoteQuery
 from ..models.base import utc_now
 from ..ai.providers import PROMPT_VERSION
@@ -15,7 +15,7 @@ from ..repositories.materials import active_version
 def find_reusable(db, row, result_id=None):
     from .remote_ai import validated_result, validate_request_dependencies
 
-    settings = get_settings()
+    settings = get_user_settings(row.user_id)
     if (
         row.job_id
         or row.expires_at <= utc_now()

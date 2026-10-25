@@ -111,12 +111,13 @@ def snapshot(db, paper, ids):
     return result
 
 
-def fingerprint():
-    s = bank_ai.get_settings()
+def fingerprint(user_id):
+    s = bank_ai.get_user_settings(user_id)
     return {
         "endpoint": s.llm_endpoint,
         "model": bank_ai.MODEL,
         "prompt_version": VERSION,
+        "credential_revision": s.credential_revision,
         "key_hash": hashlib.sha256(
             s.zhipu_api_key.get_secret_value().encode()
         ).hexdigest(),
@@ -125,9 +126,9 @@ def fingerprint():
 
 def preview(db, user_id, paper_id, ids):
     paper = owned_paper(db, user_id, paper_id, lock=True)
-    if not bank_ai.capabilities()["configured"]:
+    if not bank_ai.capabilities(user_id)["configured"]:
         raise HTTPException(
-            409, "请先展开“API接入与模型配置”，在本机配置智谱API Key并重启API与worker"
+            409, "请先展开“API接入与模型配置”，保存本账户的智谱API Key，无需重启"
         )
     meta = json.loads(paper.bank_meta_json)
     previous = meta.get("ai_topic_index", {})
@@ -139,9 +140,9 @@ def preview(db, user_id, paper_id, ids):
         "preview_id": str(uuid4()),
         "input": snapshot(db, paper, ids),
         "expires_at": (utc_now() + timedelta(minutes=15)).isoformat(),
-        **fingerprint(),
+        **fingerprint(user_id),
     }
-    key = bank_ai.get_settings().zhipu_api_key.get_secret_value()
+    key = bank_ai.get_user_settings(user_id).zhipu_api_key.get_secret_value()
     if key and key in bank.encode(scope["input"]):
         raise HTTPException(422, "题目或词表包含服务密钥，已阻止发送")
     meta["ai_topic_index"] = scope
@@ -154,8 +155,8 @@ def validate_scope(db, paper, scope):
     owned_paper(db, paper.user_id, paper.id)
     if datetime.fromisoformat(scope["expires_at"]) <= utc_now():
         raise HTTPException(409, "预览已过期，请重新预览")
-    if not bank_ai.capabilities()["configured"] or any(
-        scope.get(k) != v for k, v in fingerprint().items()
+    if not bank_ai.capabilities(paper.user_id)["configured"] or any(
+        scope.get(k) != v for k, v in fingerprint(paper.user_id).items()
     ):
         raise HTTPException(409, "模型配置已变化，请重新预览")
     ids = [q["question_id"] for q in scope["input"]["questions"]]
