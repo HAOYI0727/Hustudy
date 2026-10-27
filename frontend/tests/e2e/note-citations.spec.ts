@@ -101,6 +101,7 @@ test('引用加载失败可重试，失效来源仍可移除且不会清空草�
 
 test('自动保存按2秒触发，隐藏页暂停，回到前台恢复计时', async ({page, request}) => {
   const s = await seed(request, page);
+  await page.getByLabel('自动保存笔记', {exact: true}).check();
   await page.getByRole('button', {name: /^引用与关联/}).click();
   await expect(page.locator('.citation-card')).toHaveCount(1);
   await page.getByRole('button', {name: '关闭引用与关联', exact: true}).click();

@@ -28,6 +28,7 @@ for (const width of [390, 1440]) {
   test(`M3 标签自动保存、重载、筛选与页外双链 ${width}px`, async ({page, request}) => {
     await page.setViewportSize({width, height: 1000});
     const s = await seed(request, page);
+    await page.getByLabel('自动保存笔记', {exact: true}).check();
     await page.getByRole('button', {name: /^文件夹与标签/}).click();
     await page.getByLabel('新标签', {exact: true}).fill('  高频考点  ');
     await page.getByRole('button', {name: '添加标签', exact: true}).click();
@@ -76,6 +77,7 @@ for (const width of [390, 1440]) {
     page.once('dialog', dialog => dialog.accept());
     await page.getByRole('button', {name: '载入服务端版本', exact: true}).click();
     await expect(page.getByLabel('Markdown 正文')).toHaveValue('另一窗口保存的内容');
+    await page.getByLabel('自动保存笔记', {exact: true}).check();
     await page.getByRole('button', {name: /^文件夹与标签/}).click();
     await page.getByRole('button', {name: '移除标签 远端标签', exact: true}).click();
     await expect(page.locator('.save-indicator')).toHaveText('已保存到本地服务');

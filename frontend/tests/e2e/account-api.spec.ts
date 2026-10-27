@@ -16,6 +16,7 @@ for(const width of [390,1440])test(`个人API双账户保存清除隔离 ${width
   const [a,b]=accounts;
   try{
     await a.page.getByLabel('智谱API Key',{exact:true}).fill('synthetic-browser-account-A');
+    await a.page.getByRole('combobox',{name:'使用的模型',exact:true}).selectOption('glm-5.3-flash');
     await a.page.getByRole('button',{name:'保存API配置',exact:true}).click();
     await expect(a.page.getByText('已保存，尚未测试',{exact:true})).toBeVisible();
     await expect(a.page.getByLabel('智谱API Key',{exact:true})).toHaveValue('');

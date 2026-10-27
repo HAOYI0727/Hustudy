@@ -17,11 +17,11 @@ from pydantic import SecretStr
 LOCK = RLock()
 
 
-def path(settings, user_id):
+def path(settings, user_id, namespace="api-connections"):
     identity = str(UUID(user_id))
     return (
         Path(settings.storage_root).resolve().parent
-        / "api-connections"
+        / namespace
         / (identity + ".json")
     )
 
@@ -36,9 +36,9 @@ def cipher(settings, user_id):
     return Fernet(base64.urlsafe_b64encode(key))
 
 
-def read(settings, user_id):
+def read(settings, user_id, namespace="api-connections"):
     try:
-        data = json.loads(path(settings, user_id).read_text(encoding="utf-8"))
+        data = json.loads(path(settings, user_id, namespace).read_text(encoding="utf-8"))
         if (
             not isinstance(data, dict)
             or data.get("user_id") != user_id
@@ -52,10 +52,10 @@ def read(settings, user_id):
 
 
 @contextmanager
-def locked(settings, user_id):
+def locked(settings, user_id, namespace="api-connections"):
     """Short mutation lock shared by API processes; never held during HTTP calls."""
     with LOCK:
-        target = path(settings, user_id).with_suffix(".lock")
+        target = path(settings, user_id, namespace).with_suffix(".lock")
         target.parent.mkdir(parents=True, exist_ok=True)
         with target.open("a+b") as stream:
             if not target.stat().st_size:
@@ -85,8 +85,8 @@ def locked(settings, user_id):
                     fcntl.flock(stream, fcntl.LOCK_UN)
 
 
-def write(settings, user_id, data):
-    target = path(settings, user_id)
+def write(settings, user_id, data, namespace="api-connections"):
+    target = path(settings, user_id, namespace)
     target.parent.mkdir(parents=True, exist_ok=True)
     fd, name = tempfile.mkstemp(prefix=".account-ai-", dir=target.parent)
     try:

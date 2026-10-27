@@ -125,7 +125,7 @@ def run_ai_once():
             validate_context(db, user_id, row.course_id, row.sources)
             validate_request_dependencies(db, row)
             s = get_user_settings(user_id)
-            if s.llm_provider != "zhipu" or not s.zhipu_api_key.get_secret_value():
+            if s.llm_provider not in {"zhipu", "compatible"} or not s.zhipu_api_key.get_secret_value():
                 raise ProviderFailure(
                     "NOT_CONFIGURED", "智谱配置已停用，请重新配置后预览"
                 )

@@ -22,19 +22,20 @@ from .exam_ai_context import validate_candidate_context
 def provider_status(user_id):
     s = get_user_settings(user_id)
     return {
-        "provider": "智谱开放平台",
-        "configured": s.llm_provider == "zhipu"
+        "provider": "智谱开放平台" if s.llm_provider != "compatible" else "DeepSeek" if s.llm_vendor == "deepseek" else "自选兼容模型平台",
+        "configured": s.llm_provider in {"zhipu", "compatible"}
         and bool(s.zhipu_api_key.get_secret_value()),
         "model": s.llm_model,
         "endpoint": s.llm_endpoint,
-        "checked_at": "2026-10-17" if s.llm_model == "glm-5.3-flash" else "2026-10-14",
+        "checked_at": "2026-10-27（接口兼容；具体模型请核对平台）" if s.llm_provider == "compatible" else "2026-10-17" if s.llm_model == "glm-5.3-flash" else "2026-10-14",
         "documentation_url": (
-            "https://docs.bigmodel.cn/cn/guide/models/vlm/glm-5.3-flash"
-            if s.llm_model == "glm-5.3-flash"
-            else "https://docs.bigmodel.cn/cn/guide/models/free/glm-4.7-flash"
+            ("https://api-docs.deepseek.com/" if s.llm_vendor == "deepseek" else s.llm_endpoint.rsplit('/chat/completions', 1)[0])
+            if s.llm_provider == "compatible" else
+            ("https://docs.bigmodel.cn/cn/guide/models/vlm/glm-5.3-flash" if s.llm_model == "glm-5.3-flash"
+             else "https://docs.bigmodel.cn/cn/guide/models/free/glm-4.7-flash")
         ),
-        "policy_status": "保留期限、训练用途和远程删除能力未核实；请在智谱控制台核对适用协议",
-        "policy_entry_url": "https://open.bigmodel.cn/console",
+        "policy_status": "保留期限、训练用途和远程删除能力未核实；请在所选平台核对适用协议",
+        "policy_entry_url": "https://platform.deepseek.com/" if s.llm_vendor == "deepseek" else s.llm_endpoint.rsplit('/chat/completions', 1)[0] if s.llm_provider == "compatible" else "https://open.bigmodel.cn/console",
         "max_context_chars": 240000,
         "max_output_tokens": 2048,
     }

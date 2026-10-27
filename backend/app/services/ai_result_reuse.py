@@ -19,7 +19,7 @@ def find_reusable(db, row, result_id=None):
     if (
         row.job_id
         or row.expires_at <= utc_now()
-        or settings.llm_provider != "zhipu"
+        or settings.llm_provider not in {"zhipu", "compatible"}
         or row.model != settings.llm_model
         or row.endpoint != settings.llm_endpoint
     ):

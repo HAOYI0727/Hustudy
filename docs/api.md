@@ -1,5 +1,44 @@
 # Hustudy API（Phase 0）
 
+## 多模型与笔记助手（2026-10-27）
+
+均需Bearer认证并限定当前账户。原 `/api-connection` 继续独立处理智谱配置；高级配置不回显密钥、不进入课程包或账户备份。
+
+| 路由 | 请求与结果 |
+|---|---|
+| `GET /api/v1/model-connections` | revision、active、builtin、profiles、allowed_hosts；仅配置元数据和configured，no-store |
+| `PUT /api/v1/model-connections` | revision、可选id、name、vendor=deepseek/compatible、endpoint、model、key、vision/thinking/json_mode；编辑省略key保留该配置密钥，最多8份 |
+| `POST /api/v1/model-connections/active` | revision、profile_id；null选择原智谱；变化令旧发送预览失效 |
+| `DELETE /api/v1/model-connections/{id}?revision=...` | 删除自己的非活动配置；活动项须先切换，修订不符409 |
+| `POST /api/v1/model-connections/test` | revision、profile_id、confirm=true；只测当前所选模型、发送极短文本，返回connected/model/message |
+| `POST /api/v1/note-assistant/preview` | course_id、可选note_id/revision、task=summary/explain/organize/review/custom、scope=full/selection、text、instruction；核对归属/revision后返回完整发送文本、模型/端点及10分钟preview_token，不调用模型 |
+| `POST /api/v1/note-assistant/generate` | input为上述原始请求，加preview_token、confirm=true；返回request_id/markdown/model/task/usage/notice，不写笔记 |
+
+正文最多24000字符、instruction最多2000、结果最多12000；预览绑定用户/正文摘要/来源revision/配置。无配置或已变化409、权限404、输入/内部令牌变化422、频率上限429、模型失败502。单账户同时一请求，10分钟最多20次；同一成功请求返回缓存结果，处理中/失败未知请求不重复调用。生成结果采纳只改前端草稿，仍经原笔记保存接口；输出和预览no-store。部署可用 `HUSTUDY_ADDITIONAL_AI_HOSTS` 扩展HTTPS主机白名单。详细[契约](contracts.md)与[使用及验证](fzk/note_assistant_acceptance.md)。
+
+## 标准数据包与课程合并（2026-10-27）
+
+均需Bearer认证，只处理本人有效课程。`selection` 为类别到UUID列表的映射，类别为 `notes/folders/documents/assets/topics/past_papers/exam_papers/ai_results/reports/blueprints`，至少选择一项、最多3000个明确选择；空目录可选择其folder，关联依赖在预览单独说明。
+
+| 路由 | 用法 |
+|---|---|
+| `GET /api/v1/courses/{id}/packages/catalog?kind=course\|folder&folder_id=...` | 可识别条目元数据；folder_id仅文件夹模式，省略时包含课程全部有效笔记及未归档，提供时限定该目录及后代 |
+| `POST /api/v1/packages/preview` | multipart `file` 上传标准ZIP；全包校验后返回目录及preview_id、sha256、expires_at，不写业务行 |
+| `POST /api/v1/packages/selection-preview` | `course_id/kind/folder_id` 或 `preview_id` 二选一，加selection；导入可附target_course_id、parent_folder_id、title预检；返回最终目录、实际selection、counts、warnings、selection_sha256 |
+| `POST /api/v1/packages/export` | course_id、kind、可选folder_id、selection、可选expected_sha256；直接返回ZIP及可读Content-Disposition文件名 |
+| `POST /api/v1/packages/import` | preview_id、request_id、selection、可选expected_sha256／target_course_id／parent_folder_id／title；业务行与成功凭据同事务 |
+| `GET /api/v1/packages/imports/{request_id}` | 查询本人的成功结果；无成功记录404，不等于可以换请求ID重建 |
+| `GET /api/v1/packages/previews` | 本人的预览ID、时间、大小和摘要；不返回内部路径 |
+| `DELETE /api/v1/packages/previews/{id}` | 只移除预览文件和控制记录，不删除已导入内容或成功凭据 |
+
+course包不传target_course_id时新建课程，可用title指定名称；传入本人有效目标课程时追加合并，禁止同时传title或parent_folder_id，不覆盖目标课程信息。folder包必须指定目标课程，可选父文件夹，保留层级和未归档笔记。成功响应含import_id、course_id、folder_id、note_count、folder_count、counts及warnings；counts按实际新建业务对象统计。相同request_id及相同参数返回原结果，不同参数409。
+
+网页确认强制带预览selection_sha256作为expected_sha256；脚本客户端可省略。指纹覆盖所选正文、元数据、关系及文件哈希，文件区临时标识变化不影响稳定性。来源变化返回409及`PACKAGE_SELECTION_CHANGED`，必须重新预览。网络未知、401及普通409不自动重发。预览24小时到期410，每账户最多10份，可主动移除；成功幂等凭据独立保留。格式/预算/关系失败422，越权404，磁盘不足沿全站507。详细预算和迁移见[说明](fzk/portable_packages_acceptance.md)。
+
+## 课程笔记关系图谱（2026-10-26，M3-NOTE-GRAPH-02）
+
+`GET /api/v1/courses/{course_id}/note-graph`：认证只读，q≤200字的标题字面子串，link_state=all/linked/isolated，limit=1..200（默认120），可选focus_note_id定位一跳邻域。聚焦与非空标题/非all状态互斥422，不可访问课程或焦点404。响应为course_id、focus_note_id、nodes（NoteSummary + incoming_count/outgoing_count）、edges（source_id/target_id）、total_nodes/total_edges、node_limit/edge_limit、nodes_truncated/edges_truncated。度数按完整当前课程去重关系计算，totals按筛选/聚焦作用域计算；边最多400条，只含实际返回节点。排除他人/跨课程/回收笔记、自身链接；不读取或返回正文，无写入。完整规则见[契约](contracts.md#m3-note-graph-02)。
+
 > 2026-10-24接手提醒：M2教师强调只读reader是代码集成点，不是现成的标记写入HTTP接口；M1阅读标记入口及M4真题身份确认入口仍待各自成员补齐。M2消费分支完成不等于两标签端到端已完成。[缺失接口、责任与验收](gcx/handoff_2026_10_24.md)。
 
 2026-10-24 QA preview chunk_ids扩为400，显式范围使用完整正文，qa_scope返回mode/coverage/batched/batch_count；batch_progress.kind=qa时total含最终汇总步骤，resume入口兼容QA。逐批原文依据不是最终答案，空批继续、汇总才形成结果；原权限/账户配置/引用/预算保持。[契约](contracts.md)与[验证](gcx/qa_batches_2026_10_24.md)。

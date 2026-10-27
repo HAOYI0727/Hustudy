@@ -1,5 +1,11 @@
 import type {DisplayGroup} from "../features/exams/questionGroups";
 export type NoteAIConfig = {provider: string; model: string; configured: boolean; has_personal_key: boolean; revision: number; source: "personal" | "server" | "none"; reason: string | null; endpoint: string};
+export type ModelProfile={id:string;name:string;vendor:'deepseek'|'compatible';model:string;endpoint:string;vision:boolean;thinking:boolean;json_mode:boolean;configured:boolean};
+export type ModelConnections={revision:number;active:string|null;profiles:ModelProfile[];builtin:{name:string;model:string;configured:boolean};allowed_hosts:string[]};
+export type ModelProfileInput=Omit<ModelProfile,'id'|'configured'>&{id?:string;key?:string;revision:number};
+export type NoteAssistantInput={course_id:string;note_id?:string;revision?:number;task:'summary'|'explain'|'organize'|'review'|'custom';scope:'full'|'selection';text:string;instruction:string};
+export type NoteAssistantPreview={preview_token:string;expires_at:number;model:string;endpoint:string;task:string;scope:string;text:string;instruction:string;characters:number;notice:string};
+export type NoteAssistantResult={request_id:string;markdown:string;model:string;task:string;usage:Record<string,number>;notice:string};
 import { queryClient, sessionPartition, sessionGeneration, advanceSessionGeneration } from "./query";
 import {resolveApiBase} from "./base";
 const API_BASE = resolveApiBase(import.meta.env.VITE_API_BASE_URL, import.meta.env.PROD);
@@ -60,6 +66,9 @@ export type SourceCitation = { document_name?: string | null; version_no?: numbe
 export type Chunk = { source_kind?: string; transcript_id?: string | null; transcript_status?: string | null; confirmed_at?: string | null; id: string; version_id: string; locator_type: string; locator_value: string; text: string };
 export type Note = { id: string; title: string; content: string; tags: string[]; course_id?: string | null; folder_id?: string | null; revision: number; updated_at: string };
 export type NoteSummary = Omit<Note,"content">;
+export type NoteGraphNode = NoteSummary & {incoming_count:number;outgoing_count:number};
+export type NoteGraphQuery = {q?:string;link_state?:"all"|"linked"|"isolated";focus_note_id?:string;limit?:number};
+export type NoteGraphResponse = {course_id:string;focus_note_id:string|null;nodes:NoteGraphNode[];edges:{source_id:string;target_id:string}[];total_nodes:number;total_edges:number;node_limit:number;edge_limit:number;nodes_truncated:boolean;edges_truncated:boolean};
 export type NoteCatalog = PageResult<NoteSummary>;
 export const noteSummary=(note:NoteSummary):NoteSummary=>({id:note.id,title:note.title,tags:note.tags,course_id:note.course_id,folder_id:note.folder_id,revision:note.revision,updated_at:note.updated_at});
 export type NoteFolder = {id: string; name: string; parent_id: string | null; course_id: string; revision: number};
@@ -165,7 +174,46 @@ export type MaterialHealthItem={document_id:string;name:string;updated_at:string
 export type MaterialHealthPage={course_id:string;items:MaterialHealthItem[];counts:Record<string,number>;total:number;offset:number;limit:number;checked_at:string};
 export type LearningLinkPage = {course_id:string;document_id:string;version_id:string;chunk_id:string|null;items:LearningLinkItem[];counts:Record<LearningLinkItem["kind"],number>;total:number;offset:number;limit:number;checked_at:string;today:string;timezone:string};
 export type MistakeSources = {course_id:string;items:{version_id:string;chunk_id:string;document_id?:string|null;title:string;locator:string;availability:"active"|"unavailable"}[]};
+export type PackageKind = "course" | "folder";
+export type PackageCategory = "notes" | "folders" | "documents" | "assets" | "topics" | "past_papers" | "exam_papers" | "ai_results" | "reports" | "blueprints";
+export type PackageSelection = Partial<Record<PackageCategory, string[]>>;
+export type PackageItem = {id:string;category:PackageCategory;title:string;detail?:string|null;parent_id?:string|null;folder_id?:string|null};
+export type PackageCatalog = {format:"hustudy-package-v1";kind:PackageKind;title:string;items:PackageItem[];counts:Record<string,number>;warnings:string[]};
+export type PackagePreview = PackageCatalog & {preview_id:string;sha256:string;expires_at?:string};
+export type StoredPackagePreview = {id:string;created_at:string;expires_at:string;size_bytes:number;sha256:string};
+export type PackageScope = {course_id:string;kind:PackageKind;folder_id?:string};
+export type PackageSelectionRequest = ({preview_id:string;target_course_id?:string;parent_folder_id?:string;title?:string} | PackageScope) & {selection:PackageSelection};
+export type PackageSelectionPreview = PackageCatalog & {selection:PackageSelection;selection_sha256:string};
+export type PackageImportRequest = {preview_id:string;request_id:string;selection:PackageSelection;expected_sha256?:string;target_course_id?:string;parent_folder_id?:string;title?:string};
+export type PackageImportResult = {course_id:string;note_count:number;folder_count:number;counts:Record<string,number>;warnings:string[];import_id:string};
+
+async function downloadPackage(token:string,payload:PackageScope & {selection:PackageSelection;expected_sha256?:string},signal?:AbortSignal):Promise<{blob:Blob;filename:string}> {
+  let response:Response;
+  try {response=await fetch(`${API_BASE}/packages/export`,{method:"POST",headers:{Authorization:`Bearer ${token}`,"Content-Type":"application/json"},body:JSON.stringify(payload),signal,cache:"no-store"});}
+  catch {throw new ApiError("标准包下载未完成，请恢复连接后重试。",0);}
+  if(!response.ok){notifyUnauthorized(response.status,token);const body=await response.json().catch(()=>({}));throw new ApiError(body.error?.message||body.detail||"标准包导出失败",response.status,body.error?.request_id,body.error?.code,body.error?.details);}
+  const disposition=response.headers.get("Content-Disposition")||"";
+  const encoded=/filename\*=UTF-8''([^;]+)/i.exec(disposition)?.[1],plain=/filename="([^"]+)"/i.exec(disposition)?.[1];
+  let filename=plain||"Hustudy标准数据包.zip";
+  if(encoded)try{filename=decodeURIComponent(encoded);}catch{/* Keep safe fallback when the response header is malformed. */}
+  return {blob:await response.blob(),filename};
+}
 export const api = {
+  modelConnections:(token:string)=>transport<ModelConnections>('/model-connections',{cache:'no-store'},token),
+  saveModelConnection:(token:string,payload:ModelProfileInput)=>request<ModelConnections>('/model-connections',{method:'PUT',body:JSON.stringify(payload)},token),
+  selectModelConnection:(token:string,revision:number,id:string|null)=>request<ModelConnections>('/model-connections/active',{method:'POST',body:JSON.stringify({revision,profile_id:id})},token),
+  removeModelConnection:(token:string,revision:number,id:string)=>request<ModelConnections>(`/model-connections/${id}?revision=${revision}`,{method:'DELETE'},token),
+  testModelConnection:(token:string,revision:number,id:string|null)=>request<{connected:boolean;model:string;message:string}>('/model-connections/test',{method:'POST',body:JSON.stringify({revision,profile_id:id,confirm:true})},token),
+  previewNoteAssistant:(token:string,input:NoteAssistantInput,signal?:AbortSignal)=>transport<NoteAssistantPreview>('/note-assistant/preview',{method:'POST',body:JSON.stringify(input),signal},token),
+  generateNoteAssistant:(token:string,input:NoteAssistantInput,preview_token:string,signal?:AbortSignal)=>transport<NoteAssistantResult>('/note-assistant/generate',{method:'POST',body:JSON.stringify({input,preview_token,confirm:true}),signal},token),
+  packageCatalog:(token:string,scope:PackageScope,signal?:AbortSignal)=>transport<PackageCatalog>(`/courses/${scope.course_id}/packages/catalog?${new URLSearchParams({kind:scope.kind,...(scope.folder_id?{folder_id:scope.folder_id}:{})})}`,{signal,cache:"no-store"},token),
+  previewPackage:(token:string,file:File,signal?:AbortSignal)=>{const body=new FormData();body.append("file",file);return transport<PackagePreview>("/packages/preview",{method:"POST",body,signal},token);},
+  removePackagePreview:(token:string,id:string,signal?:AbortSignal)=>transport<void>(`/packages/previews/${id}`,{method:"DELETE",signal},token),
+  packagePreviews:(token:string,signal?:AbortSignal)=>transport<StoredPackagePreview[]>("/packages/previews",{signal,cache:"no-store"},token),
+  previewPackageSelection:(token:string,payload:PackageSelectionRequest,signal?:AbortSignal)=>transport<PackageSelectionPreview>("/packages/selection-preview",{method:"POST",body:JSON.stringify(payload),signal},token),
+  exportPackage:downloadPackage,
+  importPackage:(token:string,payload:PackageImportRequest,signal?:AbortSignal)=>request<PackageImportResult>("/packages/import",{method:"POST",body:JSON.stringify(payload),signal},token),
+  packageImportResult:(token:string,id:string,signal?:AbortSignal)=>transport<PackageImportResult>(`/packages/imports/${id}`,{signal,cache:"no-store"},token),
   processingStatus:(token:string,signal?:AbortSignal)=>transport<ProcessingServiceStatus>("/processing/status",{signal},token),
   learningTopics:(token:string,courseId:string,q="",state="all",offset=0)=>request<PageResult<LearningTopic>>(`/courses/${courseId}/learning-topics?${new URLSearchParams({q,state,offset:String(offset),limit:"12"})}`,{},token),
   topicLearning:(token:string,courseId:string,id:string)=>request<TopicLearning>(`/courses/${courseId}/learning-topics/${id}`,{},token),
@@ -176,6 +224,7 @@ export const api = {
   noteCatalog: (token:string,offset=0)=>request<NoteCatalog>(`/notes/catalog?offset=${offset}&limit=200`,{},token),
   noteMatches:(token:string,courseId:string,q:string,tag:string)=>request<{ids:string[]}>(`/courses/${courseId}/note-matches?${new URLSearchParams({q,tag})}`,{},token),
   backlinkOptions:(token:string,id:string)=>request<NoteSummary[]>(`/notes/${id}/backlink-options`,{},token),
+  noteGraph:(token:string,courseId:string,query:NoteGraphQuery={},signal?:AbortSignal)=>transport<NoteGraphResponse>(`/courses/${courseId}/note-graph?${new URLSearchParams({q:query.q??"",link_state:query.link_state??"all",limit:String(query.limit??120),...(query.focus_note_id?{focus_note_id:query.focus_note_id}:{})})}`,{signal,cache:"no-store"},token),
 
   reviewSchedule: (token:string,state:"pending"|"all"="pending",offset=0,limit=20) => request<ReviewPlanPage>(`/review-tasks?state=${state}&offset=${offset}&limit=${limit}`,{},token),
   courseAgenda:(token:string,courseId:string,view:AgendaView,q:string,offset:number,signal?:AbortSignal)=>transport<CourseAgendaPage>(`/review-tasks?${new URLSearchParams({course_id:courseId,state:view==="completed"?"completed":"pending",period:view==="completed"||view==="pending"?"all":view,q,offset:String(offset),limit:"6"})}`,{signal,cache:"no-store"},token),
@@ -316,7 +365,7 @@ export const api = {
   bankTopicPreview:(token:string,id:string,question_ids:string[])=>request<BankTopicJob>(`/past-papers/${id}/topic-ai-preview`,{method:"POST",body:JSON.stringify({question_ids})},token),
   bankTopicStatus:(token:string,id:string)=>request<BankTopicJob>(`/past-papers/${id}/topic-ai-preview`,{},token),
   bankTopicConfirm:(token:string,id:string,preview_id:string)=>request<BankTopicJob>(`/past-papers/${id}/topic-ai-confirm`,{method:"POST",body:JSON.stringify({confirm_remote_send:true,preview_id})},token),
-  bankAICapabilities: (token:string) => request<{configured:boolean;model:string;documentation_url:string}>("/question-bank/ai-capabilities",{},token),
+  bankAICapabilities: (token:string) => request<{configured:boolean;model:string;documentation_url:string;vision_configured?:boolean}>("/question-bank/ai-capabilities",{},token),
   bankAIPreview: (token:string,courseId:string,payload:{title:string;version_id:string;default_topic_ids:string[];year?:number}) => request<BankAIJob>(`/courses/${courseId}/question-bank/ai-preview`,{method:"POST",body:JSON.stringify(payload)},token),
   bankAIDetail: (token:string,id:string) => request<BankAIJob>(`/past-papers/${id}/ai-preview`,{},token),
   bankAIConfirm: (token:string,id:string) => request<BankAIJob>(`/past-papers/${id}/ai-confirm`,{method:"POST",body:JSON.stringify({confirm_remote_send:true})},token),

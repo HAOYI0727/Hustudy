@@ -266,7 +266,7 @@ def resume(db, row):
     ):
         raise HTTPException(409, "仅已停止的分批报告可确认续跑")
     if (
-        settings.llm_provider != "zhipu"
+        settings.llm_provider not in {"zhipu", "compatible"}
         or not settings.zhipu_api_key.get_secret_value()
         or row.model != settings.llm_model
         or row.endpoint != settings.llm_endpoint

@@ -199,6 +199,7 @@ test('编辑器选区格式、撤销重做、列表、大纲、查找、分屏�
 test('首次自动保存保持正文焦点与撤销历史，换笔记清空历史', async ({page, request}) => {
   const s = await seed(request, page);
   await page.getByRole('button', {name: '新建笔记', exact: true}).click();
+  await page.getByLabel('自动保存笔记', {exact: true}).check();
   await page.getByLabel('笔记标题').fill('首次保存');
   const editor = page.getByLabel('Markdown 正文');
   await editor.fill('自动保存时继续编辑');

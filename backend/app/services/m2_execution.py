@@ -267,7 +267,7 @@ class Execution:
             ) from None
         settings = get_user_settings(self.row.user_id)
         if (
-            settings.llm_provider != "zhipu"
+            settings.llm_provider not in {"zhipu", "compatible"}
             or settings.llm_model != self.row.model
             or settings.llm_endpoint != self.row.endpoint
             or settings.zhipu_api_key.get_secret_value()

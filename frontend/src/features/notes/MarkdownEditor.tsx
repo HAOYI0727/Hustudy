@@ -7,10 +7,10 @@ import {FormulaEditor} from './FormulaEditor';
 import {formulaSelection, insertFormula, type FormulaSelection} from './formulaEditing';
 import {continueList, formatMarkdown, markdownOutline, type MarkdownCommand, type Edit} from './markdownEditing';
 
-export function MarkdownEditor({value, onChange, textarea, preview, setPreview, token, notes, onNote, onSave, assetRevision, focused, setFocused, onImage}: {
+export function MarkdownEditor({value, onChange, textarea, preview, setPreview, token, notes, onNote, onSave, assetRevision, focused, setFocused, onImage, active = true}: {
   value: string; onChange: (text: string) => void; textarea: RefObject<HTMLTextAreaElement | null>; preview: boolean; setPreview: (value: boolean) => void;
   token: string; notes: NoteSummary[]; onNote: (note: NoteSummary) => void; onSave: () => void; assetRevision: number; focused: boolean; setFocused: (value: boolean) => void;
-  onImage?: () => void;
+  onImage?: () => void; active?: boolean;
 }) {
   const [split, setSplit] = useState(false), [find, setFind] = useState(''), [findStatus, setFindStatus] = useState('');
   const [formula, setFormula] = useState<{base: string; selection: FormulaSelection} | null>(null);
@@ -94,7 +94,7 @@ export function MarkdownEditor({value, onChange, textarea, preview, setPreview, 
         } else if (e.key === 'Tab') {e.preventDefault(); format(e.shiftKey ? 'outdent' : 'indent');}
         else if (e.key === 'Enter' && !e.shiftKey && e.currentTarget.selectionStart === e.currentTarget.selectionEnd) {const edit = continueList(value, e.currentTarget.selectionStart); if (edit) {e.preventDefault(); apply(edit);}}
       }}/>}
-      {(preview || split) && <div className="note-live-preview" aria-label="笔记实时预览"><NotePreview key={assetRevision} content={value} token={token} notes={notes} onNote={onNote}/></div>}
+      {active && (preview || split) && <div className="note-live-preview" aria-label="笔记实时预览"><NotePreview key={assetRevision} content={value} token={token} notes={notes} onNote={onNote}/></div>}
     </div>
     <div className="note-editor-status"><span>Markdown</span><span>{value.length.toLocaleString()} 字符</span><details><summary>快捷键与帮助</summary><p>选中文字后点图标应用格式；悬停可看中文说明。Ctrl/Cmd+B 加粗、I 斜体、K 链接、S 保存、Z 撤销、Shift+M 编辑公式；列表回车续写，Tab 缩进，Esc 退出专注。把光标放在已有公式内，点 Σ 即可修改。</p></details></div>
     <NotesDialog className="formula-dialog" open={!!formula && !formulaSuspended} title="公式编辑器" onClose={() => setFormula(null)}>{formula && <FormulaEditor selection={formula.selection} stale={formula.base !== value} onCancel={() => setFormula(null)} onInsert={(source, display) => {if (formula.base !== value) return; setPreview(false); apply(insertFormula(value, formula.selection, source, display)); setFormula(null);}}/>}</NotesDialog>

@@ -1,4 +1,5 @@
 import {SupplementInputs,SupplementPreview} from "./SupplementInputs";
+import {useModelChange} from '../../api/modelEvents';
 import type {AISupplementSelection} from "../../api/client";
 import {SourceScopePicker} from "./SourceScopePicker";
 import {AIActivity} from "../../components/AIActivity";
@@ -48,6 +49,7 @@ export function RealQueries({readingName,historyVersionId,hidden=false,skipResto
   const candidateOptions={...candidateConfig,chapter_id:chapterId};
   const candidateReady=versions.length>0&&candidateConfig.topic_ids.length>0&&(candidateConfig.mode!=="variant"||candidateConfig.original_past_question_ids.length>0);
   const pending = Boolean(remote?.job && ["QUEUED", "RUNNING"].includes(remote.job.status));
+  useModelChange(token,isCurrent=>{setConsent(false);if(!remote?.job)setRemote(null);void api.aiProvider(token).then(value=>{if(isCurrent())setProvider(value);}).catch(e=>{if(isCurrent())callbacks.current.onError(e);});});
   useEffect(() => {onBusyChange?.(busy);return () => onBusyChange?.(false);},[busy,onBusyChange]);
   useEffect(() => {
     let active=true;
@@ -144,7 +146,7 @@ export function RealQueries({readingName,historyVersionId,hidden=false,skipResto
     finally {if (alive.current) setBusy(false);}
   };
   return <section hidden={hidden} className="panel real-ai-workspace" id="ai-controls" tabIndex={0}>
-    <div className="panel-title"><div><p className="eyebrow">GLM · SOURCE FIRST</p><h3>{readingName?"为当前课件生成知识点总结":isCandidate?"从知识依据生成练习草稿":isReport ? "把资料整理成可学习的报告" : "先核对原文，再让 AI 解释"}</h3></div><span className="course-current">{provider?.configured ? provider.model : "待配置"}</span></div>
+    <div className="panel-title"><div><p className="eyebrow">AI · SOURCE FIRST</p><h3>{readingName?"为当前课件生成知识点总结":isCandidate?"从知识依据生成练习草稿":isReport ? "把资料整理成可学习的报告" : "先核对原文，再让 AI 解释"}</h3></div><span className="course-current">{provider?.configured ? provider.model : "待配置"}</span></div>
     {initializing ? <p role="status">正在读取后端模型与课程资料…</p> : initializationFailed ? <div className="inline-retry" role="alert">来源或配置加载未完成，请重试。<button className="secondary" onClick={() => setReload(value => value + 1)}>重新加载来源与配置</button></div> : <><p className="hint">{isCandidate?"候选生成包含预览原文、出题设置、目标知识点及所选原题，发送前仍须确认。":"仅发送预览中确认的课程原文和你主动选中的补充笔记，不会自动上传原件或图片。发送前须逐次确认。"}</p>
     {readingSource && <section className="study-source-context" aria-label="从资料阅读带入的来源"><strong>{readingSource.document.name} · v{readingSource.version.version_no}</strong><p>{readingSource.chunk ? `阅读入口：${readingSource.chunk.locator_value} · ${readingSource.chunk.text.slice(0, 120)}` : readingName?"固定当前版本的全部可提取文字，不混入其他课件。":"已预选阅读时的版本，可在下方调整本次范围。"}</p><p className="hint">{remote?.job ? "本次任务与发送状态见下方记录。" : readingName?"尚未发送；长课件按原预算分批，确认前可查看每批范围。":"尚未发送；请核对下方资料与片段选择。"}</p><button type="button" className="secondary" onClick={() => onSource(readingSource.version.id, readingSource.chunk?.id || "")}>回到阅读原文 <Icon name="arrow" size={15}/></button></section>}
     {!provider?.configured && <p className="course-conflict">当前账户尚未配置模型，请在API接入保存自己的密钥。阅读、笔记和演示检索仍可用。<button className="secondary" onClick={() => setReload(value => value + 1)}>重新检查</button></p>}
@@ -178,8 +180,8 @@ export function RealQueries({readingName,historyVersionId,hidden=false,skipResto
         finally{if(alive.current)setBusy(false);}
       }}/>}
       {!remote.job && <><div className="ai-context-list">{remote.sources.map((s,i) => <details key={`${s.source_id}-${i}`}><summary>{s.document_name} · v{s.version_no} · {s.locator.value}{s.source_kind === "manual_transcript" ? " · 人工补录" : ""}</summary><p>{s.text}</p><button className="secondary" onClick={() => onSource(s.version_id, s.source_id)}>对照原文 <Icon name="arrow" size={15}/></button></details>)}</div>
-      <div className="ai-privacy-card"><strong>发送至智谱开放平台</strong><p className="hint">{remote.endpoint}</p><p>官方模型/接口文档核对日期：{provider?.checked_at}。{provider?.policy_status}</p><div><a href={provider?.documentation_url} target="_blank" rel="noopener noreferrer">官方模型文档 ↗</a> · <a href={provider?.policy_entry_url} target="_blank" rel="noopener noreferrer">平台协议入口（政策待核实）↗</a></div><p>派发后无法召回远程请求；取消或删除来源会阻止后续结果写入。额度与限流以你的智谱账户为准。</p></div>
-      <label className="ai-consent"><input type="checkbox" checked={consent} disabled={busy || expired} onChange={e => setConsent(e.target.checked)}/><span>我已核对上述问题与片段，理解政策未核实项，同意本次发送至智谱。{Boolean(remote.execution?.max_structure_repairs)&&`包含最多${remote.execution!.max_structure_repairs}次格式修复，错误输出与原范围会再次发送并消耗额度。`}{remote.batch_progress&&remote.batch_progress.total>1&&`本次计划${remote.batch_progress.total}${remote.batch_progress.kind==="qa"?"步（含最终汇总）":"批"}调用，分别消耗账户额度。`}</span></label>
+      <div className="ai-privacy-card"><strong>发送至{provider?.provider||"所选模型平台"}</strong><p className="hint">{remote.endpoint}</p><p>官方模型/接口文档核对日期：{provider?.checked_at}。{provider?.policy_status}</p><div><a href={provider?.documentation_url} target="_blank" rel="noopener noreferrer">官方模型文档 ↗</a> · <a href={provider?.policy_entry_url} target="_blank" rel="noopener noreferrer">平台协议入口（政策待核实）↗</a></div><p>派发后无法召回远程请求；取消或删除来源会阻止后续结果写入。额度与限流以你的模型服务账户为准。</p></div>
+      <label className="ai-consent"><input type="checkbox" checked={consent} disabled={busy || expired} onChange={e => setConsent(e.target.checked)}/><span>我已核对上述问题与片段，理解政策未核实项，同意本次发送至所选模型平台。{Boolean(remote.execution?.max_structure_repairs)&&`包含最多${remote.execution!.max_structure_repairs}次格式修复，错误输出与原范围会再次发送并消耗额度。`}{remote.batch_progress&&remote.batch_progress.total>1&&`本次计划${remote.batch_progress.total}${remote.batch_progress.kind==="qa"?"步（含最终汇总）":"批"}调用，分别消耗账户额度。`}</span></label>
       {expired && <p role="alert" className="hint">预览已过期，请重新预览。</p>}
       <div className="course-editor-actions"><button className="secondary" disabled={busy} onClick={() => {resetPreview(); onNotice("已放弃预览，没有发送模型请求");}}>放弃，不发送</button><button className="primary" disabled={busy || !consent || expired} onClick={() => void confirm()}>{remote.reusable_result?"仍要重新生成（调用AI）":"确认本次发送"}</button></div></>}
       {remote.batch_progress&&<div className="ai-batch-progress" role="status"><strong>{remote.batch_progress.kind==="qa"?"分批问答":"分批报告"}：已完成{remote.batch_progress.completed}/{remote.batch_progress.total}{remote.batch_progress.kind==="qa"?"步":"批"}</strong><progress aria-label={remote.batch_progress.kind==="qa"?"问答步骤进度":"报告批次进度"} max={remote.batch_progress.total||1} value={remote.batch_progress.completed}/><p>共{remote.batch_progress.chars}字符；最多{remote.batch_progress.total-remote.batch_progress.completed}次原生成调用；另有预览授权的剩余格式修复额度，均受120秒窗口限制。{remote.batch_progress.kind==="qa"?"全部资料检查后再统一回答，已检查批次不会重发。":"每部分独立生成，成功部分不会重发。"}</p></div>}
