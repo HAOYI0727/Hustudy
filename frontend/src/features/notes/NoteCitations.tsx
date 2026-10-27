@@ -4,8 +4,8 @@ import {EmptyInline} from "../../components/workspace";
 
 const locators: Record<string, string> = {slide: "幻灯片", page: "页", heading: "标题", docx_block: "正文块", preview_page: "预览页"};
 
-export function NoteCitations({noteId, token, disabled, onSource, onError, onNotice}: {
-  noteId?: string; token: string; disabled: boolean;
+export function NoteCitations({noteId, token, disabled, readOnly = false, onSource, onError, onNotice}: {
+  noteId?: string; token: string; disabled: boolean; readOnly?: boolean;
   onSource: (versionId: string, chunkId: string) => void;
   onError: (error: unknown) => void; onNotice: (message: string) => void;
 }) {
@@ -41,7 +41,7 @@ export function NoteCitations({noteId, token, disabled, onSource, onError, onNot
     };
   }, []);
   const remove = async (citation: SourceCitation) => {
-    if (!noteId || !citation.id || disabled || lock.current) return;
+    if (readOnly || !noteId || !citation.id || disabled || lock.current) return;
     if (!window.confirm("从这篇笔记移除此引用？原资料和笔记正文保留，已有包含此引用的导出包需要重新生成。")) return;
     lock.current = true; setRemoving(citation.id);
     const current = generation.current;
@@ -63,7 +63,7 @@ export function NoteCitations({noteId, token, disabled, onSource, onError, onNot
       <span className="locator">{citation.source_kind === "manual_transcript" ? "人工补录 · " : ""}{locators[citation.locator_type || ""] || citation.locator_type} {citation.locator_value}</span>
       <p>{citation.quote}</p>
       <div className="note-citation-actions">{citation.availability === "active" ? <button className="secondary" disabled={disabled || !!removing} onClick={() => onSource(citation.version_id, citation.chunk_id)}>回到原文 ↗</button> : <small>来源当前不可用，摘录保留供核对</small>}
-        {citation.id && <button className="text-button" disabled={disabled || !!removing} onClick={() => void remove(citation)}>{removing === citation.id ? "正在移除…" : "移除此引用"}</button>}
+        {!readOnly && citation.id && <button className="text-button" disabled={disabled || !!removing} onClick={() => void remove(citation)}>{removing === citation.id ? "正在移除…" : "移除此引用"}</button>}
       </div>
     </article>)}
     {!loading && !failed && !rows.length && <EmptyInline text="在资料阅读中选择这篇笔记添加引用"/>}

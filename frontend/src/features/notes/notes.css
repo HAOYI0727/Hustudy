@@ -32,6 +32,10 @@
 .note-manager-row:hover { background:var(--surface-muted); }
 .note-manager-row > svg { color:#8a99b4; flex-shrink:0; }
 .note-manager-info { flex:1; min-width:0; }
+.note-read-action { flex:none; gap:5px; padding:8px 10px; min-height:44px; }
+.note-save-preference { display:flex; align-items:center; flex-wrap:wrap; gap:8px 14px; padding:0 0 14px; }
+.note-save-preference label { display:inline-flex; align-items:center; gap:8px; min-height:44px; font-size:13px; white-space:nowrap; }
+.note-save-preference input { width:17px; height:17px; min-height:17px; }
 .note-title-link { display:block; background:transparent; border:0; padding:0; text-align:left; color:#263b60; font-weight:600; line-height:1.6; overflow-wrap:anywhere; max-width:100%; }
 .note-title-link:hover { color:var(--accent-ink); text-decoration:underline; }
 .note-manager-info > small { display:block; color:#8390a6; font-size:11px; margin:2px 0; overflow-wrap:anywhere; }

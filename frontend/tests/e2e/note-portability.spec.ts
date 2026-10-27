@@ -40,6 +40,7 @@ test('批量图片插入、精确选择ZIP及解压后断网Markdown图片显示
   // Includes Vite cold start, a real worker ZIP, and a second offline browser context.
   test.setTimeout(90000);
   const s = await seed(request, page);
+  await page.getByLabel('自动保存笔记', {exact: true}).check();
   const first = {...await testImage(page), name: '图 A #1.png'};
   const second = {...first, name: '图 B 中文.png'};
   await expect(page.getByLabel('选择上传的笔记图片')).toHaveAttribute('multiple', '');
@@ -87,6 +88,7 @@ test('批量图片插入、精确选择ZIP及解压后断网Markdown图片显示
 
 test('批量部分失败仅重试未完成项，图库也支持多选导入', async ({page, request}) => {
   const s = await seed(request, page);
+  await page.getByLabel('自动保存笔记', {exact: true}).check();
   const first = {...await testImage(page), name: '第一张.png'};
   const failed = {...first, name: '第二张.png'};
   let attempts = 0;
@@ -121,6 +123,7 @@ for (const width of [390, 1440]) {
   test(`知识库真实worker打包、下载、删除及双链失效 ${width}px`, async ({page, request}, testInfo) => {
     await page.setViewportSize({width, height: 1000});
     const s = await seed(request, page);
+    await page.getByLabel('自动保存笔记', {exact: true}).check();
     await page.getByRole('button', {name: '插入图片与双链', exact: true}).click();
     await expect(page.getByLabel('插入课程图片')).toBeDisabled();
     await page.getByRole('button', {name: '关闭插入图片与双链', exact: true}).click();
@@ -187,6 +190,7 @@ for (const width of [390, 1440]) {
 
 test('已有笔记网络恢复自动保存，删除冲突保留本地内容', async ({page, request}) => {
   const s = await seed(request, page);
+  await page.getByLabel('自动保存笔记', {exact: true}).check();
   await page.route(`**/api/v1/notes/${s.note.id}`, route => route.request().method() === 'PATCH' ? route.abort('failed') : route.continue());
   await page.getByLabel('Markdown 正文').fill('离线修改正文');
   await page.getByRole('button', {name: '立即保存', exact: true}).click();
@@ -210,6 +214,7 @@ test('新笔记响应丢失后自动恢复不重复创建，并保存等待期�
   const toggle = page.getByRole('button', {name: /笔记列表与新建/});
   if (await toggle.isVisible() && await toggle.getAttribute('aria-expanded') === 'false') await toggle.click();
   await page.getByRole('button', {name: '新建笔记', exact: true}).click();
+  await page.getByLabel('自动保存笔记', {exact: true}).check();
   let first = true;
   await page.route('**/api/v1/notes', async route => {
     if (route.request().method() === 'POST' && first) {
@@ -254,6 +259,7 @@ test('跨课程双链可打开和保存，课程归属与目录保持正确', as
 
 test('图片校验失败保留正文，上传中继续输入不被覆盖', async ({page, request}) => {
   const s = await seed(request, page);
+  await page.getByLabel('自动保存笔记', {exact: true}).check();
   const input = page.getByLabel('选择上传的笔记图片');
   await input.setInputFiles({name: '伪装图片.png', mimeType: 'image/png', buffer: Buffer.from('not an image')});
   await expect(page.locator('.note-upload-error')).toContainText('图片无法解码');
@@ -314,6 +320,7 @@ for (const width of [390, 1440]) {
   test(`笔记图片管理：改名、说明、标签、引用与删除 ${width}px`, async ({page, request}) => {
     await page.setViewportSize({width, height: 1000});
     const s = await seed(request, page);
+    await page.getByLabel('自动保存笔记', {exact: true}).check();
     await page.getByLabel('选择上传的笔记图片').setInputFiles(await testImage(page));
     await expect(page.locator('.save-indicator')).toHaveText('已保存到本地服务');
     const body = await page.getByLabel('Markdown 正文').inputValue();

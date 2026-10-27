@@ -115,7 +115,7 @@ def fingerprint(user_id):
     s = bank_ai.get_user_settings(user_id)
     return {
         "endpoint": s.llm_endpoint,
-        "model": bank_ai.MODEL,
+        "model": bank_ai.effective_model(s),
         "prompt_version": VERSION,
         "credential_revision": s.credential_revision,
         "key_hash": hashlib.sha256(
@@ -167,7 +167,7 @@ def validate_scope(db, paper, scope):
 def response(db, paper):
     scope = json.loads(paper.bank_meta_json).get("ai_topic_index")
     if not scope:
-        return {"paper_id": paper.id, "status": "NONE", "model": bank_ai.MODEL}
+        return {"paper_id": paper.id, "status": "NONE", "model": bank_ai.effective_model(bank_ai.get_user_settings(paper.user_id))}
     job = db.get(ProcessingJob, scope.get("job_id")) if scope.get("job_id") else None
     result = {
         "preview_id": scope["preview_id"],

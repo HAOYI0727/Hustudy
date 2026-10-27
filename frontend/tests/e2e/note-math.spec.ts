@@ -123,6 +123,7 @@ test('特殊LaTeX提示使用独立公式并保留内容', async ({page, request
 
 test('自动保存401时公式窗口让出登录，登录后公式草稿仍在', async ({page, request}) => {
   await seed(page, request);
+  await page.getByLabel('自动保存笔记', {exact: true}).check();
   let release!: () => void;
   const gate = new Promise<void>(resolve => {release = resolve;});
   await page.route('**/api/v1/notes/*', async route => {

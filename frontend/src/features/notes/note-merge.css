@@ -1,0 +1,22 @@
+.note-merge-dialog {width:min(960px,calc(100vw - 32px));}
+.note-merge-workspace {display:grid;gap:16px;min-width:0;}
+.note-merge-downloads,.note-merge-actions {display:flex;flex-wrap:wrap;gap:10px;}
+.note-merge-summary {padding:14px 16px;background:var(--accent-soft);border-radius:10px;color:var(--accent-ink);}
+.note-merge-summary small,.note-merge-conflict h3 small {display:block;font-size:12px;font-weight:400;margin-top:6px;}
+.note-merge-conflict {padding:16px;border:1px solid var(--border);border-radius:12px;min-width:0;}
+.note-merge-conflict h3,.note-merge-preview h3 {margin:0 0 12px;}
+.note-merge-columns {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;}
+.note-merge-columns > div {min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:8px;}
+.note-merge-columns button {margin-top:auto;min-height:40px;}
+.note-merge-columns button[aria-pressed="true"] {background:var(--accent-soft);border-color:var(--accent-ink);color:var(--accent-ink);}
+.note-merge-workspace pre {width:100%;box-sizing:border-box;white-space:pre-wrap;overflow-wrap:anywhere;max-height:320px;overflow:auto;margin:0;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--surface-muted);font:13px/1.7 Consolas,'Microsoft YaHei',monospace;}
+.note-merge-workspace p,.note-merge-workspace dd {overflow-wrap:anywhere;}
+.note-merge-conflict details {margin-top:12px;}
+.note-merge-conflict summary {cursor:pointer;padding:8px 0;}
+.note-merge-preview {min-width:0;}
+.note-merge-preview dl {display:grid;grid-template-columns:60px minmax(0,1fr);gap:6px;font-size:13px;}
+.note-merge-preview dt {color:var(--muted);}
+.note-merge-preview dd {margin:0;}
+.note-merge-actions {justify-content:flex-end;padding-top:12px;border-top:1px solid var(--border);}
+.conflict-panel .note-conflict-actions {display:flex;flex-wrap:wrap;gap:8px;}
+@media(max-width:600px){.note-merge-columns {grid-template-columns:minmax(0,1fr);}.note-merge-dialog {width:calc(100vw - 16px);}.note-merge-conflict {padding:12px;}.note-merge-columns button,.note-merge-downloads button,.note-merge-actions button {min-height:44px;}.note-merge-downloads button,.note-merge-actions button {flex:1 1 140px;}}

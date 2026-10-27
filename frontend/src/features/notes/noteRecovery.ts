@@ -2,7 +2,7 @@
 export type NoteDraft={title:string;content:string;tags:string[];folder_id?:string|null};
 export type RecoveryCitation={version_id:string;chunk_id:string;quote:string};
 export type PendingNote=NoteDraft&{course_id:string;request_id:string;citations?:RecoveryCitation[]};
-export type NoteRecovery={id:string;userId:string;courseId:string;noteId:string|null;noteCourseId:string|null;baseRevision:number|null;draft:NoteDraft;tagInput:string;pending:PendingNote|null;citations?:RecoveryCitation[];updatedAt:string};
+export type NoteRecovery={id:string;userId:string;courseId:string;noteId:string|null;noteCourseId:string|null;baseRevision:number|null;base?:NoteDraft|null;draft:NoteDraft;tagInput:string;pending:PendingNote|null;citations?:RecoveryCitation[];updatedAt:string};
 const prefix=(userId:string)=>`hustudy-note-recovery:v1:${userId}:`;
 const key=(row:Pick<NoteRecovery,"userId"|"courseId"|"id">)=>`${prefix(row.userId)}${row.courseId}:${row.id}`;
 const uuid=(value:unknown):value is string=>typeof value==="string"&&/^[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12}$/i.test(value);
@@ -11,6 +11,7 @@ const maxItem=1024*1024,maxTotal=3*1024*1024,retention=30*86400000;
 function validDraft(value:any):value is NoteDraft{return value&&typeof value.title==="string"&&Array.from(value.title).length<=240&&typeof value.content==="string"&&Array.isArray(value.tags)&&value.tags.length<=12&&value.tags.every((tag:unknown)=>typeof tag==="string"&&Array.from(tag).length<=32)&&(value.folder_id===undefined||value.folder_id===null||uuid(value.folder_id));}
 const validCitations=(value:any)=>value===undefined||Array.isArray(value)&&value.length<=50&&value.every(item=>item&&uuid(item.version_id)&&uuid(item.chunk_id)&&typeof item.quote==="string"&&item.quote.length>0&&item.quote.length<=20000);
 function valid(value:any,userId:string):value is NoteRecovery{
+  if(value?.base!==undefined&&value.base!==null&&(!validDraft(value.base)||!uuid(value.noteId)||!Number.isInteger(value.baseRevision)||value.baseRevision<1))return false;
   return value&&uuid(value.id)&&value.userId===userId&&uuid(value.courseId)&&(value.noteId===null||uuid(value.noteId))&&(value.noteCourseId===null||uuid(value.noteCourseId))&&(value.baseRevision===null||Number.isInteger(value.baseRevision)&&value.baseRevision>=1)&&validDraft(value.draft)&&validCitations(value.citations)&&typeof value.tagInput==="string"&&value.tagInput.length<=2000&&typeof value.updatedAt==="string"&&Number.isFinite(Date.parse(value.updatedAt))&&Date.parse(value.updatedAt)>Date.now()-retention&&Date.parse(value.updatedAt)<=Date.now()+300000&&(value.pending===null||validDraft(value.pending)&&uuid(value.pending.request_id)&&value.pending.course_id===value.courseId&&validCitations(value.pending.citations));
 }
 export function recoveryCopies(userId:string,courseId?:string):{items:NoteRecovery[];available:boolean}{

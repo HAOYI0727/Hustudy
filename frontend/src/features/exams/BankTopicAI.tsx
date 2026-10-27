@@ -1,3 +1,4 @@
+import {useModelChange} from "../../api/modelEvents";
 import {AIActivity} from "../../components/AIActivity";
 import {useEffect,useRef,useState} from "react";
 import {api,BankTopicJob} from "../../api/client";
@@ -10,6 +11,7 @@ export function BankTopicAI({token,paperId,ids,busy,onImported,onNotice}:{token:
  const [job,setJob]=useState<BankTopicJob|null>(null),[working,setWorking]=useState(false),[configured,setConfigured]=useState(false),[error,setError]=useState("");
  const callback=useRef(onImported);callback.current=onImported;
  const finished=useRef("");
+ useModelChange(token,isCurrent=>{setJob(previous=>previous?.status==="PREVIEW"?null:previous);void api.bankAICapabilities(token).then(v=>{if(isCurrent())setConfigured(v.configured);}).catch(()=>{if(isCurrent())setConfigured(false);});});
  useEffect(()=>{let alive=true;void api.bankAICapabilities(token).then(v=>{if(alive)setConfigured(v.configured);}).catch(()=>{});void api.bankTopicStatus(token,paperId).then(v=>{if(alive)setJob(v);}).catch(()=>{});return()=>{alive=false;};},[token,paperId]);
  const pending=job?.status==="QUEUED"||job?.status==="RUNNING";
  useEffect(()=>{let active=true;const poll=async()=>{try{const v=await api.bankTopicStatus(token,paperId);if(!active)return;setJob(v);if(v.status==="SUCCEEDED"&&finished.current!==v.expires_at){finished.current=v.expires_at!;const guard=new Event("hustudy:bank-before-confirm",{cancelable:true});if(window.dispatchEvent(guard)){await callback.current();}onNotice("AI知识点建议已更新，请核对蓝色推荐并选用保存");}}catch(e){if(active)setError(e instanceof Error?e.message:"读取AI任务失败");}};const timer=window.setInterval(()=>void poll(),1500);return()=>{active=false;window.clearInterval(timer);};},[pending,token,paperId]);

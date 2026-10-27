@@ -2,6 +2,7 @@ import { Icon } from "../../components/Icon";
 import { CompactLibrary } from "../../components/CompactLibrary";
 import { lazy, Suspense, useEffect, useRef, useState, type DragEvent } from "react";
 import { api, ApiError, Note, Asset, noteSummary, type NoteSummary, type NoteFolder } from "../../api/client";
+import {sessionPartition} from '../../api/query';
 import { EmptyInline } from "../../components/workspace";
 import {loadNoteCatalog} from "./noteCatalog";
 import { addNoteTag } from "./tags";
@@ -16,36 +17,51 @@ import {MarkdownImport} from "./MarkdownImport";
 import {NoteCapture} from "./NoteCapture";
 import {SpeechInput} from "./SpeechInput";
 import {MarkdownEditor} from "./MarkdownEditor";
+import {NoteReader} from "./NoteReader";
+import {NoteAssistant,type AssistantSource,type AssistantApply} from './NoteAssistant';
+import {readAutoSavePreference, writeAutoSavePreference} from './notePreferences';
 import {folderOptions, folderPath, insideFolder} from "./organization";
 import {NotesDialog} from './NotesDialog';
 import {NoteManager} from './NoteManager';
 import {NoteRecoveryPanel} from "./NoteRecoveryPanel";
+import {NoteMergeDialog} from './NoteMergeDialog';
+import {downloadDraft} from './draftDownload';
 import {recoveryCopies,saveRecovery,removeRecovery,type NoteRecovery,type NoteDraft,type PendingNote,type RecoveryCitation} from "./noteRecovery";
 import {NoteTrash} from './NoteTrash';
 import {NOTE_DRAG_TYPE, canDropNotes, type NoteDrag} from './noteDragging';
 import "./notes.css";
 
 const AssetLibrary = lazy(() => import("../materials/AssetLibrary").then(module => ({default: module.AssetLibrary})));
+const NoteGraph = lazy(() => import("./NoteGraph"));
+const PackageTransfer = lazy(() => import('../packages/PackageTransfer'));
+import type {PackageIntent} from '../packages/PackageTransfer';
 
-type Props = { onSource: (versionId: string, chunkId: string) => void; initialNoteId?: string; token: string; courseId: string; onNotice: (s: string) => void; onError: (e: unknown) => void };
+type Props = { onCoursesChanged?: () => Promise<void>; onSource: (versionId: string, chunkId: string) => void; initialNoteId?: string; token: string; courseId: string; onNotice: (s: string) => void; onError: (e: unknown) => void };
 type Draft = NoteDraft;
-type Conflict = Draft & { revision: number };
+type Conflict = Draft & { revision: number; base: Draft | null };
+const noteDraft = (note: Draft): Draft => ({title: note.title, content: note.content, tags: [...note.tags], folder_id: note.folder_id ?? null});
 const templates = [
   { name: "概念学习", content: "## 学习目标\n\n## 概念与原理\n\n## 例子\n\n## 常见误区\n\n## 自测问题\n" },
   { name: "错题复盘", content: "## 原题与来源\n\n## 我的思路\n\n## 出错原因\n\n## 正确解法\n\n## 下次如何识别\n" },
   { name: "课前预习", content: "## 已知内容\n\n## 不理解的问题\n\n## 课堂核实\n\n## 课后总结\n" },
 ];
 
-export function Notes({ token, courseId, onNotice, onError: reportError, initialNoteId, onSource }: Props) {
+export function Notes({ token, courseId, onNotice, onError: reportError, initialNoteId, onSource, onCoursesChanged }: Props) {
   const [catalogFailed,setCatalogFailed]=useState(false),[catalogLoading,setCatalogLoading]=useState(true);
   const [pageOffset,setPageOffset]=useState(0),[matchIds,setMatchIds]=useState<string[]|null>(null),[matchFailed,setMatchFailed]=useState(false),[matchLoading,setMatchLoading]=useState(false),[matchReload,setMatchReload]=useState(0);
   const [opening, setOpening] = useState(!!initialNoteId);
+  const [openingNote, setOpeningNote] = useState(false);
   const [notes, setNotes] = useState<NoteSummary[]>([]);
   const [folders, setFolders] = useState<NoteFolder[]>([]);
   const [folderFilter, setFolderFilter] = useState("*");
   const [selectedNotes, setSelectedNotes] = useState<string[]>([]);
-  const [workspaceView, setWorkspaceView] = useState<'manage' | 'edit'>(initialNoteId ? 'edit' : 'manage');
-  const [tool, setTool] = useState<'import' | 'export' | 'batch' | 'tags' | 'recommend' | 'metadata' | 'insert' | 'images' | 'context' | 'templates' | 'trash' | 'capture' | 'speech' | null>(null);
+  const [workspaceView, setWorkspaceView] = useState<'manage' | 'edit' | 'read'>(initialNoteId ? 'edit' : 'manage');
+  const [tool, setTool] = useState<'import' | 'export' | 'batch' | 'tags' | 'recommend' | 'metadata' | 'insert' | 'images' | 'context' | 'templates' | 'trash' | 'capture' | 'speech' | 'graph' | 'assistant' | null>(null);
+  const [assistantSource,setAssistantSource]=useState<AssistantSource|null>(null);
+  const [graphFocus, setGraphFocus] = useState<string>();
+  const [packageIntent,setPackageIntent]=useState<PackageIntent|null>(null),[packageVisited,setPackageVisited]=useState(false);
+  const packageSerial=useRef(0);
+  const showPackage=(mode:'import'|'export',folderId?:string)=>{setTool(null);setPackageVisited(true);setPackageIntent({mode,kind:'folder',courseId,folderId,nonce:++packageSerial.current});};
   const [exportSelection, setExportSelection] = useState({ids: [] as string[], version: 0});
   const [organizationError, setOrganizationError] = useState('');
   const [exportBusy, setExportBusy] = useState(false);
@@ -53,7 +69,7 @@ export function Notes({ token, courseId, onNotice, onError: reportError, initial
   const [recognitionError, setRecognitionError] = useState('');
   const recognitionTarget = useRef<{session: number; content: string; start: number; end: number} | null>(null);
   const onError = (error: unknown) => {
-    if (error instanceof ApiError && error.status === 401) {setTool(null); window.dispatchEvent(new Event('hustudy:notes-session-expired'));}
+    if (error instanceof ApiError && error.status === 401) {setTool(null); setMergeSession(null); window.dispatchEvent(new Event('hustudy:notes-session-expired'));}
     else setOrganizationError(error instanceof Error ? error.message : '操作未完成，请重试。');
     reportError(error);
   };
@@ -83,9 +99,16 @@ export function Notes({ token, courseId, onNotice, onError: reportError, initial
   const [status, setStatus] = useState("开始记录你的理解");
   const [paused, setPaused] = useState(false);
   const [networkRetry, setNetworkRetry] = useState(false);
+  const expiredSession = useRef({token, expired: false});
   const pendingCreate = useRef<PendingNote | null>(null);
   const draftCitations=useRef<RecoveryCitation[]>([]);
   const [conflict, setConflict] = useState<Conflict | null>(null);
+  const [mergeSession, setMergeSession] = useState<{noteId: string; local: Draft; server: Conflict; tagInput: string} | null>(null);
+  const mergeTrigger = useRef<HTMLButtonElement>(null);
+  const closeMerge = () => {setMergeSession(null);requestAnimationFrame(()=>mergeTrigger.current?.focus());};
+  // Old recovery records may identify a revision without containing its original body.
+  const unavailableBase = useRef<{id: string; revision: number} | null>(null);
+  const confirmedBase = (note: Note | null) => note && !(unavailableBase.current?.id === note.id && unavailableBase.current.revision === note.revision) ? noteDraft(note) : null;
   const lock = useRef(false);
   const loadedInitial = useRef<string | undefined>(undefined);
   const textarea = useRef<HTMLTextAreaElement>(null);
@@ -93,6 +116,13 @@ export function Notes({ token, courseId, onNotice, onError: reportError, initial
   const dirty = draft.title !== (editing?.title || "") || draft.content !== (editing?.content || "") || JSON.stringify(draft.tags) !== JSON.stringify(editing?.tags ?? []) || (!!editing && (draft.folder_id ?? null) !== (editing.folder_id ?? null)) || !!tagInput.trim();
   const organizationDisabled = dirty || busy || !!conflict;
   const [recoveryOwner,setRecoveryOwner]=useState("");
+  const [autoSave, setAutoSave] = useState(false);
+  const [preferenceNotice, setPreferenceNotice] = useState('');
+  useEffect(() => {setAutoSave(readAutoSavePreference(recoveryOwner)); setPreferenceNotice('');}, [recoveryOwner]);
+  const chooseAutoSave = (enabled: boolean) => {
+    setAutoSave(enabled);
+    setPreferenceNotice(writeAutoSavePreference(recoveryOwner, enabled) ? '' : '已应用本次选择；浏览器无法记住设置，下次打开请重新核对。');
+  };
   const [copies,setCopies]=useState<NoteRecovery[]>([]),[recoveryError,setRecoveryError]=useState(""),[recoveryMessage,setRecoveryMessage]=useState("");
   const recoveryId=useRef(crypto.randomUUID()), recoveryLatest=useRef({draft,editing,tagInput,dirty,owner:recoveryOwner});
   recoveryLatest.current={draft,editing,tagInput,dirty,owner:recoveryOwner};
@@ -100,11 +130,50 @@ export function Notes({ token, courseId, onNotice, onError: reportError, initial
     if(!recoveryOwner)return;const result=recoveryCopies(recoveryOwner,courseId);setCopies(result.items.filter(row=>row.id!==recoveryId.current));
     if(!result.available)setRecoveryError("浏览器存储不可用，无法读取本机恢复副本。");
   };
-  const persistRecovery=()=>{
+  const persistRecovery=(force=false)=>{
     const current=recoveryLatest.current;
-    if(!current.owner||!current.dirty)return "";
-    return saveRecovery({id:recoveryId.current,userId:current.owner,courseId,noteId:current.editing?.id||null,noteCourseId:current.editing?.course_id||null,baseRevision:current.editing?.revision||null,draft:current.draft,tagInput:current.tagInput,pending:pendingCreate.current,citations:current.editing?undefined:draftCitations.current,updatedAt:new Date().toISOString()});
+    if(!current.owner)return force?"恢复副本尚未就绪，请先下载草稿或稍后重试。":"";
+    if(!current.dirty&&!force)return "";
+    return saveRecovery({id:recoveryId.current,userId:current.owner,courseId,noteId:current.editing?.id||null,noteCourseId:current.editing?.course_id||null,baseRevision:current.editing?.revision||null,base:confirmedBase(current.editing),draft:current.draft,tagInput:current.tagInput,pending:pendingCreate.current,citations:current.editing?undefined:draftCitations.current,updatedAt:new Date().toISOString()});
   };
+  const retainOriginalDraft=()=>{
+    const failure=persistRecovery(true);
+    if(failure){setRecoveryError(failure);return failure;}
+    recoveryId.current=crypto.randomUUID();
+    refreshRecovery();
+    return "";
+  };
+  const applyMerge=(merged:Draft):string=>{
+    if(!mergeSession||!editing||busy||editing.id!==mergeSession.noteId||conflict!==mergeSession.server||JSON.stringify(draft)!==JSON.stringify(mergeSession.local)||tagInput!==mergeSession.tagInput)return "草稿或服务端版本已变化，请关闭窗口后重新核对合并。";
+    const failure=retainOriginalDraft();if(failure)return failure;
+    unavailableBase.current=null;
+    setEditing({...editing,...noteDraft(mergeSession.server),revision:mergeSession.server.revision});
+    setDraft(merged);setConflict(null);setMergeSession(null);setPaused(true);setNetworkRetry(false);
+    const unchanged=JSON.stringify(noteDraft(merged))===JSON.stringify(noteDraft(mergeSession.server));
+    setStatus(unchanged?"合并结果与服务端一致 · 无需保存":"合并已应用到草稿 · 请核对后立即保存");
+    setRecoveryMessage(unchanged?"合并前的本地草稿已保留为独立恢复副本，当前结果与服务端一致。":"合并前的本地草稿已保留为独立恢复副本。合并结果尚未保存到服务端。");
+    requestAnimationFrame(()=>textarea.current?.focus());
+    return "";
+  };
+  useEffect(()=>{
+    const expired=()=>setMergeSession(null);
+    window.addEventListener('hustudy:notes-session-expired',expired);
+    return()=>window.removeEventListener('hustudy:notes-session-expired',expired);
+  },[]);
+  useEffect(()=>{
+    const session = {token, expired: false};
+    expiredSession.current = session;
+    const expired=(event:Event)=>{
+      if((event as CustomEvent).detail!==sessionPartition(token))return;
+      session.expired = true;
+      setTool(null); setFocusedEditor(false); setPaused(true); setNetworkRetry(false);
+      setStatus("登录已过期 · 本地草稿已保留");
+      setMergeSession(null);
+      window.dispatchEvent(new Event('hustudy:notes-session-expired'));
+    };
+    window.addEventListener('hustudy:unauthorized',expired);
+    return()=>window.removeEventListener('hustudy:unauthorized',expired);
+  },[token]);
   useEffect(()=>{
     let live=true;
     void api.me(token).then(user=>{if(!live)return;setRecoveryOwner(user.id);const result=recoveryCopies(user.id,courseId);setCopies(result.items.filter(row=>row.id!==recoveryId.current));if(!result.available)setRecoveryError("浏览器存储不可用，请及时保存正文。");}).catch(error=>{if(live)onError(error);});
@@ -131,11 +200,16 @@ export function Notes({ token, courseId, onNotice, onError: reportError, initial
       const fresh=row.noteId?await api.note(token,row.noteId):null;
       if(fresh&&(fresh.course_id||null)!==row.noteCourseId)throw new Error("原笔记课程已变化，暂不能恢复；可展开副本复制正文。");
       recoveryId.current=crypto.randomUUID();
-      setEditing(fresh?{...fresh,revision:row.baseRevision||fresh.revision}:null);
+      // A create-409 snapshot can have the current revision without being an ancestor.
+      // Missing/explicitly unknown bases stay unknown across reloads, even at equal revisions.
+      const base=row.base??null;
+      const needsReview=!!fresh&&(fresh.revision!==row.baseRevision||!base);
+      unavailableBase.current=fresh&&!base?{id:fresh.id,revision:row.baseRevision||fresh.revision}:null;
+      setEditing(fresh?{...fresh,...(base||{}),revision:row.baseRevision||fresh.revision}:null);
       setDraft({...row.draft});setTagInput(row.tagInput);pendingCreate.current=row.pending;draftCitations.current=row.citations||[];
-      setConflict(fresh&&fresh.revision!==row.baseRevision?{title:fresh.title,content:fresh.content,tags:fresh.tags,folder_id:fresh.folder_id,revision:fresh.revision}:null);
+      setConflict(fresh&&needsReview?{...noteDraft(fresh),revision:fresh.revision,base}:null);setMergeSession(null);
       setPaused(true);setNetworkRetry(false);setWorkspaceView('edit');setEditorSession(value=>value+1);
-      setRecoveryMessage(fresh&&fresh.revision!==row.baseRevision?"已恢复本地草稿；服务端已有新版本，请在编辑区核对冲突。":"恢复内容尚未写入服务端，请核对后点击立即保存。原恢复副本保留，可手动删除。");
+      setRecoveryMessage(needsReview?"已恢复本地草稿；服务端版本变化或共同版本缺失，请在编辑区核对冲突。":"恢复内容尚未写入服务端，请核对后点击立即保存。原恢复副本保留，可手动删除。");
       setStatus("已恢复本机草稿 · 请核对后立即保存");
     }catch(error){setRecoveryMessage("原笔记无法核对，副本已保留；可展开复制正文，不会自动创建笔记。");onError(error);}
     finally{lock.current=false;setBusy(false);}
@@ -160,6 +234,10 @@ export function Notes({ token, courseId, onNotice, onError: reportError, initial
   };
   const showTool = (next: typeof tool) => {
     setOrganizationError('');
+    if(next==='assistant'){
+      if(busy||conflict||workspaceView!=='edit')return;
+      setAssistantSource({session:editorSession,title:draft.title,content:draft.content,start:textarea.current?.selectionStart??0,end:textarea.current?.selectionEnd??0,noteId:editing?.id,revision:editing?.revision,courseId:editing?.course_id||courseId});
+    }
     if (next === 'export') setExportSelection(value => ({ids: [...selectedNotes], version: value.version + 1}));
     if (next === 'capture' || next === 'speech') {
       if (workspaceView !== 'edit' || busy || conflict) return;
@@ -170,6 +248,14 @@ export function Notes({ token, courseId, onNotice, onError: reportError, initial
     setTool(next);
   };
   const endDrag = () => {dragRef.current = null; setDrag(null);};
+  const applyAssistant = (text:string,mode:AssistantApply):string => {
+    const source=assistantSource;
+    if(!source||busy||conflict||source.session!==editorSession||source.content!==draft.content||source.title!==draft.title||source.noteId!==editing?.id||source.revision!==editing?.revision)return '笔记或草稿已变化，请关闭助手后重新预览，当前内容没有改动。';
+    const next=mode==='append'?draft.content+'\n\n'+text:mode==='selection'?draft.content.slice(0,source.start)+text+draft.content.slice(source.end):text;
+    setDraft(value=>({...value,content:next}));setPreview(false);setTool(null);setStatus('AI建议已采纳到草稿 · 待保存');
+    requestAnimationFrame(()=>{textarea.current?.focus();const position=mode==='selection'?source.start+text.length:next.length;textarea.current?.setSelectionRange(position,position);});
+    return '';
+  };
   const startDrag = (event: DragEvent, value: NoteDrag) => {
     if (organizationDisabled || (value.kind === 'notes' && value.notes.length > 200)) {event.preventDefault(); return;}
     dragRef.current = value; setDrag(value);
@@ -234,7 +320,8 @@ export function Notes({ token, courseId, onNotice, onError: reportError, initial
   }, [dirty, busy]);
 
   const save = async () => {
-    if (lock.current || !draft.title.trim() || !dirty || conflict || tagInput.trim()) return;
+    const session = expiredSession.current;
+    if (session.expired || session.token !== token || lock.current || !draft.title.trim() || !dirty || conflict || tagInput.trim()) return;
     lock.current = true; setBusy(true); setNetworkRetry(false); setStatus("正在保存…");
     const snapshot = { ...draft };
     if (!editing) pendingCreate.current ??= {...snapshot, course_id: courseId, request_id: crypto.randomUUID(),citations:draftCitations.current};
@@ -245,24 +332,28 @@ export function Notes({ token, courseId, onNotice, onError: reportError, initial
         : await api.createNote(token, pendingCreate.current!);
       pendingCreate.current = null;draftCitations.current=[];
       removeRecovery({userId:recoveryOwner,courseId,id:recoveryId.current});
-      setEditing(saved); setPaused(false); setStatus("已保存到本地服务");
+      const interrupted = session.expired || session !== expiredSession.current;
+      unavailableBase.current=null;setEditing(saved); setPaused(interrupted);
+      setStatus(expiredSession.current.expired ? "登录已过期 · 本地草稿已保留" : interrupted ? "保存请求已完成 · 请核对剩余草稿并手动保存" : "已保存到本地服务");
       setNotes((rows) => [noteSummary(saved), ...rows.filter((row) => row.id !== saved.id)]);
     } catch (error) {
-      setPaused(true); setStatus("未保存 · 请处理后重试");
-      setNetworkRetry(error instanceof ApiError && error.status === 0);
+      setPaused(true); setStatus(expiredSession.current.expired ? "登录已过期 · 本地草稿已保留" : "未保存 · 请处理后重试");
+      setNetworkRetry(!session.expired && session === expiredSession.current && error instanceof ApiError && error.status === 0);
       if (error instanceof ApiError && error.status === 422) pendingCreate.current = null;
       if (error instanceof ApiError && error.status === 409 && error.details) {
         if (!editing && error.details.server_id === pendingCreate.current?.request_id) {
+          unavailableBase.current={id:String(error.details.server_id),revision:Number(error.details.server_revision)};
           setEditing({id: String(error.details.server_id), course_id: courseId, title: String(error.details.server_title || ""), content: String(error.details.server_content || ""), tags: Array.isArray(error.details.server_tags) ? error.details.server_tags as string[] : [], folder_id: error.details.server_folder_id as string | null ?? null, revision: Number(error.details.server_revision), updated_at: ""});
           pendingCreate.current = null;
         }
-        setConflict({ title: String(error.details.server_title || ""), content: String(error.details.server_content || ""), tags: Array.isArray(error.details.server_tags) ? error.details.server_tags as string[] : [], folder_id: error.details.server_folder_id as string | null ?? null, revision: Number(error.details.server_revision) });
+        setConflict({ title: String(error.details.server_title || ""), content: String(error.details.server_content || ""), tags: Array.isArray(error.details.server_tags) ? error.details.server_tags as string[] : [], folder_id: error.details.server_folder_id as string | null ?? null, revision: Number(error.details.server_revision), base: confirmedBase(editing) });
       } else onError(error);
     } finally { lock.current = false; setBusy(false); }
   };
   useEffect(() => {
+    const session = expiredSession.current;
     const recover = () => {
-      if (networkRetry && navigator.onLine && document.visibilityState === "visible") {
+      if (!session.expired && session === expiredSession.current && session.token === token && autoSave && networkRetry && navigator.onLine && document.visibilityState === "visible") {
         setPaused(false); setNetworkRetry(false); setStatus("连接已恢复 · 等待保存");
       }
     };
@@ -270,29 +361,34 @@ export function Notes({ token, courseId, onNotice, onError: reportError, initial
     document.addEventListener("visibilitychange", recover);
     const timer = networkRetry ? window.setTimeout(recover, 15000) : undefined;
     return () => { window.clearTimeout(timer); window.removeEventListener("online", recover); document.removeEventListener("visibilitychange", recover); };
-  }, [networkRetry]);
+  }, [networkRetry, autoSave, token]);
   useEffect(() => {
-    if (!foreground || !dirty || busy || paused || conflict || !draft.title.trim() || tagInput.trim()) return;
-    const timer = window.setTimeout(() => { if (document.visibilityState === "visible") void save(); }, 2000);
+    const session = expiredSession.current;
+    if (session.expired || session.token !== token || !autoSave || workspaceView === 'read' || tool === 'assistant' || !foreground || !dirty || busy || paused || conflict || !draft.title.trim() || tagInput.trim()) return;
+    const timer = window.setTimeout(() => { if (!session.expired && session === expiredSession.current && document.visibilityState === "visible") void save(); }, 2000);
     return () => window.clearTimeout(timer);
-  }, [draft, editing, busy, paused, conflict, tagInput, foreground]);
+  }, [draft, editing, busy, paused, conflict, tagInput, foreground, workspaceView, autoSave, token, tool]);
 
-  const open = async (note?: NoteSummary) => {
+  const changeView = (view: 'manage' | 'edit' | 'read') => {setFocusedEditor(false); setWorkspaceView(view);};
+  const open = async (note?: NoteSummary, view: 'edit' | 'read' = 'edit') => {
     if (lock.current) return;
+    if (note && note.id === editing?.id) {changeView(view); return true;}
     if (!window.dispatchEvent(new Event("hustudy:before-material-change", {cancelable: true}))) return;
     if (dirty && !window.confirm("当前有未保存内容。确认放弃这些修改并切换？")) return;
-    lock.current = true; setBusy(true);
+    lock.current = true; setBusy(true); setOpeningNote(true);
     try {
       const fresh = note ? await api.note(token, note.id) : null;
       if (fresh) setNotes(rows => [noteSummary(fresh), ...rows.filter(row => row.id !== fresh.id)]);
       persistRecovery();recoveryId.current=crypto.randomUUID();
+      unavailableBase.current=null;setMergeSession(null);
       setEditing(fresh); setDraft({ title: fresh?.title || "", content: fresh?.content || "", tags: fresh?.tags ?? [], folder_id: fresh ? fresh.folder_id ?? null : folders.some(f => f.id === folderFilter) ? folderFilter : null });
-      setEditorSession(value => value + 1); setWorkspaceView('edit');
+      setEditorSession(value => value + 1); changeView(view);
       setTagInput(""); setTagError(""); setUploadError("");
       setUploadFailures([]); setUploadSummary("");
       pendingCreate.current = null;draftCitations.current=[]; setNetworkRetry(false);
-      setConflict(null); setPaused(false); setStatus(fresh ? "已载入保存版本" : "新笔记 · 填写标题后自动保存");
-    } catch (error) { onError(error); } finally { lock.current = false; setBusy(false); }
+      setConflict(null); setPaused(false); setStatus(fresh ? "已载入保存版本" : "新笔记 · 请填写标题和正文");
+      return true;
+    } catch (error) { onError(error); } finally { lock.current = false; setBusy(false); setOpeningNote(false); }
   };
   const remove = async () => {
     if (!editing || lock.current) return;
@@ -311,7 +407,7 @@ export function Notes({ token, courseId, onNotice, onError: reportError, initial
     } catch (error) {
       setPaused(true); setNetworkRetry(false); setStatus("删除未完成 · 本地内容保留");
       if (error instanceof ApiError && error.status === 409 && error.details) {
-        setConflict({title: String(error.details.server_title || ""), content: String(error.details.server_content || ""), tags: Array.isArray(error.details.server_tags) ? error.details.server_tags as string[] : [], folder_id: error.details.server_folder_id as string | null ?? null, revision: Number(error.details.server_revision)});
+        setConflict({title: String(error.details.server_title || ""), content: String(error.details.server_content || ""), tags: Array.isArray(error.details.server_tags) ? error.details.server_tags as string[] : [], folder_id: error.details.server_folder_id as string | null ?? null, revision: Number(error.details.server_revision),base:confirmedBase(editing)});
       } else onError(error);
     } finally { lock.current = false; setBusy(false); }
   };
@@ -423,7 +519,7 @@ export function Notes({ token, courseId, onNotice, onError: reportError, initial
   const outgoing = [...draft.content.matchAll(/\[\[note:([0-9a-fA-F-]{36})(?:\|([^\]]+))?\]\]/g)];
   if (opening) return <div className="panel" role="status">正在打开指定笔记…</div>;
   return <div className="page notes-workspace">
-    <header className="notes-workspace-heading"><div><span className="eyebrow">PERSONAL KNOWLEDGE</span><h1>我的笔记 <small>{courseNotes.length}</small></h1></div><div className="notes-workspace-tools"><button className="secondary" onClick={() => showTool('trash')}>回收站</button><button className="secondary" onClick={() => showTool('import')}>导入 Markdown</button><button className="secondary" onClick={() => showTool('export')}>选择笔记导出</button><button className="secondary" onClick={() => showTool('tags')}>标签管理</button><button className="secondary" onClick={() => showTool('recommend')}>推荐归类</button><button className="primary" disabled={busy} onClick={() => void open()}><Icon name="plus" size={16}/>新建笔记</button></div></header>
+    <header className="notes-workspace-heading"><div><span className="eyebrow">PERSONAL KNOWLEDGE</span><h1>我的笔记 <small>{courseNotes.length}</small></h1></div><div className="notes-workspace-tools"><button className="secondary" onClick={() => {setGraphFocus(undefined);showTool('graph');}}>关系图谱</button><button className="secondary" onClick={() => showTool('trash')}>回收站</button><button className="secondary" onClick={() => showTool('import')}>导入 Markdown</button><button className="secondary" onClick={()=>showPackage("import",folderFilter!=="*"&&folderFilter?folderFilter:undefined)}>标准数据包</button><button className="secondary" onClick={() => showTool('export')}>选择笔记导出</button><button className="secondary" onClick={() => showTool('tags')}>标签管理</button><button className="secondary" onClick={() => showTool('recommend')}>推荐归类</button><button className="primary" disabled={busy} onClick={() => void open()}><Icon name="plus" size={16}/>新建笔记</button></div></header>
     <NoteRecoveryPanel items={copies} busy={busy} error={recoveryError} message={recoveryMessage} onRestore={row=>void restoreCopy(row)} onRefresh={refreshRecovery} onRemove={row=>{if(window.confirm("删除这份本机恢复副本？不会删除服务端笔记。")){if(removeRecovery(row))refreshRecovery();else setRecoveryError("无法删除副本，请检查浏览器存储权限。");}}}/>
     {catalogLoading&&<p role="status">正在读取笔记目录，正文按需打开…</p>}
     {catalogFailed&&<p role="alert">笔记目录暂未完整加载。<button className="secondary" onClick={()=>void refreshCatalog()}>重试笔记目录</button></p>}
@@ -433,28 +529,39 @@ export function Notes({ token, courseId, onNotice, onError: reportError, initial
     <div className="knowledge-layout">
       <CompactLibrary className="panel knowledge-library" label="笔记列表与新建">
         <div className="panel-title"><h3>课程笔记</h3><span className="count-pill">{courseNotes.length}</span></div>
-        <FolderLibrary token={token} courseId={courseId} folders={folders} notes={courseNotes} selected={folderFilter} onSelect={setFolderFilter} disabled={organizationDisabled} perform={performOrganization} refresh={refreshFolders} drag={drag} startDrag={startDrag} endDrag={endDrag} drop={drop} error={organizationError}/>
+        <FolderLibrary token={token} courseId={courseId} folders={folders} notes={courseNotes} selected={folderFilter} onSelect={setFolderFilter} disabled={organizationDisabled} perform={performOrganization} refresh={refreshFolders} drag={drag} startDrag={startDrag} endDrag={endDrag} drop={drop} error={organizationError} onImportPackage={id=>showPackage("import",id)} onExportPackage={id=>showPackage("export",id)}/>
         <p className="hint note-nav-caption">快速打开 · {filtered.length} 篇</p>
-        <div className="list">{visibleNotes.map((note) => <button key={note.id} title={note.title} draggable={!organizationDisabled} onDragStart={e => dragNote(e, note)} onDragEnd={endDrag} disabled={busy} className={`knowledge-item ${note.id === editing?.id ? "selected" : ""}`} onClick={() => void open(note)}><Icon name="notes" size={15}/><strong>{note.title}</strong></button>)}</div>
+        <div className="list">{visibleNotes.map((note) => <button key={note.id} title={note.title} draggable={!organizationDisabled} onDragStart={e => dragNote(e, note)} onDragEnd={endDrag} disabled={busy} className={`knowledge-item ${note.id === editing?.id ? "selected" : ""}`} onClick={() => void open(note, workspaceView === 'read' ? 'read' : 'edit')}><Icon name="notes" size={15}/><strong>{note.title}</strong></button>)}</div>
         {notePages("目录翻页")}
         {!filtered.length && !catalogFailed && !matchFailed && !catalogLoading && !matchLoading && <EmptyInline text={search || tagFilter ? "未找到匹配笔记，试试其他关键词或标签" : "从一个概念开始记录"} />}
       </CompactLibrary>
-      <div className="notes-main"><nav className="notes-view-tabs" aria-label="笔记工作区视图"><button aria-pressed={workspaceView === 'manage'} onClick={() => setWorkspaceView('manage')}>笔记管理</button><button aria-label={editing ? '编辑笔记' : '编辑草稿'} aria-description={dirty ? '有未保存修改' : undefined} aria-pressed={workspaceView === 'edit'} onClick={() => setWorkspaceView('edit')}>{editing ? '编辑笔记' : '编辑草稿'}{dirty && <span className="draft-dot" aria-hidden="true"/>}</button></nav>
-      <div hidden={workspaceView !== 'manage'}><NoteManager notes={visibleNotes} total={filtered.length} folders={folders} selected={selectedNotes} setSelected={setSelectedNotes} disabled={organizationDisabled} search={search} setSearch={setSearch} tag={tagFilter} setTag={setTagFilter} tags={availableTags} path={folderFilter === '*' ? '全部笔记' : folderPath(folders, folderFilter)} onOpen={note => void open(note)} onTool={showTool} onRefresh={()=>void refreshCatalog()} onDrag={dragNote} onDragEnd={endDrag} onDelete={removeSelected}/>{notePages("笔记管理分页")}{organizationDisabled && <p className="hint">请先保存或处理编辑区的草稿，再批量整理或拖动笔记。</p>}</div>
-      <section hidden={workspaceView !== 'edit'} className={`panel knowledge-editor ${focusedEditor ? "is-focused" : ""}`} inert={organizing} aria-busy={organizing}>
+      <div className="notes-main"><nav className="notes-view-tabs" aria-label="笔记工作区视图"><button aria-pressed={workspaceView === 'manage'} onClick={() => changeView('manage')}>笔记管理</button><button aria-label={editing ? '编辑笔记' : '编辑草稿'} aria-description={dirty ? '有未保存修改' : undefined} aria-pressed={workspaceView === 'edit'} onClick={() => changeView('edit')}>{editing ? '编辑笔记' : '编辑草稿'}{dirty && <span className="draft-dot" aria-hidden="true"/>}</button><button aria-pressed={workspaceView === 'read'} disabled={busy || (!editing && !draft.content && !draft.title)} onClick={() => changeView('read')}><Icon name="preview" size={16}/>阅读模式</button></nav>
+      <div hidden={workspaceView !== 'manage'}><NoteManager notes={visibleNotes} total={filtered.length} folders={folders} selected={selectedNotes} setSelected={setSelectedNotes} disabled={organizationDisabled} search={search} setSearch={setSearch} tag={tagFilter} setTag={setTagFilter} tags={availableTags} path={folderFilter === '*' ? '全部笔记' : folderPath(folders, folderFilter)} onOpen={note => void open(note)} onRead={note => void open(note, 'read')} onTool={showTool} onRefresh={()=>void refreshCatalog()} onDrag={dragNote} onDragEnd={endDrag} onDelete={removeSelected}/>{notePages("笔记管理分页")}{organizationDisabled && <p className="hint">请先保存或处理编辑区的草稿，再批量整理或拖动笔记。</p>}</div>
+      {workspaceView === 'read' && <NoteReader
+        title={draft.title} content={draft.content} tags={draft.tags}
+        path={editing && editing.course_id !== courseId ? editing.course_id ? '其他课程的关联笔记' : '未分类的关联笔记' : folderPath(folders, draft.folder_id)}
+        noteId={editing?.id} token={token} notes={notes} courseId={editing?.course_id||courseId} assetRevision={assetRevision} disabled={busy}
+        notice={conflict ? '存在版本冲突，当前显示本地草稿。请返回编辑处理冲突。' : dirty ? '当前显示未保存草稿，阅读期间暂停自动保存；返回编辑后继续处理。' : busy ? '正在处理，请稍候…' : ''}
+        onNote={note => void open(note, 'read')}
+        onEdit={() => {changeView('edit'); requestAnimationFrame(() => textarea.current?.focus({preventScroll: true}));}}
+        sources={<NoteCitations key={editing?.id || 'new'} noteId={editing?.id} token={token} disabled={busy} readOnly onSource={onSource} onError={onError} onNotice={onNotice}/>}
+      />}
+      <section hidden={workspaceView !== 'edit'} className={`panel knowledge-editor ${focusedEditor ? "is-focused" : ""}`} inert={organizing || openingNote} aria-busy={organizing || openingNote}>
         {editing && editing.course_id !== courseId && <p className="hint" role="status">当前打开的是{editing.course_id ? "其他课程" : "未分类"}的关联笔记；保存会保留其原有归属。</p>}
-        <div className="panel-title"><h3>{editing ? "编辑笔记" : "新建笔记"}</h3><span className={`save-indicator ${dirty ? "unsaved" : ""}`} role="status"><Icon name={busy ? "refresh" : paused || conflict ? "info" : dirty ? "edit" : editing ? "check" : "notes"} size={13} className={busy ? "is-spinning" : ""}/>{uploading ? "正在上传图片…" : busy ? "保存中…" : dirty && !paused ? "有修改待保存" : status}</span></div>
+        <div className="panel-title"><h3>{editing ? "编辑笔记" : "新建笔记"}</h3><span className={`save-indicator ${dirty ? "unsaved" : ""}`} role="status"><Icon name={busy ? "refresh" : paused || conflict ? "info" : dirty ? "edit" : editing ? "check" : "notes"} size={13} className={busy ? "is-spinning" : ""}/>{openingNote ? "正在打开笔记…" : uploading ? "正在上传图片…" : busy ? "保存中…" : dirty && !paused ? autoSave ? "有修改待保存" : "未保存 · 手动保存" : status}</span></div>
+        <div className="note-save-preference"><label><input type="checkbox" aria-label="自动保存笔记" checked={autoSave} disabled={!recoveryOwner} onChange={event => chooseAutoSave(event.target.checked)}/>自动保存</label><span className="hint">{autoSave ? '停止输入约 2 秒保存；阅读时暂停。' : '手动保存 · 点击“立即保存”或按 Ctrl/Cmd+S。'}本机恢复副本不等于已保存。</span>{preferenceNotice && <span className="hint" role="status">{preferenceNotice}</span>}</div>
         <input className="title-input" aria-label="笔记标题" maxLength={240} placeholder="为这份理解起一个名字" value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} />
         <button className="text-button note-preview-toggle" aria-pressed={preview} onClick={() => setPreview(!preview)}>{preview ? '继续编辑' : 'Markdown 预览'}</button>
-        <div className="note-editor-tools"><button className="primary" disabled={busy || !!conflict} onClick={() => showTool('speech')}>语音输入</button><button className="secondary" onClick={() => showTool('capture')}>文字识别</button><button className="secondary" onClick={() => showTool('metadata')}>文件夹与标签{draft.tags.length ? ` · ${draft.tags.length}` : ''}</button><button className="secondary" onClick={() => showTool('images')}>管理图片</button><button className="secondary" onClick={() => showTool('context')}>引用与关联 · {outgoing.length + backlinks.length}</button><button className="secondary" onClick={() => showTool('templates')}>学习模板</button><span className="hint">{folderPath(folders, draft.folder_id)}</span></div>
+        <div className="note-editor-tools"><button className="primary" disabled={busy || !!conflict || !draft.content.trim()} onClick={() => showTool("assistant")}>笔记AI助手</button><button className="primary" disabled={busy || !!conflict} onClick={() => showTool('speech')}>语音输入</button><button className="secondary" onClick={() => showTool('capture')}>文字识别</button><button className="secondary" onClick={() => showTool('metadata')}>文件夹与标签{draft.tags.length ? ` · ${draft.tags.length}` : ''}</button><button className="secondary" onClick={() => showTool('images')}>管理图片</button><button className="secondary" onClick={() => showTool('context')}>引用与关联 · {outgoing.length + backlinks.length}</button><button className="secondary" onClick={() => showTool('templates')}>学习模板</button><span className="hint">{folderPath(folders, draft.folder_id)}</span></div>
+        <NotesDialog open={tool === "assistant"} title="笔记AI助手" onClose={() => setTool(null)}>{tool === "assistant" && assistantSource && <NoteAssistant token={token} source={assistantSource} notes={notes} onApply={applyAssistant} onError={onError}/>}</NotesDialog>
         <NotesDialog open={tool === 'metadata'} title="文件夹与标签" onClose={() => setTool(null)} busy={busy}>
-        {conflict ? <p role="alert">检测到另一处修改，本地标签和草稿已保留。关闭窗口后在编辑区处理冲突。</p> : organizationError ? <p role="alert">{organizationError}</p> : <p className="hint" role="status">{dirty ? '修改会随笔记自动保存。' : status}</p>}
+        {conflict ? <p role="alert">检测到另一处修改，本地标签和草稿已保留。关闭窗口后在编辑区处理冲突。</p> : organizationError ? <p role="alert">{organizationError}</p> : <p className="hint" role="status">{dirty ? autoSave ? '已开启自动保存。' : '修改尚未保存，请点击立即保存或使用 Ctrl/Cmd+S。' : status}</p>}
         <label className="note-filter">所在文件夹<select aria-label="笔记所在文件夹" value={draft.folder_id || ""} disabled={busy || !!conflict || (!!editing && editing.course_id !== courseId)} onChange={e => setDraft(value => ({...value, folder_id: e.target.value || null}))}><option value="">未归档</option>{folderOptions(folders).map(f => <option key={f.id} value={f.id}>{f.path}</option>)}{draft.folder_id && !folders.some(f => f.id === draft.folder_id) && <option value={draft.folder_id}>保留原文件夹归属</option>}</select></label>
         <section className="note-tag-editor" aria-label="笔记标签">
           <div className="note-tag-heading"><strong>标签</strong><span className="hint">{draft.tags.length} / 12</span></div>
           <div className="note-tags">{draft.tags.map(tag => <span className="note-tag" key={tag}><span>#{tag}</span><button type="button" className="text-button" aria-label={`移除标签 ${tag}`} onClick={() => { setDraft(value => ({ ...value, tags: value.tags.filter(item => item !== tag) })); setTagError(""); }}>×</button></span>)}</div>
           <div className="note-tag-input"><input aria-label="新标签" aria-describedby="note-tag-help" value={tagInput} placeholder="例如：期末重点" onChange={e => { setTagInput(e.target.value); setTagError(""); }} onKeyDown={e => { if (e.key === "Enter" && !e.nativeEvent.isComposing) { e.preventDefault(); addTag(); } }} /><button type="button" className="secondary" disabled={!tagInput.trim()} onClick={addTag}>添加标签</button></div>
-          <p id="note-tag-help" className="hint">输入后按 Enter 或点击添加，每项最多 32 字；{tagInput.trim() ? "请先添加或清空输入，再保存笔记。" : "标签随笔记自动保存。"}</p>
+          <p id="note-tag-help" className="hint">输入后按 Enter 或点击添加，每项最多 32 字；{tagInput.trim() ? "请先添加或清空输入，再保存笔记。" : "标签随笔记一起保存。"}</p>
           {tagError && <p role="alert">{tagError}</p>}
         </section>
         </NotesDialog>
@@ -472,19 +579,35 @@ export function Notes({ token, courseId, onNotice, onError: reportError, initial
         <p className="hint">可多选 PNG、JPG、WebP 图片，每批最多 20 张，每张最大 10 MiB；成功的图片按选择顺序插入正文。</p>
         </NotesDialog>
         <NotesDialog open={tool === 'images'} title="管理图片" onClose={() => {if (window.dispatchEvent(new Event('hustudy:before-material-change', {cancelable: true}))) setTool(null);}}>{organizationError && <p role="alert">{organizationError}</p>}<Suspense fallback={<p role="status">正在打开图片管理…</p>}><AssetLibrary key={imageCourse} token={token} courseId={imageCourse} refreshKey={assetRevision} onError={error => {setOrganizationError(error instanceof Error ? error.message : '图片操作失败'); onError(error);}} onNotice={onNotice} onChanged={() => setAssetRevision(value => value + 1)} onNote={id => { const target = notes.find(note => note.id === id); if (target) {setTool(null); void open(target);} }}/></Suspense></NotesDialog>
-        <MarkdownEditor key={editorSession} value={draft.content} onChange={content => setDraft(value => ({...value, content}))} textarea={textarea} preview={preview} setPreview={setPreview} token={token} notes={notes} onNote={note => void open(note)} onSave={() => {setPaused(false); void save();}} assetRevision={assetRevision} focused={focusedEditor} setFocused={setFocusedEditor} onImage={() => showTool('insert')}/>
-        <div className="editor-footer"><span className="hint">{Array.from(draft.content).length} 字符 · Markdown</span><button className="secondary" disabled={!editing || dirty || busy} onClick={() => void download()}><Icon name="download" size={15}/>导出 .md</button><button className="primary" disabled={busy || !dirty || !draft.title.trim() || !!conflict || !!tagInput.trim()} onClick={() => { setPaused(false); void save(); }}><Icon name="check" size={15}/>立即保存</button></div>
+        <MarkdownEditor key={editorSession} active={workspaceView === 'edit'} value={draft.content} onChange={content => setDraft(value => ({...value, content}))} textarea={textarea} preview={preview} setPreview={setPreview} token={token} notes={notes} onNote={note => void open(note)} onSave={() => {setPaused(false); void save();}} assetRevision={assetRevision} focused={focusedEditor} setFocused={setFocusedEditor} onImage={() => showTool('insert')}/>
+        <div className="editor-footer"><span className="hint">{Array.from(draft.content).length} 字符 · Markdown</span>{(dirty || conflict) && <button className="secondary" onClick={() => downloadDraft(draft)}>下载当前草稿</button>}<button className="secondary" disabled={!editing || dirty || busy} onClick={() => void download()}><Icon name="download" size={15}/>导出 .md</button><button className="primary" disabled={busy || !dirty || !draft.title.trim() || !!conflict || !!tagInput.trim()} onClick={() => { setPaused(false); void save(); }}><Icon name="check" size={15}/>立即保存</button></div>
         {editing && <button className="text-button note-delete" disabled={busy || !!conflict} onClick={() => void remove()}>删除这篇笔记</button>}
-        {paused && !conflict && <p role="alert">{networkRetry ? "网络连接失败，本地内容仍在；联网或返回页面后自动重试，也可点击“立即保存”。" : "自动保存已暂停，本地内容仍在。检查连接后点击“立即保存”重试。"}</p>}
-        {conflict && <section className="conflict-panel" role="alert"><h3>检测到另一处修改</h3><p>上方保留你的本地草稿和标签。请先复制需要保留的内容，再选择载入服务端版本；不会自动覆盖任一版本。</p><strong>{conflict.title} · 版本 {conflict.revision}</strong><p>服务端标签：{conflict.tags.join("、") || "无标签"}</p><p>服务端文件夹：{folderPath(folders, conflict.folder_id)}</p><pre>{conflict.content}</pre><button className="secondary" onClick={() => { if (editing && window.confirm("确认载入服务端版本？上方本地草稿将被替换。")) { setEditing({ ...editing, ...conflict }); setDraft({ title: conflict.title, content: conflict.content, tags: conflict.tags, folder_id: conflict.folder_id ?? null }); setTagInput(""); setTagError(""); setConflict(null); setPaused(false); setStatus("已载入服务端版本"); } }}>载入服务端版本</button><button className="secondary" onClick={()=>{if(editing&&window.confirm("已核对服务端内容，保留本地正文与标签？不会立即写入，仍需点击立即保存。")){setEditing({...editing,revision:conflict.revision});setConflict(null);setPaused(true);setNetworkRetry(false);setStatus("已核对新版本 · 本地草稿等待明确保存");}}}>核对后保留本地草稿</button></section>}
+        {paused && !conflict && dirty && <p role="alert">{networkRetry && autoSave ? "网络连接失败，本地内容仍在；联网或返回页面后自动重试，也可点击“立即保存”。" : "保存未完成，本地内容仍在。核对后点击“立即保存”。"}</p>}
+        {conflict && <section className="conflict-panel" role="alert">
+          <h3>检测到另一处修改</h3><p>你的本地草稿已保留。可以逐段核对两处修改，合并后明确保存；也可以下载完整正文留存。</p>
+          <strong>{conflict.title} · 版本 {conflict.revision}</strong><p>服务端标签：{conflict.tags.join("、") || "无标签"}</p><p>服务端文件夹：{folderPath(folders, conflict.folder_id)}</p><pre>{conflict.content}</pre>
+          <div className="note-conflict-actions">
+            <button ref={mergeTrigger} className="primary" disabled={!editing || busy || !!tagInput.trim()} onClick={() => {if(editing)setMergeSession({noteId:editing.id,local:{...draft},server:conflict,tagInput});}}>逐段合并</button>
+            <button className="secondary" onClick={() => downloadDraft(draft,'本地草稿')}>下载本地草稿</button><button className="secondary" onClick={() => downloadDraft(conflict,'服务端版本')}>下载服务端版本</button>
+            <button className="secondary" disabled={busy} onClick={() => { if (editing && window.confirm("确认载入服务端版本？当前本地草稿会保留为恢复副本，再替换编辑区内容。")) { if(retainOriginalDraft())return;unavailableBase.current=null;setEditing({ ...editing, ...noteDraft(conflict),revision:conflict.revision }); setDraft(noteDraft(conflict)); setTagInput(""); setTagError(""); setConflict(null); setPaused(false); setStatus("已载入服务端版本"); } }}>载入服务端版本</button>
+            <button className="secondary" disabled={busy} onClick={()=>{if(editing&&window.confirm("已核对服务端内容，保留本地正文与标签？不会立即写入，仍需点击立即保存。")){retainOriginalDraft();unavailableBase.current=null;setEditing({...editing,...noteDraft(conflict),revision:conflict.revision});setConflict(null);setPaused(true);setNetworkRetry(false);setStatus("已核对新版本 · 本地草稿等待明确保存");}}}>核对后保留本地草稿</button>
+          </div>{tagInput.trim() && <p className="hint">请在「文件夹与标签」中添加或清空尚未提交的标签，再逐段合并。</p>}
+        </section>}
+        {mergeSession && <NoteMergeDialog base={mergeSession.server.base} local={mergeSession.local} server={mergeSession.server} folders={folders} onClose={closeMerge} onApply={applyMerge}/>}
       </section>
       </div>
       <NotesDialog open={tool === 'context'} title="引用与关联" onClose={() => {if (window.dispatchEvent(new Event('hustudy:before-material-change', {cancelable: true}))) setTool(null);}} busy={busy}>
+        {editing?.course_id === courseId && <button className="secondary" onClick={() => {setGraphFocus(editing.id);showTool('graph');}}>查看这篇笔记的关系图谱</button>}
         {organizationError && <p role="alert">{organizationError}</p>}
         <NoteCitations key={editing?.id || "new"} noteId={editing?.id} token={token} disabled={busy} onSource={onSource} onError={onError} onNotice={onNotice}/>
         <section className="panel"><h3>关联笔记</h3>{outgoing.map((match, index) => { const target = notes.find((note) => note.id === match[1]); return <button className="relation-link" disabled={!target || busy} key={`${match[1]}-${index}`} onClick={() => {if (target) {setTool(null); void open(target);}}}>↗ {target?.title || "目标笔记已删除或不可用"}</button>; })}{!outgoing.length && <EmptyInline text="插入双链，连接相关概念" />}<h4>被这些笔记引用</h4>{backlinks.map((note) => <button className="relation-link" key={note.id} disabled={busy} onClick={() => {setTool(null); void open(note);}}>↙ {note.title}</button>)}{!backlinks.length && <EmptyInline text="暂无反向链接" />}</section>
       </NotesDialog>
     </div>
+    {packageVisited&&<Suspense fallback={packageIntent?<p role="status">正在打开标准包工具…</p>:null}><PackageTransfer token={token} intent={packageIntent} disabled={organizationDisabled} onClose={()=>setPackageIntent(null)} onError={onError} onNotice={onNotice} beforeCommit={()=>!organizationDisabled&&window.dispatchEvent(new Event("hustudy:before-material-change",{cancelable:true}))} onChanged={async()=>{await Promise.all([refreshCatalog(),refreshFolders()]);setAssetRevision(value=>value+1);await onCoursesChanged?.();}}/></Suspense>}
+    <NotesDialog open={tool === 'graph'} title="笔记关系图谱" onClose={() => setTool(null)} busy={busy} className="note-graph-dialog">
+      {organizationError && <p role="alert">{organizationError}</p>}
+      {tool === 'graph' && <Suspense fallback={<p role="status">正在打开关系图谱…</p>}><NoteGraph key={courseId} token={token} courseId={courseId} isOpen hasDraft={dirty} initialFocusId={graphFocus} disabled={busy} onError={onError} onOpen={async node => {setOrganizationError('');if(await open(node))setTool(null);}}/></Suspense>}
+    </NotesDialog>
     <NotesDialog open={tool === 'templates'} title="学习模板" onClose={() => setTool(null)}><p className="hint">追加到正文，保留已有内容。</p>{templates.map(template => <button key={template.name} className="template-card" onClick={() => {setDraft(value => ({...value, title: value.title || template.name, content: value.content + '\n' + template.content})); setTool(null);}}><Icon name="notes" size={16}/><span>{template.name}</span><Icon name="plus" size={15}/></button>)}</NotesDialog>
     <NotesDialog open={tool === 'speech'} title="语音输入" onClose={() => setTool(null)}>{recognitionError && <p role="alert">{recognitionError}</p>}<SpeechInput open={tool === 'speech'} disabled={busy || !!conflict} onInsert={insertRecognition}/></NotesDialog>
     <NotesDialog open={tool === 'capture'} title="文字识别" onClose={() => setTool(null)} busy={captureBusy}>{recognitionError && <p role="alert">{recognitionError}</p>}<NoteCapture token={token} courseId={imageCourse} isOpen={tool === 'capture'} disabled={busy || !!conflict} onInsert={insertRecognition} onError={onError} onBusy={setCaptureBusy}/></NotesDialog>

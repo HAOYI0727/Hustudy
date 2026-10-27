@@ -102,6 +102,7 @@ test('识别401后草稿恢复，管理页无AI或识别新建入口', async ({p
 
 test('并发409保留识别文字且禁止覆盖，重新定位后可插入', async ({page, request}) => {
   const {headers, course, note} = await seed(page, request);
+  await page.getByLabel('自动保存笔记', {exact: true}).check();
   await mockCapture(page, course.id);
   let release!: () => void;
   const gate = new Promise<void>(resolve => {release = resolve;});

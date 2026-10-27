@@ -38,13 +38,21 @@ class Extraction(BaseModel):
     questions: list[ExtractedQuestion] = Field(min_length=1, max_length=32)
 
 
+def effective_model(settings):
+    return settings.llm_model if settings.llm_provider == "compatible" else MODEL
+
+
 def capabilities(user_id):
     s = get_user_settings(user_id)
     return {
-        "configured": s.llm_provider == "zhipu"
+        "configured": s.llm_provider in {"zhipu", "compatible"}
         and bool(s.zhipu_api_key.get_secret_value()),
-        "model": MODEL,
-        "documentation_url": DOC,
+        "model": effective_model(s),
+        "vision_configured": bool(s.llm_provider == "zhipu" or s.llm_provider == "compatible" and s.llm_vision),
+        "documentation_url": (
+            "https://api-docs.deepseek.com/" if s.llm_vendor == "deepseek"
+            else s.llm_endpoint.rsplit("/chat/completions", 1)[0]
+        ) if s.llm_provider == "compatible" else DOC,
     }
 
 
@@ -116,7 +124,7 @@ def preview(db, user_id, course_id, payload):
                     "sources": sources,
                     "default_topic_ids": [str(t) for t in payload.default_topic_ids],
                     "endpoint": get_user_settings(user_id).llm_endpoint,
-                    "model": MODEL,
+                    "model": effective_model(get_user_settings(user_id)),
                     "expires_at": (utc_now() + timedelta(minutes=15)).isoformat(),
                     "key_hash": hashlib.sha256(key.encode()).hexdigest(),
                     "credential_revision": get_user_settings(
@@ -172,7 +180,7 @@ def validate_scope(db, row, scope):
     settings = get_user_settings(row.user_id)
     if (
         scope.get("credential_revision") != settings.credential_revision
-        or scope.get("model") != MODEL
+        or scope.get("model") != effective_model(settings)
         or not capabilities(row.user_id)["configured"]
         or settings.llm_endpoint != scope["endpoint"]
         or hashlib.sha256(
@@ -270,4 +278,4 @@ def provider(user_id, expected_revision=None):
         and settings.credential_revision != expected_revision
     ):
         raise ProviderFailure("CONFIG_CHANGED", "本账户API配置已变化，请重新预览确认")
-    return ZhipuProvider(settings.model_copy(update={"llm_model": MODEL}))
+    return ZhipuProvider(settings.model_copy(update={"llm_model": effective_model(settings)}))

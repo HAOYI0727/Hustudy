@@ -1,0 +1,21 @@
+.model-control { display:flex; align-items:center; flex-wrap:wrap; gap:8px; max-width:100%; }
+.model-control>label { display:flex; align-items:center; gap:7px; font-size:12px; color:var(--muted); }
+.model-control select { width:230px; max-width:100%; padding:8px; font-size:12px; }
+.model-control>button { padding:8px 10px; font-size:12px; }
+.notes-dialog.model-settings-dialog { width:min(900px,calc(100vw - 24px)); }
+.model-settings { min-width:0; }
+.model-settings p { line-height:1.8; overflow-wrap:anywhere; }
+.model-settings form,.model-settings>section { margin-top:24px; padding-top:20px; border-top:1px solid var(--line); }
+.model-settings fieldset { min-width:0; border:0; padding:0; }
+.model-settings label { display:grid; gap:7px; font-size:13px; margin-bottom:14px; }
+.model-form-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 16px; }
+.model-profile-list article { display:flex; justify-content:space-between; gap:16px; padding:14px; margin-block:10px; border:1px solid var(--line); border-radius:10px; }
+.model-profile-list article>div { min-width:0; }
+.model-profile-list article p { margin:7px 0; font-size:13px; }
+.model-profile-list article small { overflow-wrap:anywhere; color:var(--muted); }
+.model-profile-list article>div:last-child { display:flex; flex-direction:column; align-items:flex-start; flex-shrink:0; gap:6px; }
+.model-options { display:flex; flex-wrap:wrap; gap:14px; }
+.model-settings .model-options label,.model-settings .model-consent { display:flex; align-items:flex-start; gap:8px; line-height:1.7; }
+.model-settings input[type=checkbox] { width:18px; height:18px; min-height:18px; margin:2px 0 0; flex:0 0 18px; padding:0; }
+.model-actions { display:flex; gap:10px; }
+@media(max-width:760px) { .model-form-grid { grid-template-columns:1fr; }.model-control { width:100%; }.model-control>label { flex:1;min-width:0; }.model-control select { width:100%;min-width:0; }.model-settings input,.model-settings select { font-size:16px; }.model-profile-list article { flex-direction:column; }.model-profile-list article>div:last-child { flex-direction:row;flex-wrap:wrap; } }

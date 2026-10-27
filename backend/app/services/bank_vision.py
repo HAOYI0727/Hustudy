@@ -92,7 +92,7 @@ def fingerprint(user_id):
     s = get_user_settings(user_id)
     return {
         "endpoint": s.llm_endpoint,
-        "model": MODEL,
+        "model": s.llm_model if s.llm_provider == "compatible" else MODEL,
         "credential_revision": s.credential_revision,
         "prompt_hash": hashlib.sha256(
             (PROMPT + ANSWER_PROMPT + VERIFY_PROMPT).encode()
@@ -105,7 +105,9 @@ def fingerprint(user_id):
 
 def require_config(user_id):
     s = get_user_settings(user_id)
-    if s.llm_provider != "zhipu" or not s.zhipu_api_key.get_secret_value():
+    if s.llm_provider == "compatible" and not s.llm_vision:
+        raise HTTPException(409, "当前所选模型未启用图片能力，请切换到视觉模型后重新预览")
+    if s.llm_provider not in {"zhipu", "compatible"} or not s.zhipu_api_key.get_secret_value():
         raise HTTPException(409, "请先在API接入保存本账户的智谱API Key")
     return fingerprint(user_id)
 
@@ -119,7 +121,7 @@ def provider(user_id=None, expected_revision=None):
         and settings.credential_revision != expected_revision
     ):
         raise ProviderFailure("CONFIG_CHANGED", "本账户API配置已变化，未继续识别")
-    return ZhipuProvider(settings.model_copy(update={"llm_model": MODEL}))
+    return ZhipuProvider(settings.model_copy(update={"llm_model": settings.llm_model if settings.llm_provider == "compatible" else MODEL}))
 
 
 def local_image_hints(path):

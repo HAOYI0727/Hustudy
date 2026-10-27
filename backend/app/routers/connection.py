@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel, ConfigDict, SecretStr, Field
 from ..dependencies import current_user
 from ..models import User
-from ..core.config import base_settings, get_user_settings
+from ..core.config import base_settings, get_zhipu_settings as get_user_settings
 from ..core import account_connection as store
 from ..ai.providers import ZhipuProvider, ProviderFailure
 
