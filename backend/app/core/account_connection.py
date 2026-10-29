@@ -26,6 +26,29 @@ def path(settings, user_id, namespace="api-connections"):
     )
 
 
+def resolve_path(settings, user_id, namespace="api-connections"):
+    """Resolve account storage while keeping older two-argument adapters usable.
+
+    The namespace argument was added when account model profiles gained their
+    own encrypted store.  A few integrations still provide a two-argument
+    path adapter for the legacy API-connection file, so fall back only when
+    that adapter explicitly rejects the new positional argument.
+    """
+    try:
+        return path(settings, user_id, namespace)
+    except TypeError as error:
+        try:
+            legacy = path(settings, user_id)
+        except TypeError:
+            raise error
+        if namespace == "api-connections":
+            return legacy
+        # A legacy two-argument adapter points at the original API store. Keep
+        # newer namespaces isolated beside it instead of interpreting that
+        # encrypted API payload as a model-profile document.
+        return legacy.parent / namespace / legacy.name
+
+
 def cipher(settings, user_id):
     key = HKDF(
         algorithm=hashes.SHA256(),
@@ -38,7 +61,9 @@ def cipher(settings, user_id):
 
 def read(settings, user_id, namespace="api-connections"):
     try:
-        data = json.loads(path(settings, user_id, namespace).read_text(encoding="utf-8"))
+        data = json.loads(
+            resolve_path(settings, user_id, namespace).read_text(encoding="utf-8")
+        )
         if (
             not isinstance(data, dict)
             or data.get("user_id") != user_id
@@ -55,7 +80,7 @@ def read(settings, user_id, namespace="api-connections"):
 def locked(settings, user_id, namespace="api-connections"):
     """Short mutation lock shared by API processes; never held during HTTP calls."""
     with LOCK:
-        target = path(settings, user_id, namespace).with_suffix(".lock")
+        target = resolve_path(settings, user_id, namespace).with_suffix(".lock")
         target.parent.mkdir(parents=True, exist_ok=True)
         with target.open("a+b") as stream:
             if not target.stat().st_size:
@@ -86,7 +111,7 @@ def locked(settings, user_id, namespace="api-connections"):
 
 
 def write(settings, user_id, data, namespace="api-connections"):
-    target = path(settings, user_id, namespace)
+    target = resolve_path(settings, user_id, namespace)
     target.parent.mkdir(parents=True, exist_ok=True)
     fd, name = tempfile.mkstemp(prefix=".account-ai-", dir=target.parent)
     try:

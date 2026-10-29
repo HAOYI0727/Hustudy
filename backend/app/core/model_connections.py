@@ -19,7 +19,7 @@ HOSTS = {
 
 def read(settings, user_id):
     data = store.read(settings, user_id, NAMESPACE)
-    if not data and store.path(settings, user_id, NAMESPACE).exists():
+    if not data and store.resolve_path(settings, user_id, NAMESPACE).exists():
         raise HTTPException(
             409, "模型配置文件无法核对，已停止AI调用；请检查服务端配置文件"
         )

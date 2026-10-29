@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     access_token_minutes: int = 120
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
     llm_provider: Literal["mock", "zhipu", "compatible"] = "mock"
-    llm_model: str = Field(default="glm-5.3-flash", min_length=1, max_length=128)
+    llm_model: Literal["glm-5.3-flash", "glm-4.7-flash"] = "glm-5.3-flash"
     llm_endpoint: str = (
         "https://open.bigmodel.cn/api/paas/v4/chat/completions"
     )
