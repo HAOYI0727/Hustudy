@@ -131,6 +131,8 @@ class FeedbackCreate(BaseModel):
 
 class BankImport(BaseModel):
     model_config = ConfigDict(extra="forbid")
+    request_id: UUID | None = None
+    strict_markdown: bool = False
     title: str = Field(min_length=1, max_length=240)
     content: str = Field(default="", max_length=240000)
     version_id: UUID | None = None
@@ -173,6 +175,12 @@ class BankMerge(BaseModel):
     stem: str = Field(min_length=1, max_length=20000)
 
 
+class ExamIdentityInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    kind: Literal["exercise", "past_exam"]
+    confirmed: bool = Field(strict=True)
+
+
 class BankMetadataEdit(BaseModel):
     model_config = ConfigDict(extra="forbid")
     expected_revision: int = Field(default=1, ge=1, strict=True)
@@ -180,6 +188,17 @@ class BankMetadataEdit(BaseModel):
     variant: str = Field(default="", max_length=80)
     provenance: str = Field(default="用户提供", max_length=500)
     duplicate_of: UUID | None = None
+    exam_identity: ExamIdentityInput | None = None
+
+
+class BankMetadataBatchItem(BankMetadataEdit):
+    paper_id: UUID
+    expected_revision: int = Field(ge=1, strict=True)
+
+
+class BankMetadataBatch(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    items: list[BankMetadataBatchItem] = Field(min_length=1, max_length=100)
 
 
 class BankQuestionEdit(BaseModel):
@@ -189,6 +208,7 @@ class BankQuestionEdit(BaseModel):
         return "solution" if value == "fill_blank" else value
 
     model_config = ConfigDict(extra="forbid")
+    year: int | None = Field(default=None, ge=1900, le=2200, strict=True)
     revision: int = Field(ge=1, strict=True)
     stem: str = Field(min_length=1, max_length=20000)
     question_type: Literal["single_choice", "solution"]
@@ -216,8 +236,16 @@ class BankBatch(BaseModel):
     model_config = ConfigDict(extra="forbid")
     question_ids: list[UUID] = Field(min_length=1, max_length=100)
     revisions: dict[str, int]
-    action: Literal["delete", "tag", "tag_add", "confirm"]
+    action: Literal["delete", "tag", "tag_add", "confirm", "review_topics"]
     topic_ids: list[UUID] = Field(default_factory=list, max_length=5)
+
+
+class BankValuesBatch(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    question_ids: list[UUID] = Field(min_length=1, max_length=100)
+    revisions: dict[str, int]
+    year: int | None = Field(default=None, ge=1900, le=2200, strict=True)
+    points: int | None = Field(default=None, gt=0, le=500, strict=True)
 
 
 class BankImageImport(BaseModel):
@@ -247,6 +275,12 @@ class BankDraw(BaseModel):
     question_type: Literal["single_choice", "solution"] | None = None
     duration_minutes: int = Field(default=30, ge=1, le=180, strict=True)
     title: str = Field(default="题库随机练习", min_length=1, max_length=240)
+
+
+class BankWholePaperPractice(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    request_id: UUID
+    duration_minutes: int = Field(default=90, ge=1, le=180, strict=True)
 
 
 class SelfGrade(BaseModel):

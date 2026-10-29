@@ -77,6 +77,8 @@ TEXT_KEYS = {
     "description",
     "label",
     "context_stem",
+    "whole_stem",
+    "source_number",
     "goal",
     "markdown",
     "summary",

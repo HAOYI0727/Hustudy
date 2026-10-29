@@ -3,6 +3,7 @@
 import json
 from fastapi import HTTPException
 from .exam_analysis import inputs, source_status
+from .bank_identity import active
 
 
 def confirmed_evidence(db, user_id, course_id, sources, paper_ids=None):
@@ -13,11 +14,7 @@ def confirmed_evidence(db, user_id, course_id, sources, paper_ids=None):
         paper_ids = [
             p.id
             for p in papers
-            if (identity := json.loads(p.bank_meta_json).get("exam_identity", {}))
-            and isinstance(identity, dict)
-            and identity.get("kind") == "past_exam"
-            and identity.get("confirmed") is True
-            and p.review_status == "CONFIRMED"
+            if active(json.loads(p.bank_meta_json)) and p.review_status == "CONFIRMED"
         ]
     if not paper_ids:
         return []
@@ -25,6 +22,7 @@ def confirmed_evidence(db, user_id, course_id, sources, paper_ids=None):
         if (
             identity not in paper_map
             or paper_map[identity].review_status != "CONFIRMED"
+            or not active(json.loads(paper_map[identity].bank_meta_json))
         ):
             raise HTTPException(409, "所选真题来源不存在或尚未完成题库核验")
     result = []
@@ -66,6 +64,12 @@ def confirmed_evidence(db, user_id, course_id, sources, paper_ids=None):
                     paper_title=paper.title,
                     year=paper.year,
                     paper_hash=paper.content_hash,
+                    identity_revision=json.loads(paper.bank_meta_json)
+                    .get("exam_identity", {})
+                    .get("revision", 0),
+                    paper_metadata_revision=json.loads(paper.bank_meta_json).get(
+                        "revision", 1
+                    ),
                     provenance=json.loads(paper.bank_meta_json).get(
                         "provenance", "用户提供"
                     ),

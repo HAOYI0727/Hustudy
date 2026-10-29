@@ -395,7 +395,7 @@ def test_manual_duplicate_samples_stale_report_and_metadata_conflict():
         new = client.post(
             f"/api/v1/courses/{course}/exam-analyses", headers=owner
         ).json()["report"]
-        assert new["sample_count"] == 1 and new["question_count"] == 1
+        assert new["sample_count"] == 2 and new["question_count"] == 2  # Different stems remain distinct despite duplicate_of.
         assert (
             client.patch(
                 f"/api/v1/past-papers/{first['id']}/metadata",

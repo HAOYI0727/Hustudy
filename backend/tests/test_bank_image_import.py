@@ -225,7 +225,7 @@ def test_images_crop_authorization_and_reviewed_snapshot():
         saved = client.patch(endpoint, headers=h, json=payload).json()
         assert (
             client.post(f"/api/v1/past-papers/{p['id']}/confirm", headers=h).status_code
-            == 422
+            == 200
         )
         payload["revision"] = saved["revision"]
         payload["images_reviewed"] = True

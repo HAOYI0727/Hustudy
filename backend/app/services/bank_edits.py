@@ -220,6 +220,12 @@ def save_question(db, user_id, question_id, payload, *, commit=True, course_id=N
         if payload.illustrations is not None
         else old.get("illustrations", []),
     )
+    if "images_reviewed" not in payload.model_fields_set and images == old.get(
+        "illustrations", []
+    ):
+        payload = payload.model_copy(
+            update={"images_reviewed": bool(old.get("images_reviewed", False))}
+        )
     from ..services.bank_markdown import normalize
 
     payload = payload.model_copy(
@@ -233,6 +239,12 @@ def save_question(db, user_id, question_id, payload, *, commit=True, course_id=N
         question.stem == payload.stem.strip()
         and old.get("options", []) == payload.options
     )
+    year_changed = (
+        "year" in payload.model_fields_set
+        and old.get("year", paper.year) != payload.year
+    )
+    if "year" in payload.model_fields_set:
+        old["year"] = payload.year
     previous_status = question.status
     previous = (
         question.stem,
@@ -292,8 +304,53 @@ def save_question(db, user_id, question_id, payload, *, commit=True, course_id=N
         images,
         payload.images_reviewed,
     )
-    question.status = previous_status if previous == current else "DRAFT"
+    question.status = (
+        previous_status if previous == current and not year_changed else "DRAFT"
+    )
     sync_review_status(db, [paper])
     if commit:
         db.commit()
     return bank.question_payload(question)
+
+
+def batch_values(db, user_id, course_id, payload):
+    fields = payload.model_fields_set.intersection({"year", "points"})
+    if not fields:
+        raise HTTPException(422, "请至少选择修改年份或分值")
+    owned_course(db, user_id, course_id, lock=True)
+    bank.no_active_attempt(db, user_id, course_id)
+    ids = [str(qid) for qid in payload.question_ids]
+    if len(ids) != len(set(ids)) or set(payload.revisions) != set(ids):
+        raise HTTPException(422, "题目不能重复，修订列表须与所选题目一致")
+    rows = []
+    for qid in ids:
+        q, paper = owned_question(db, user_id, qid)
+        if paper.course_id != course_id:
+            raise HTTPException(404, "题目不属于当前课程")
+        if q.revision != payload.revisions[qid]:
+            raise HTTPException(409, "所选题目已变化，整批未修改，请刷新重选")
+        rows.append((q, paper))
+    changed = 0
+    try:
+        for q, paper in rows:
+            data = json.loads(q.bank_data_json)
+            year_changed = "year" in fields and (
+                "year" not in data or data["year"] != payload.year
+            )
+            points_changed = "points" in fields and q.points != payload.points
+            if not year_changed and not points_changed:
+                continue
+            if "year" in fields:
+                data["year"] = payload.year
+                q.bank_data_json = bank.encode(data)
+            if "points" in fields:
+                q.points = payload.points
+            q.revision += 1
+            q.status = "DRAFT"
+            changed += 1
+        sync_review_status(db, [p for _, p in rows])
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    return {"changed": changed, "revisions": {q.id: q.revision for q, _ in rows}}

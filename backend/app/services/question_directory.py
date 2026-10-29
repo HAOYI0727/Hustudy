@@ -1,8 +1,6 @@
 """M4 bounded presentation index; detailed question content stays on demand."""
 
-import hashlib
 import json
-import unicodedata
 from fastapi import HTTPException
 from sqlalchemy import select, func
 from ..core.database import begin_read_snapshot
@@ -63,14 +61,6 @@ def page(db, user_id, course_id, offset, limit):
     ).all()
     items = []
 
-    def normalized(text):
-        return (
-            unicodedata.normalize("NFKC", text)
-            .replace("\r\n", "\n")
-            .replace("\r", "\n")
-            .strip()
-        )
-
     for row in rows:
         topics = (
             json.loads(row.topic_ids)
@@ -79,23 +69,7 @@ def page(db, user_id, course_id, offset, limit):
             if row.topic_id
             else []
         )
-        options = json.loads(row.options) if row.options else []
-        images = json.loads(row.illustrations or "[]") or json.loads(
-            row.source_images or "[]"
-        )
-        fingerprint = hashlib.sha256(
-            bank.encode(
-                [
-                    row.question_type,
-                    normalized(row.stem),
-                    [normalized(option) for option in options],
-                    [
-                        (image.get("asset_id"), image.get("box") or [0, 0, 1, 1])
-                        for image in images
-                    ],
-                ]
-            ).encode()
-        ).hexdigest()
+        fingerprint = bank.question_fingerprint(row.stem)
         items.append(
             dict(
                 id=row.id,

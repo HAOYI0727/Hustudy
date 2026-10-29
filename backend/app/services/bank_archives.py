@@ -106,7 +106,7 @@ def members(raw):
         raise HTTPException(422, str(exc)) from None
 
 
-def import_archive(db, user_id, course_id, raw, selected_paths=None):
+def import_archive(db, user_id, course_id, raw, selected_paths=None, *, local=False):
     from .documents import save_upload
     from .assets import save_asset
 
@@ -121,6 +121,15 @@ def import_archive(db, user_id, course_id, raw, selected_paths=None):
         ):
             raise HTTPException(422, "请选择ZIP内有效且不重复的文件")
         entries = [e for e in entries if e[0] in selected_paths]
+    if local:
+        from .bank_strict_markdown import validate_file
+
+        for name, kind, content in entries:
+            if kind != "skip":
+                validate_file(name, content)
+        # Unsupported ZIP members must not be silently accepted as local data.
+        if any(kind == "skip" and not any(p.startswith(".") or p == "__MACOSX" for p in PurePosixPath(name).parts) for name, kind, _ in entries):
+            raise HTTPException(422, "本地ZIP仅允许Markdown文件，请移除其他类型或使用AI识别")
     result = []
     for name, kind, content in entries:
         row = {"path": name, "kind": kind}

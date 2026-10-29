@@ -44,6 +44,12 @@ def normal(value):
     return unicodedata.normalize("NFKC", value).strip()
 
 
+def question_fingerprint(stem):
+    return hashlib.sha256(
+        normal(stem).replace("\r\n", "\n").replace("\r", "\n").encode()
+    ).hexdigest()
+
+
 def no_active_attempt(db, user_id, course_id):
     if db.scalar(
         select(ExamAttempt.id)
@@ -78,8 +84,11 @@ def topic_rows(db, user_id, course_id, ids):
 
 
 def parse_text(content):
+    from .bank_strict_markdown import HEADER, parse as parse_strict
     from .bank_parser import parse
 
+    if content.lstrip("\ufeff").startswith(HEADER):
+        return parse_strict(content)
     return parse(content)
 
 
@@ -110,7 +119,7 @@ def validate_question(question, data):
         ):
             errors.append("请填写逐空参考答案，多空用 || 分隔")
     if data.get("illustrations") and not data.get("images_reviewed"):
-        errors.append("请核对插图不含答案或解析，并确认插图审核")
+        errors.append("请核对插图")
     if data.get("content_profile") == "answer_only":
         errors.append("此段只有答案或解析，请补充实际题干")
     return errors
@@ -142,29 +151,72 @@ def import_bank(db, user_id, course_id, payload):
     sources = []
     content = payload.content
     if payload.version_id:
+        if payload.strict_markdown:
+            version = active_version(db, str(payload.version_id), user_id, course_id)
+            from pathlib import Path
+            from ..core.storage import get_storage
+            from .bank_strict_markdown import validate_file
+
+            try:
+                with (
+                    get_storage()
+                    .checked(Path(version.source_path))
+                    .open("rb") as stream
+                ):
+                    raw = stream.read(2 * 1024 * 1024 + 1)
+            except OSError:
+                raise HTTPException(409, "Markdown原件不可用，请重新上传") from None
+            content = validate_file(version.original_filename, raw)
+            if hashlib.sha256(raw).hexdigest() != version.sha256:
+                raise HTTPException(409, "Markdown原件已变化，请重新上传以建立新版本")
         sources, _ = full_context(db, user_id, course_id, [str(payload.version_id)])
-        content = "\n".join(s["text"] for s in sources)
+        if payload.strict_markdown:
+            if not sources:
+                raise HTTPException(409, "Markdown原件尚未解析和索引就绪，请稍后重试")
+            from ..models import DocumentChunk
+
+            offsets = dict(
+                db.execute(
+                    select(DocumentChunk.id, DocumentChunk.start_offset).where(
+                        DocumentChunk.user_id == user_id,
+                        DocumentChunk.version_id == str(payload.version_id),
+                    )
+                ).all()
+            )
+            sources = [
+                source
+                | {"raw_start": offsets[source["source_id"]] + source["chunk_start"]}
+                for source in sources
+            ]
+        else:
+            content = "\n".join(s["text"] for s in sources)
+    if payload.strict_markdown:
+        from .bank_strict_markdown import parse as parse_strict
+
+        parse_strict(content)
     digest = hashlib.sha256(content.strip().encode()).hexdigest()
-    candidates = db.scalars(
-        select(PastPaper).where(
-            PastPaper.user_id == user_id,
-            PastPaper.course_id == course_id,
-            PastPaper.content_hash == digest,
-        )
-    ).all()
-    old = next(
-        (
-            p
-            for p in candidates
-            if json.loads(p.bank_meta_json).get("parser") == "bank-rules-v3"
-            and not json.loads(p.bank_meta_json).get("deleted_by_user")
-        ),
-        None,
-    )
-    if old:
-        return old
+    request_hash = hashlib.sha256(
+        encode(payload.model_dump(mode="json")).encode()
+    ).hexdigest()
+    if payload.request_id:
+        existing = db.get(PastPaper, str(payload.request_id))
+        if existing:
+            if existing.user_id != user_id or existing.course_id != course_id:
+                raise HTTPException(404, "导入请求不可访问")
+            if (
+                json.loads(existing.bank_meta_json).get("import_request_hash")
+                != request_hash
+            ):
+                raise HTTPException(409, "同一导入请求不能更改内容")
+            return existing
+    parser_version = "bank-markdown-v1" if payload.strict_markdown else "bank-rules-v3"
     parsed = parse_text(content)
+    if payload.strict_markdown and payload.version_id:
+        parsed = [
+            item | {"source_version_id": str(payload.version_id)} for item in parsed
+        ]
     paper = PastPaper(
+        id=str(payload.request_id) if payload.request_id else str(uuid4()),
         user_id=user_id,
         course_id=course_id,
         title=payload.title,
@@ -176,18 +228,14 @@ def import_bank(db, user_id, course_id, payload):
                 "version_id": str(payload.version_id) if payload.version_id else None,
                 "provenance": payload.provenance,
                 "variant": payload.variant,
-                "parser": "bank-rules-v3",
+                "parser": parser_version,
+                "import_request_hash": request_hash,
                 "content_profile": Counter(i["content_profile"] for i in parsed),
             }
         ),
     )
     db.add(paper)
     db.flush()
-    for previous in candidates:
-        meta = json.loads(previous.bank_meta_json)
-        meta["duplicate_of"] = paper.id
-        meta["revision"] = meta.get("revision", 1) + 1
-        previous.bank_meta_json = encode(meta)
     populate_bank(
         db,
         user_id,
@@ -211,7 +259,8 @@ def populate_bank(
     cursor = 0
     segments = []
     for source in sources:
-        segments.append((cursor, cursor + len(source["text"]), source))
+        start = source.get("raw_start", cursor)
+        segments.append((start, start + len(source["text"]), source))
         cursor += len(source["text"]) + 1
     from .bank_markdown import normalize
 
@@ -226,11 +275,14 @@ def populate_bank(
                 ),
                 "blank_answers": [],
             }
+        normalize_item = (
+            (lambda value: value) if item.get("strict_markdown") else normalize
+        )
         item = {
             **item,
-            "stem": normalize(item["stem"]),
-            "options": [normalize(o) for o in item["options"]],
-            "explanation": normalize(item["explanation"]),
+            "stem": normalize_item(item["stem"]),
+            "options": [normalize_item(o) for o in item["options"]],
+            "explanation": normalize_item(item["explanation"]),
         }
         topics = list(default_topic_ids)
         for name in item["tag_names"]:
@@ -303,13 +355,14 @@ def populate_bank(
                 stem=item["stem"],
                 question_type=item["kind"],
                 points=item["points"],
-                answer=normalize(item["answer"])
+                answer=normalize_item(item["answer"])
                 if item["kind"] == "solution"
                 else item["answer"],
                 answer_source="user_provided" if item["answer"] else "unknown",
                 topic_id=topics[0] if topics else None,
                 bank_data_json=encode(
                     {
+                        **({"year": item["year"]} if "year" in item else {}),
                         "content_format": "markdown",
                         "options": item["options"],
                         "blank_answers": item["blank_answers"],
@@ -330,7 +383,7 @@ def populate_bank(
     return paper
 
 
-def eligible_questions(db, user_id, course_id):
+def eligible_questions(db, user_id, course_id, *, paper_id=None, deduplicate=False):
     rows = db.execute(
         select(PastQuestion, PastPaper.bank_meta_json)
         .join(PastPaper)
@@ -340,13 +393,15 @@ def eligible_questions(db, user_id, course_id):
             PastPaper.course_id == course_id,
             PastQuestion.status == "CONFIRMED",
             PastPaper.review_status == "CONFIRMED",
+            *([PastPaper.id == paper_id] if paper_id else []),
         )
         .order_by(PastQuestion.id)
     ).all()
     result = []
     seen = set()
     for q, paper_meta in rows:
-        if json.loads(paper_meta).get("duplicate_of"):
+        meta = json.loads(paper_meta)
+        if meta.get("deleted_by_user"):
             continue
         data = json.loads(q.bank_data_json)
         if validate_question(q, data):
@@ -368,17 +423,17 @@ def eligible_questions(db, user_id, course_id):
                 )
         except HTTPException:
             continue
-        fingerprint = hashlib.sha256(normal(q.stem).encode()).hexdigest()
-        if fingerprint not in seen:
+        fingerprint = question_fingerprint(q.stem)
+        if not deduplicate or fingerprint not in seen:
             seen.add(fingerprint)
             result.append((q, data))
     return result
 
 
-def shuffled_question(q, data, points=None):
+def shuffled_question(q, data, points=None, *, shuffle_options=True):
     options = list(data.get("options", []))
     answer = q.answer
-    if q.question_type == "single_choice":
+    if q.question_type == "single_choice" and shuffle_options:
         indices = list(range(4))
         RNG.shuffle(indices)
         options = [options[i] for i in indices]
@@ -492,6 +547,10 @@ def public_question(q):
             "unique_answer",
             "illustrations",
             "display_group",
+            "source_number",
+            "whole_stem",
+            "whole_illustrations",
+            "practice_unit",
             "context_stem",
             "context_illustrations",
         )
@@ -503,7 +562,7 @@ def generate_blueprint(db, user_id, blueprint):
     from collections import deque
 
     config = json.loads(blueprint.config_json)
-    pool = eligible_questions(db, user_id, blueprint.course_id)
+    pool = eligible_questions(db, user_id, blueprint.course_id, deduplicate=True)
     RNG.shuffle(pool)
     items = {item["type"]: item for item in config["question_types"]}
     count = sum(item["count"] for item in items.values())

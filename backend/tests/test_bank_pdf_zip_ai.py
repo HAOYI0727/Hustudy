@@ -56,6 +56,7 @@ def test_zip_import_reports_members_and_images_do_not_start_ocr():
         )
         response = client.post(
             f"/api/v1/courses/{c}/question-bank/archives",
+            data={"mode": "ai"},
             headers=h,
             files={"file": ("bank.zip", raw, "application/zip")},
         )

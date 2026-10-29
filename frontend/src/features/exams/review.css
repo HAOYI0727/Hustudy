@@ -36,3 +36,8 @@
 .review-practice-body .mistake-redo textarea{width:100%;font-size:16px;min-height:100px}
 @media(max-width:1100px){.review-question-list{grid-template-columns:1fr}}
 @media(max-width:650px){.review-page .daily-redo{padding:20px;gap:12px}.review-page .daily-redo h3{font-size:20px}.review-library,.review-practice-body{padding:18px}.review-filters{grid-template-columns:1fr;gap:14px}.review-question-list .mistake-card{padding:16px}.review-question-footer{align-items:stretch;flex-direction:column}.review-practice-body .mistake-redo .bank-actions>button{flex:1 1 100%;margin-right:0}.review-question-heading{flex-direction:column}}
+
+.review-result-actions{display:flex;align-items:center;flex-wrap:wrap;gap:12px;width:100%;margin-top:20px}
+.review-result-actions>button{flex:0 0 auto;min-height:44px;margin:0;white-space:nowrap}
+.review-result-actions>.review-next-action{margin-inline-start:auto}
+@media(max-width:650px){.review-result-actions{gap:8px}.review-result-actions>button{padding-inline:12px}}

@@ -15,7 +15,7 @@ for(const width of [390,1440])test(`AI学习移除练习模块，三种学习模
  await page.getByRole('button',{name:'资料问答',exact:true}).click();await expect(page.getByRole('button',{name:'练习题生成',exact:true})).toHaveCount(0);
  await page.getByRole('button',{name:'学习报告',exact:true}).click();await expect(page.getByRole('button',{name:'练习题生成',exact:true})).toHaveCount(0);
  if(width<=1100)await page.getByRole('button',{name:'打开导航菜单',exact:true}).click();
- await page.getByRole('button',{name:'真题与模拟卷',exact:true}).click();await page.getByRole('button',{name:'随机练习与作答',exact:true}).click();
+ await page.getByRole('button',{name:'真题与模拟卷',exact:true}).click();await page.getByRole('button',{name:'题库练习与作答',exact:true}).click();
  await expect(page.getByRole('button',{name:'随机抽取题库练习',exact:true})).toBeVisible();
  expect(calls).toEqual([]);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBeTruthy();
 });

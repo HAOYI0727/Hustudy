@@ -26,12 +26,53 @@ def block(number="一", continuation=False):
 
 
 def configured(monkeypatch):
+    # Provider/worker tests must not start real OCR subprocesses.
+    monkeypatch.setattr(bank_vision, "local_preflight", lambda path: {})
     s = get_settings().model_copy(update={"llm_provider": "zhipu"})
     import ai_account_test_support as support
 
     monkeypatch.setattr(support, "AUTO_ACCOUNT_KEYS", True)
     monkeypatch.setattr(support, "TEST_ACCOUNT_SETTINGS", s)
     return s
+
+
+def test_preflight_next_page_overlaps_current_call_and_keeps_verified_context(monkeypatch):
+    from threading import Event
+    from app.core.database import SessionLocal
+    from app.models import PastPaper
+    configured(monkeypatch)
+    next_ready = Event()
+    scans, calls = [], []
+
+    def preflight(path):
+        scans.append(str(path))
+        if len(scans) == 2:
+            next_ready.set()
+        return {"ocr_status": "test", "page": len(scans)}
+
+    def transcribe(path, previous, questions_only, **kwargs):
+        if not calls:
+            assert next_ready.wait(2), "next local preflight must run before current network work finishes"
+            assert previous is None
+        else:
+            assert previous["number"] == "一"
+        assert kwargs["local_hints"]["ocr_status"] == "test"
+        kwargs["before_verify"]()
+        calls.append(str(path))
+        return {"blocks": [block(continuation=bool(previous))], "empty": False}
+
+    monkeypatch.setattr(bank_vision, "local_preflight", preflight)
+    monkeypatch.setattr(bank_vision, "transcribe", transcribe)
+    with TestClient(app) as client:
+        h, course, version = setup(client)
+        r = enqueue(client, h, course, version, questions_only=False)
+        assert r.status_code == 202, r.text
+        assert run_bank_ocr_once()
+        with SessionLocal() as db:
+            meta = json.loads(db.get(PastPaper, r.json()["paper_id"]).bank_meta_json)
+            done = meta["vision_checkpoints"]
+            assert len(done) == len(calls) == len(scans) == 2
+            assert all("preflight_seconds" in page["timing"] for page in done)
 
 
 def test_verification_prompt_whitelist_and_example_satisfy_required_schema():
@@ -288,7 +329,7 @@ def test_zip_inspection_and_selected_upload_excludes_answers_and_handles_gbk():
             route,
             headers=h,
             files={"file": ("a.zip", data.getvalue())},
-            data={"selected_paths": json.dumps(["2021-试卷.md"])},
+            data={"mode": "ai", "selected_paths": json.dumps(["2021-试卷.md"])},
         )
         assert r.status_code == 201 and [x["path"] for x in r.json()["entries"]] == [
             "2021-试卷.md"
@@ -297,7 +338,7 @@ def test_zip_inspection_and_selected_upload_excludes_answers_and_handles_gbk():
             route,
             headers=h,
             files={"file": ("a.zip", data.getvalue())},
-            data={"selected_paths": json.dumps(["不存在.md"])},
+            data={"mode": "ai", "selected_paths": json.dumps(["不存在.md"])},
         )
         assert r.status_code == 422
 

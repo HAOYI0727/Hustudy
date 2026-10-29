@@ -9,7 +9,7 @@ from ..core.database import get_db
 from ..dependencies import current_user
 from ..models import User, ExamAnalysisReport, PastPaper
 from ..schemas.exams import TopicEdit, TopicMerge, TopicSourceEdit, TopicResponse
-from ..schemas.exams import BankSplit, BankMerge, BankMetadataEdit
+from ..schemas.exams import BankSplit, BankMerge, BankMetadataEdit, BankMetadataBatch
 from ..services import bank_edits, topic_tree
 from ..services import exam_analysis as service
 from ..services import question_bank as bank
@@ -161,6 +161,23 @@ def gaps(
     return service.gaps(db, user.id, report_id)
 
 
+@router.post("/courses/{course_id}/question-bank/metadata-batch")
+def metadata_batch(
+    course_id: str,
+    payload: BankMetadataBatch,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    from ..services.bank_identity import edit_batch
+
+    return edit_batch(
+        db,
+        user.id,
+        course_id,
+        [item.model_dump(mode="json", exclude_unset=True) for item in payload.items],
+    )
+
+
 @router.patch("/past-papers/{paper_id}/metadata")
 def metadata(
     paper_id: str,
@@ -168,50 +185,22 @@ def metadata(
     user: User = Depends(current_user),
     db: Session = Depends(get_db),
 ):
-    payload = payload.model_dump(mode="json", exclude_unset=True)
-    expected_revision = payload.pop("expected_revision", 1)
-    # Unknown years and manual duplicate groups remain explicit.
+    from ..services.bank_identity import edit_batch
+
     row = db.scalar(
         select(PastPaper).where(PastPaper.user_id == user.id, PastPaper.id == paper_id)
     )
     if not row:
         raise HTTPException(404, "题库不存在")
-    owned_course(db, user.id, row.course_id, lock=True)
-    bank.no_active_attempt(db, user.id, row.course_id)
-    if set(payload) - {"year", "variant", "provenance", "duplicate_of"}:
-        raise HTTPException(422, "只允许年份、卷别与来源说明")
-    year = payload.get("year", row.year)
-    if year is not None and (type(year) is not int or not 1900 <= year <= 2200):
-        raise HTTPException(422, "年份必须未知或1900–2200之间的整数")
+    if (
+        payload.exam_identity is not None
+        and "expected_revision" not in payload.model_fields_set
+    ):
+        raise HTTPException(422, "身份操作必须提供元数据修订号")
+    data = payload.model_dump(mode="json", exclude_unset=True)
+    data.setdefault("expected_revision", 1)
+    edit_batch(db, user.id, row.course_id, [data | {"paper_id": paper_id}])
     meta = json.loads(row.bank_meta_json)
-    if meta.get("revision", 1) != expected_revision:
-        raise HTTPException(409, "题库元数据已变化，请刷新后重试")
-    if "duplicate_of" in payload:
-        target_id = payload["duplicate_of"]
-        if target_id:
-            target = db.scalar(
-                select(PastPaper).where(
-                    PastPaper.id == target_id,
-                    PastPaper.user_id == user.id,
-                    PastPaper.course_id == row.course_id,
-                )
-            )
-            if not target:
-                raise HTTPException(404, "代表试卷不存在或不属于本课程")
-            if target.id == row.id or json.loads(target.bank_meta_json).get(
-                "duplicate_of"
-            ):
-                raise HTTPException(422, "重复材料须指向另一独立代表卷")
-        meta["duplicate_of"] = target_id
-    meta["revision"] = expected_revision + 1
-    for key, limit in [("variant", 80), ("provenance", 500)]:
-        if key in payload:
-            if not isinstance(payload[key], str) or len(payload[key]) > limit:
-                raise HTTPException(422, "卷别或来源说明不合法")
-            meta[key] = payload[key]
-    row.year = year
-    row.bank_meta_json = bank.encode(meta)
-    db.commit()
     return {
         "id": row.id,
         "year": row.year,
@@ -259,6 +248,7 @@ def bank_papers(
             "status": p.review_status,
             "question_count": len(question_rows(db, p.id)),
             "question_snapshot": snapshot(question_rows(db, p.id)),
+            "recognition": recognition_status(db, p),
         }
         for p in db.scalars(
             select(PastPaper)
@@ -275,3 +265,23 @@ def bank_papers(
         )
         if not json.loads(p.bank_meta_json).get("deleted_by_user")
     ]
+
+
+def recognition_status(db, paper):
+    from ..models import ProcessingJob
+
+    meta = json.loads(paper.bank_meta_json)
+    job = (
+        db.get(ProcessingJob, meta.get("image_job_id"))
+        if meta.get("image_job_id")
+        else None
+    )
+    if not job:
+        return None
+    return {
+        "status": job.status,
+        "error": job.error,
+        "completed_pages": len(meta.get("vision_checkpoints", [])),
+        "total_pages": len(meta.get("image_import", {}).get("asset_ids", [])),
+        "engine": meta.get("image_import", {}).get("engine", "local"),
+    }

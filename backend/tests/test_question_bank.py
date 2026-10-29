@@ -114,7 +114,7 @@ def test_import_detects_types_options_unknown_answers_and_revision():
             client.post(
                 url, headers=owner, json={"title": "重复", "content": TEXT}
             ).json()["id"]
-            == p["id"]
+            != p["id"]
         )
         q = p["questions"][0]
         edit = {
@@ -338,7 +338,8 @@ def test_uploaded_document_sources_and_deletion_remove_sampling_eligibility():
         q = imported.json()["questions"][0]
         assert q["bank_data"]["citations"]
         # Correct every fill field using the same confirmation path as text imports.
-        _, topic = seed_bank(client, owner, course)
+        assert client.post(f"/api/v1/past-papers/{imported.json()['id']}/confirm", headers=owner).status_code == 200
+        topic = client.get(f"/api/v1/courses/{course}/topics", headers=owner).json()[0]["id"]
         paper = draw(client, owner, course, topic, 1, question_type="single_choice")
         citation = q["bank_data"]["citations"][0]
         version = client.get(

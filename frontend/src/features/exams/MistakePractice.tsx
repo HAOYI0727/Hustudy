@@ -3,8 +3,7 @@ import {ReferenceAnswer} from "./ReferenceAnswer";
 import {useEffect,useRef,useState} from "react";
 import {api,Redo,Question} from "../../api/client";
 import {BankMath} from "./BankMath";
-import {BankFigure} from "./BankImages";
-export function MistakePractice({token,id,autoStart=false,mastered=false,credited=false,onDone,onRemoved,onError}:{token:string;id:string;autoStart?:boolean;mastered?:boolean;credited?:boolean;onDone:()=>Promise<void>;onRemoved?:()=>void;onError:(e:unknown)=>void}){
+export function MistakePractice({token,id,autoStart=false,mastered=false,credited=false,onDone,onRemoved,onError,onNext,nextAvailable=false}:{token:string;id:string;autoStart?:boolean;mastered?:boolean;credited?:boolean;onDone:()=>Promise<void>;onRemoved?:()=>void;onError:(e:unknown)=>void;onNext?:()=>void;nextAvailable?:boolean}){
  const [record,setRecord]=useState<Redo|null>(null),[answer,setAnswer]=useState<unknown>(""),[busy,setBusy]=useState(false),[keep,setKeep]=useState(false);const opened=useRef(false);
  const key=`hustudy-redo:${id}`;
  const draftKey=`${key}:draft`;
@@ -17,10 +16,17 @@ export function MistakePractice({token,id,autoStart=false,mastered=false,credite
  useEffect(()=>{const guard=(e:Event)=>{if(busy)e.preventDefault();};window.addEventListener("hustudy:before-navigate",guard);return()=>window.removeEventListener("hustudy:before-navigate",guard);},[busy,record]);
  if(!record)return <button className="primary" disabled={busy} onClick={()=>void start()}>重做错题</button>;
  const q=record.question,active=record.status==="IN_PROGRESS";
- return <section className="mistake-redo" aria-label="错题重做"><h4>重新作答</h4><QuestionContext question={q} token={token}/><BankMath text={q.stem} token={token}/>{q.illustrations?.map((image,i)=><BankFigure token={token} courseId="" image={image} key={i}/>)}
+ return <section className="mistake-redo" aria-label="错题重做"><h4>重新作答</h4><QuestionContext question={q} token={token}/>
  {active?<><RedoAnswer token={token} q={q} value={answer} disabled={busy} onChange={setAnswer}/><button className="primary" disabled={busy} onClick={()=>void run(async()=>{const saved=await api.submitRedo(token,id,record.id,answer);setRecord(saved);if(saved.status==="COMPLETED")await onDone();})}>提交重做答案</button></>:<><p>本次答案：</p><BankMath text={Array.isArray(record.answer)?record.answer.join("；"):String(record.answer??"")} token={token}/><ReferenceAnswer question={q} token={token}/></>}
  {record.status==="NEEDS_SELF_REVIEW"&&<div><p>本题不自动判分，请核对参考答案后自行判断。只有首次答对才计入每日任务。</p><button className="secondary" disabled={busy} onClick={()=>void run(async()=>{setRecord(await api.judgeRedo(token,id,record.id,true));await onDone();})}>重做答对了</button><button className="secondary" disabled={busy} onClick={()=>void run(async()=>{setRecord(await api.judgeRedo(token,id,record.id,false));await onDone();})}>重做答错了</button></div>}
- {record.status==="COMPLETED"&&<><p role="status">{record.correct?`本次重做正确。${credited?"此题已计入今日答对数，不会重复计数。":"此题已掌握，重复练习不计入今日答对数。"}`:"本次重做错误，不计入今日答对数。可再次练习。"}</p>{record.correct&&!keep&&<div className="bank-actions"><button className="primary" disabled={busy} onClick={()=>void run(async()=>{await api.removeMistake(token,id);localStorage.removeItem(key);sessionStorage.removeItem(draftKey);setRemoved(true);})}>移出错题库</button><button className="secondary" disabled={busy} onClick={()=>setKeep(true)}>继续保留</button></div>}{keep&&<p className="hint">已保留，可在以后继续复习。</p>}<button className="secondary" disabled={busy} onClick={()=>void start(true)}>再做一次</button></>}
+ {record.status==="COMPLETED"&&<p role="status">{record.correct?`本次重做正确。${credited?"此题已计入今日答对数，不会重复计数。":"此题已掌握，重复练习不计入今日答对数。"}`:"本次重做错误，不计入今日答对数。可再次练习。"}</p>}
+ {keep&&<p className="hint">已保留，可在以后继续复习。</p>}
+ <div className="review-result-actions" role="group" aria-label="错题后续操作">
+ <button className="primary" disabled={busy||record.status!=="COMPLETED"||!record.correct||keep} onClick={()=>void run(async()=>{await api.removeMistake(token,id);localStorage.removeItem(key);sessionStorage.removeItem(draftKey);setRemoved(true);})}>移出错题库</button>
+ <button className="secondary" disabled={busy||record.status!=="COMPLETED"||!record.correct||keep} onClick={()=>setKeep(true)}>继续保留</button>
+ <button className="secondary" disabled={busy||record.status!=="COMPLETED"} onClick={()=>void start(true)}>再做一次</button>
+ {onNext&&<button className="secondary review-next-action" disabled={busy||!nextAvailable} onClick={onNext}>下一道错题 →</button>}
+ </div>
  </section>;
 }
 function RedoAnswer({token,q,value,disabled,onChange}:{token:string;q:Question;value:unknown;disabled:boolean;onChange:(v:unknown)=>void}){
