@@ -22,15 +22,19 @@ from .routers import (
     exams,
     health,
     notes,
+    note_graph,
     note_exports,
     note_organization,
     note_trash,
     note_capture,
     note_ai_config,
+    model_connections,
+    note_assistant,
     transcripts,
     material_exports,
     remote_ai,
     backups,
+    portable_packages,
 )
 
 logging.basicConfig(
@@ -63,11 +67,15 @@ def create_app() -> FastAPI:
     settings = get_settings()
     app = FastAPI(title="Hustudy API", version="0.1.0", lifespan=lifespan)
     app.include_router(connection.router)
+    app.include_router(model_connections.router)
+    app.include_router(note_assistant.router)
     app.include_router(mistake_redo.router)
     app.include_router(question_bank.router)
     app.include_router(exam_analysis.router)
     app.include_router(backups.router)
+    app.include_router(portable_packages.router)
     app.include_router(note_exports.router)
+    app.include_router(note_graph.router)
     app.include_router(note_organization.router)
     app.include_router(note_trash.router)
     app.include_router(note_capture.router)
@@ -78,7 +86,7 @@ def create_app() -> FastAPI:
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
-        expose_headers=["X-Request-ID"],
+        expose_headers=["X-Request-ID", "Content-Disposition"],
     )
 
     @app.middleware("http")
@@ -92,7 +100,9 @@ def create_app() -> FastAPI:
     @app.exception_handler(HTTPException)
     async def http_error(request: Request, exc: HTTPException):
         rid = request.state.request_id
-        code = "NOT_FOUND" if exc.status_code == 404 else "HTTP_ERROR"
+        code = getattr(exc, "error_code", None) or (
+            "NOT_FOUND" if exc.status_code == 404 else "HTTP_ERROR"
+        )
         return JSONResponse(
             status_code=exc.status_code,
             headers=exc.headers,

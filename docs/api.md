@@ -1,5 +1,56 @@
 # Hustudy API（Phase 0）
 
+## 多模型与笔记助手（2026-10-27）
+
+均需Bearer认证并限定当前账户。原 `/api-connection` 继续独立处理智谱配置；高级配置不回显密钥、不进入课程包或账户备份。
+
+| 路由 | 请求与结果 |
+|---|---|
+| `GET /api/v1/model-connections` | revision、active、builtin、profiles、allowed_hosts；仅配置元数据和configured，no-store |
+| `PUT /api/v1/model-connections` | revision、可选id、name、vendor=deepseek/compatible、endpoint、model、key、vision/thinking/json_mode；编辑省略key保留该配置密钥，最多8份 |
+| `POST /api/v1/model-connections/active` | revision、profile_id；null选择原智谱；变化令旧发送预览失效 |
+| `DELETE /api/v1/model-connections/{id}?revision=...` | 删除自己的非活动配置；活动项须先切换，修订不符409 |
+| `POST /api/v1/model-connections/test` | revision、profile_id、confirm=true；只测当前所选模型、发送极短文本，返回connected/model/message |
+| `POST /api/v1/note-assistant/preview` | course_id、可选note_id/revision、task=summary/explain/organize/review/custom、scope=full/selection、text、instruction；核对归属/revision后返回完整发送文本、模型/端点及10分钟preview_token，不调用模型 |
+| `POST /api/v1/note-assistant/generate` | input为上述原始请求，加preview_token、confirm=true；返回request_id/markdown/model/task/usage/notice，不写笔记 |
+
+正文最多24000字符、instruction最多2000、结果最多12000；预览绑定用户/正文摘要/来源revision/配置。无配置或已变化409、权限404、输入/内部令牌变化422、频率上限429、模型失败502。单账户同时一请求，10分钟最多20次；同一成功请求返回缓存结果，处理中/失败未知请求不重复调用。生成结果采纳只改前端草稿，仍经原笔记保存接口；输出和预览no-store。部署可用 `HUSTUDY_ADDITIONAL_AI_HOSTS` 扩展HTTPS主机白名单。详细[契约](contracts.md)与[使用及验证](fzk/note_assistant_acceptance.md)。
+
+## 标准数据包与课程合并（2026-10-27）
+
+均需Bearer认证，只处理本人有效课程。`selection` 为类别到UUID列表的映射，类别为 `notes/folders/documents/assets/topics/past_papers/exam_papers/ai_results/reports/blueprints`，至少选择一项、最多3000个明确选择；空目录可选择其folder，关联依赖在预览单独说明。
+
+| 路由 | 用法 |
+|---|---|
+| `GET /api/v1/courses/{id}/packages/catalog?kind=course\|folder&folder_id=...` | 可识别条目元数据；folder_id仅文件夹模式，省略时包含课程全部有效笔记及未归档，提供时限定该目录及后代 |
+| `POST /api/v1/packages/preview` | multipart `file` 上传标准ZIP；全包校验后返回目录及preview_id、sha256、expires_at，不写业务行 |
+| `POST /api/v1/packages/selection-preview` | `course_id/kind/folder_id` 或 `preview_id` 二选一，加selection；导入可附target_course_id、parent_folder_id、title预检；返回最终目录、实际selection、counts、warnings、selection_sha256 |
+| `POST /api/v1/packages/export` | course_id、kind、可选folder_id、selection、可选expected_sha256；直接返回ZIP及可读Content-Disposition文件名 |
+| `POST /api/v1/packages/import` | preview_id、request_id、selection、可选expected_sha256／target_course_id／parent_folder_id／title；业务行与成功凭据同事务 |
+| `GET /api/v1/packages/imports/{request_id}` | 查询本人的成功结果；无成功记录404，不等于可以换请求ID重建 |
+| `GET /api/v1/packages/previews` | 本人的预览ID、时间、大小和摘要；不返回内部路径 |
+| `DELETE /api/v1/packages/previews/{id}` | 只移除预览文件和控制记录，不删除已导入内容或成功凭据 |
+
+course包不传target_course_id时新建课程，可用title指定名称；传入本人有效目标课程时追加合并，禁止同时传title或parent_folder_id，不覆盖目标课程信息。folder包必须指定目标课程，可选父文件夹，保留层级和未归档笔记。成功响应含import_id、course_id、folder_id、note_count、folder_count、counts及warnings；counts按实际新建业务对象统计。相同request_id及相同参数返回原结果，不同参数409。
+
+网页确认强制带预览selection_sha256作为expected_sha256；脚本客户端可省略。指纹覆盖所选正文、元数据、关系及文件哈希，文件区临时标识变化不影响稳定性。来源变化返回409及`PACKAGE_SELECTION_CHANGED`，必须重新预览。网络未知、401及普通409不自动重发。预览24小时到期410，每账户最多10份，可主动移除；成功幂等凭据独立保留。格式/预算/关系失败422，越权404，磁盘不足沿全站507。详细预算和迁移见[说明](fzk/portable_packages_acceptance.md)。
+
+## 课程笔记关系图谱（2026-10-26，M3-NOTE-GRAPH-02）
+
+`GET /api/v1/courses/{course_id}/note-graph`：认证只读，q≤200字的标题字面子串，link_state=all/linked/isolated，limit=1..200（默认120），可选focus_note_id定位一跳邻域。聚焦与非空标题/非all状态互斥422，不可访问课程或焦点404。响应为course_id、focus_note_id、nodes（NoteSummary + incoming_count/outgoing_count）、edges（source_id/target_id）、total_nodes/total_edges、node_limit/edge_limit、nodes_truncated/edges_truncated。度数按完整当前课程去重关系计算，totals按筛选/聚焦作用域计算；边最多400条，只含实际返回节点。排除他人/跨课程/回收笔记、自身链接；不读取或返回正文，无写入。完整规则见[契约](contracts.md#m3-note-graph-02)。
+
+> 2026-10-24接手提醒：M2教师强调只读reader是代码集成点，不是现成的标记写入HTTP接口；M1阅读标记入口及M4真题身份确认入口仍待各自成员补齐。M2消费分支完成不等于两标签端到端已完成。[缺失接口、责任与验收](gcx/handoff_2026_10_24.md)。
+
+2026-10-24 QA preview chunk_ids扩为400，显式范围使用完整正文，qa_scope返回mode/coverage/batched/batch_count；batch_progress.kind=qa时total含最终汇总步骤，resume入口兼容QA。逐批原文依据不是最终答案，空批继续、汇总才形成结果；原权限/账户配置/引用/预算保持。[契约](contracts.md)与[验证](gcx/qa_batches_2026_10_24.md)。
+
+2026-10-24 PLATFORM-ACCOUNT-AI-04：`/api-connection`仅当前账户，scope=account；GET返回Cache-Control:no-store，PUT/DELETE按本人revision校验；POST-test严格confirm/revision，不在网络期间持锁。密钥分账户加密不回显，M2/M4后台按owner读取，无共享回退。[契约](contracts.md)与[验证](gcx/account_api_2026_10_24.md)。
+
+2026-10-24 M2-AUTO-LABEL-SOURCES-03：新report preview删除teacher_marks/exam_paper_ids/exam_sources_confirmed（提交返回422），仅保留笔记选项。自动读取阅读标记/确认真题依据，冻结m2_supplement.version=2并复核变化；旧v1手动来源预览409，历史保留。[当前契约](contracts.md)与[验收](gcx/supplements_labels_2026_10_24.md)。
+
+2026-10-24 M2-SUPPLEMENT-LABELS-02：问答/报告preview追加note_ids/notes_confirmed；报告另支持teacher_marks及exam_paper_ids/exam_sources_confirmed。严格确认、5篇/12000字符笔记、20条教师记录/20卷真题上限；冻结m2_supplement，复核修改/撤回，服务端生成事实标签，旧请求缺省空输入兼容。详情见[契约](contracts.md)及[验收](gcx/supplements_labels_2026_10_24.md)。
+
+2026-10-24 M2-EXECUTION-01：问答/报告preview新增max_structure_repairs（严格0–2，默认0），RemoteQueryResponse增加execution执行预算/窗口/调用/修复计数；结果附执行快照。原resume明确同意后开启新窗口、跳过成功批次，修复额度全请求不重置。TASK_BUDGET_EXCEEDED表示本次确认的执行预算已用尽，不当平台不可用。内部状态不是学习历史。[契约](contracts.md)、[说明](gcx/execution_budget_2026_10_24.md)。
+
 ## 原文关联笔记分页（2026-10-24，M1-REFERENCE-NOTES-28）
 
 新增GET /api/v1/versions/{version_id}/reference-notes：q≤200、可选chunk_id、offset=0..1000000、limit=1..50（默认6）。响应固定课程/资料/版本/片段身份与真实items/total/offset/limit/checked_at；每项为note_id/note_title/note_course_id/updated_at/citation_count及最近有效引用样本citation_id/chunk_id/locator_type/locator_value/quote_excerpt（≤180字符）。同笔记仅一项，引用数仅当前范围有效逐字引用，按笔记更新时间/UUID稳定排序；不返笔记正文。本人未归课程/已有跨课程引用保留原归属；非法版本/题库原件/不属当前版本片段404。删除/撤回/假引用不纳入。旧GET references列表兼容，改安全元数据投影，不返回Note.content。[契约](contracts.md#m1-reference-notes-28)。
@@ -500,7 +551,7 @@ PDF Request / BankImageImport的questions_only默认false表示自动识别与�
 
 
 2026-10-21 M4-REDO-API-GUIDE-05：GET /mistakes/daily-progress 返回账户时区date/target/completed/done/remaining_ids；POST /mistakes/{id}/redoes(request_id UUID)幂等开始，POST /mistakes/{id}/redoes/{rid}/submit(answer)冻结本次输入并规则判定，非自动题NEEDS_SELF_REVIEW后POST .../judge(correct)。同值提交幂等、冲突409，空答案422，无归属/已移出404。DELETE /mistakes/{id}仅已重做正确可软移出；旧错题快照与重做记录保存在detail_json附加元数据，备份验证结构及归属。
-GET/PUT/DELETE /api-connection 为已登录用户可操作的本机共用配置（无密钥回显）；PUT含revision/model/key（可留空保留），DELETE含revision；POST /api-connection/test含revision与confirm=true，仅明确确认后发送最小测试。状态configured与test_status分离，测试期间配置变化丢弃迟到结果。固定智谱端点/现有模型，原M2/M4 Provider复用，无新增迁移。
+GET/PUT/DELETE /api-connection 为仅当前登录账户可操作的个人配置（无密钥回显）；PUT含revision/model/key（可留空保留），DELETE含revision；POST /api-connection/test含revision与confirm=true，仅明确确认后发送最小测试。状态configured与test_status分离，测试期间配置变化丢弃迟到结果。固定智谱端点/现有模型，原M2/M4 Provider复用，无新增迁移。
 
 2026-10-21 M4-REDO-GOAL-08：GET /mistakes/daily-progress?goal=N（0–1000，默认3，0暂停）额外返回goal；target=min(goal,待掌握与今日有效掌握的不同Mistake ID并集)。available为未掌握数，completed只计当前掌握期从今日开始的题，最新错误撤销掌握与当日计数。GET /mistakes追加mastered/mastered_at，未掌握优先；重做/正常练习再次错误将已保留或移出同源题恢复，relapses只追加历史事件，不重复同一作答错误。DELETE仅当前已掌握可移出。目标由浏览器按账号保存；后端不新增用户设置表。
 
@@ -521,3 +572,50 @@ POST /courses/{id}/question-bank/batch新增action=tag_add（去重追加），�
 ## M4-RETIRE-FILL-BLANK-16（2026-10-22）
 
 新来源题和新抽题仅single_choice/solution；导入文本与AI旧输出fill_blank统一保存为solution，原blank_answers在缺答案时连接为参考解答。BankQuestionEdit/BankDraw/QuestionTypeQuota兼容接收旧fill_blank请求并归一为solution，公开题型枚举移除fill_blank（历史Paper及Attempt快照读取兼容仍保留）。旧填空来源启动时在线备份后幂等转换、revision递增，旧空答案元数据归档在retired_fill_blank；不重写试卷/作答/错题原始快照。账户恢复仅转换本次恢复的来源题，其他账户不受影响；新redo副本转solution，已存在redo保持。无schema迁移或真实模型调用。
+
+
+## M4严格本地录入与批量身份（2026-10-28）
+
+- `POST /courses/{id}/question-bank/files`、`POST /courses/{id}/question-bank/archives`新增表单`mode=local|ai`，默认local。本地仅严格UTF-8 Markdown，ZIP仅选中的Markdown，全部预检后保存；AI上传保留多格式，上传不代表确认发送。
+- `POST /courses/{id}/question-bank/import`新增`strict_markdown`；本地文件/粘贴入口传true，原文读取校验SHA-256，使用M1原始Unicode偏移建立逐题引用及来源版本。旧内联调用兼容，不改变历史题或远程识别策略。
+- `PATCH /past-papers/{id}/metadata`支持`exam_identity:{kind:exercise|past_exam,confirmed:boolean}`，身份操作要求显式expected_revision；来源/年份/卷别变化撤销原确认，来源变化与确认不能在同一请求完成；服务端维护身份revision/UTC时间。
+- `POST /courses/{id}/question-bank/metadata-batch`接受`items`（1–100项），每项paper_id、expected_revision及可修改元数据；归属/删除/修订/代表卷关系全部校验后单事务保存。冲突409整批不修改，返回changed/revisions；不签署官方真实性。
+- `POST /courses/{id}/question-bank/batch`新增`action=review_topics`，明确核对现有1–5个合法知识标签后标记selection_reviewed；不替换标签、不确认真题身份，沿用每题revision与整批预检。
+- gaps响应新增current_pending/current_mastered，历史judged_count/error_count不回写。真题只读依据包含identity_revision/paper_metadata_revision，身份撤销/重确认使旧快照失效；完整账户备份保留声明，课程包导入清除确认并提示重新核对。
+
+
+### M4-PAPER-PRACTICE-19（2026-10-28）
+
+- `GET /courses/{course_id}/question-bank/practice-papers`：仅本人当前课程，最近200份未移除题库的`id/title/year/question_count/eligible_count/available/reason`，无题干答案；作答期间可读。
+- `POST /courses/{course_id}/question-bank/papers/{paper_id}/practice`：`{request_id: UUID, duration_minutes: 1..180}`，返回原有PaperResponse草稿。整卷最多500题，不按随机抽题的100题限制截断；全部有效题目须已确认、来源有效。保留原题号与选项顺序及卷内重复题；公开题目新增可选`source_number`。幂等键与来源卷、时长绑定，跨账户/课程404、变参或未交卷409、校正未完成/超限422。沿原review/start/answer/submit接口。
+- 保存答案仍以同一attempt_id/question_id覆盖；练习历史每个attempt只返回当前状态，不追加阶段行，不删除不同次作答。
+
+
+### M4-ATTEMPT-DELETE-MAJOR-20（2026-10-28）
+
+`DELETE /attempts/{attempt_id}?confirm_delete=true`：删除本人有效课程下该次作答、关联Mistake（含其重做快照）及ReviewTask，并清理其他错题上该作答的relapses事件；不删除来源试卷、题库或其他作答。必须显式确认，缺确认422，不可访问/已删除404；事务内完成，可删除进行中作答但不代提交。返回`deleted/mistakes_deleted/review_tasks_deleted`。前端点击前提示永久删除范围、未保存内容丢弃，成功清除该次恢复指针。
+
+新练习题快照可含`whole_stem/whole_illustrations/source_number/practice_unit=major`；公开接口只提供题干、图表和原题号，不含答案解析。整卷按明确大题分组显示一次完整题干，子问仍使用独立UUID和原保存/判分接口。整卷列表增`major_question_count`，`question_count`仍为独立作答项数。旧快照保持兼容，缺完整题干不得拼造原文。
+
+
+M4-DEEPSEEK-22：GET /question-bank/ai-capabilities新增vendor/endpoint字段（不含凭据），用于显示当前账户实际模型与发送目的地；既有configured/model/vision_configured保持。DeepSeek使用已存在的Chat Completions结构化适配，文字与图片任务沿现有预览/确认/账户修订路径，无重复Key表或新的自动调用接口。
+
+
+M4-TOPIC-BATCH-RECOVERY-23：topic-ai-preview的question_ids可空（本人该卷全部待归类题），非空最多5000题；完整范围≤400万字符，预览返回batch_count。内部每批≤32题/24000字符为单次模型预算，不再限制用户整次32题；每批前复核租约、来源、修订和配置，事务采用。题库papers列表新增recognition元数据(status/error/completed_pages/total_pages/engine)，无正文；复用vision-resume恢复检查点。重复原题号独立保存为有页位置的草稿并警告，不推断续接。
+
+M4-BANK-UX-DEDUPE-24：BankImport新增可选request_id（UUID），同请求同字段幂等，同键变参409，跨账户/课程404。不同请求或未指定请求时不按内容hash合并原题库。去重仅由分析和蓝图调用显式开启，按NFKC规范化及去首尾空白后的题干相同判定，忽略整卷duplicate_of标记作为过滤条件。默认题库/随机/整卷池保留重复。
+
+
+M4-AUTO-CLASSIFY-26：POST /courses/{course_id}/past-questions/{question_id}/auto-classify，JSON {revision:int>=1,confirm_remote_send:true}，202返回原BankTopicJob结构；auto_apply标识自动采用任务。只接受本人当前未归类题，陈旧revision/已归类409，越权或异课程404，未同意422。沿原任务查询/取消及配置校验，成功自动关联/创建标签且不改正文或答案，失败保留原数据；AI关联selection_reviewed=false。
+
+
+M4-27：POST /courses/{course_id}/past-papers/{paper_id}/auto-classify，{revisions:{题目UUID:revision},confirm_remote_send:true}，202后台任务，单库自动分批/事务采用。PATCH /past-questions/{id}新增year（省略保持，null未知，1900–2200整数）；年份仅本题，统计按此值优先。详见docs/xtc/m4_analysis_bulk_edit_2026_10_28.md。
+
+
+M4-BULK-VALUES-29（2026-10-28）：上传与校正批量工具新增年份/分值，各字段支持不修改、统一设置、设为未知。勾选题目或全选本页后应用，分值是每题值，年份仅所选题；原草稿/修订/归属检查，冲突整批拒绝，改变回草稿，旧作答保留。POST /courses/{course_id}/question-bank/batch-values，question_ids/revisions及可选year/points，省略保持、null未知；最多100题，事务提交，无AI调用或迁移。
+
+
+M4-IMPORT-VALUES-30（2026-10-29）：题目年份/分值移到源码折叠区上方；严格Markdown可用三级年份/分值字段自动设置，AI扫描和文本元数据沿原文读取保存。ans6两稿更新演示2023年与5/10/15分（17题总170分），明确虚构字段，仅local。78后端通过/2跳过、6Chrome、TypeScript/构建/Ruff通过，无真实模型或日常写入，人工待接收；详见docs/xtc/m4_import_values_2026_10_29.md。
+
+
+M4-SELF-SCORE-37（2026-10-29）：明确分值的自评题改为输入0至满分整数得分，替代对错按钮；未知分值题仍按对错自评。交卷后展示已评得分，全部题目分值明确才显示总分，待自评明确提示；部分得分视为未完全答对，错题与统计一致。新快照冻结points_known，未知分值内部占位不计分，旧题库快照缺标志不猜分值。POST self-grades支持score或correct互斥模式，原评分同值重试幂等/不同值拒绝。Chrome两种汇总流程通过，相关后端得分范围与幂等通过。无迁移/模型或日常题目写入。先前发布在GitHub树上传阶段网络中断，没有合并；本轮评分验证后续提交，网络恢复再合并。

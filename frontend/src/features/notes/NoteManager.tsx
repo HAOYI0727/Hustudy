@@ -3,10 +3,10 @@ import type {NoteSummary, NoteFolder} from '../../api/client';
 import {folderPath} from './organization';
 import {Icon} from '../../components/Icon';
 
-export function NoteManager({notes, folders, selected, setSelected, disabled, search, setSearch, tag, setTag, tags, path, total, onOpen, onTool, onRefresh, onDrag, onDragEnd, onDelete}: {
+export function NoteManager({notes, folders, selected, setSelected, disabled, search, setSearch, tag, setTag, tags, path, total, onOpen, onRead, onTool, onRefresh, onDrag, onDragEnd, onDelete}: {
   notes: NoteSummary[]; total?:number; folders: NoteFolder[]; selected: string[]; setSelected: (ids: string[]) => void; disabled: boolean;
   search: string; setSearch: (s: string) => void; tag: string; setTag: (s: string) => void; tags: string[]; path: string;
-  onOpen: (note: NoteSummary) => void; onTool: (tool: 'batch' | 'export') => void; onRefresh: () => void;
+  onOpen: (note: NoteSummary) => void; onRead: (note: NoteSummary) => void; onTool: (tool: 'batch' | 'export') => void; onRefresh: () => void;
   onDrag: (event: DragEvent, note: NoteSummary) => void; onDragEnd: () => void;
   onDelete: () => void;
 }) {
@@ -22,7 +22,7 @@ export function NoteManager({notes, folders, selected, setSelected, disabled, se
     </div>
     <div className="note-manager-list">{notes.map(note => <article key={note.id} className={`note-manager-row ${selected.includes(note.id) ? 'is-selected' : ''}`} draggable={!disabled} onDragStart={e => onDrag(e, note)} onDragEnd={onDragEnd} data-note-id={note.id}>
       <input type="checkbox" aria-label={`选择笔记 ${note.title}`} checked={selected.includes(note.id)} disabled={disabled} onChange={e => setSelected(e.target.checked ? [...new Set([...selected, note.id])] : selected.filter(id => id !== note.id))}/>
-      <Icon name="notes" size={18}/><div className="note-manager-info"><button className="note-title-link" onClick={() => onOpen(note)}>{note.title}</button><small>{folderPath(folders, note.folder_id)}</small><div className="note-tags">{note.tags.map(t => <span className="note-tag" key={t}>#{t}</span>)}</div></div><span className="note-drag-handle" aria-hidden="true">⠿</span>
+      <Icon name="notes" size={18}/><div className="note-manager-info"><button className="note-title-link" onClick={() => onOpen(note)}>{note.title}</button><small>{folderPath(folders, note.folder_id)}</small><div className="note-tags">{note.tags.map(t => <span className="note-tag" key={t}>#{t}</span>)}</div></div><button className="secondary note-read-action" aria-label={`阅读：${note.title}`} onClick={() => onRead(note)}><Icon name="preview" size={16}/><span>阅读</span></button><span className="note-drag-handle" aria-hidden="true">⠿</span>
     </article>)}</div>
     {!notes.length && <p className="note-manager-empty">这里还没有笔记，可以新建、导入，或调整筛选条件。</p>}
     <p className="hint note-drag-tip">将笔记拖到左侧文件夹可移动；勾选多篇后拖动其中一篇可一起移动。也可使用“批量整理”。</p>

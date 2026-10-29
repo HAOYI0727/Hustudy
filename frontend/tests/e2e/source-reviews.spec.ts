@@ -42,6 +42,16 @@ for(const width of [320,390,1440])test(`原文相关错题、只读回顾/刷新
  await read(page,s);dialog=await open(page);await expect(summary()).toContainText("2099-12-31");await expect(summary()).not.toContainText("今日或逾期");await expect(summary()).toContainText("待掌握");expect(redoes).toBe(0);
  await summary().getByRole("button",{name:/打开错题与复习/}).click();await page.getByRole("button",{name:"重做错题",exact:true}).click();await expect(page.getByRole("region",{name:"错题重做",exact:true})).toBeVisible();expect(redoes).toBe(1);
  await page.locator(".option").filter({hasText:"资源分配单位"}).click();await page.getByRole("button",{name:"提交重做答案",exact:true}).click();await expect(page.getByRole("button",{name:"继续保留",exact:true})).toBeVisible();await page.getByRole("button",{name:"继续保留",exact:true}).click();
+ const actions=page.getByRole("group",{name:"错题后续操作",exact:true});
+ await expect(actions.getByRole("button",{name:"继续保留",exact:true})).toBeDisabled();
+ await expect(actions.getByRole("button",{name:"移出错题库",exact:true})).toBeDisabled();
+ const nextAction=actions.getByRole("button",{name:"下一道错题 →",exact:true});
+ await expect(nextAction).toBeVisible();await expect(nextAction).toBeDisabled();
+ await expect(nextAction).toHaveCSS("background-color","rgb(237, 240, 243)");
+ await expect(actions.getByRole("button",{name:"继续保留",exact:true})).toHaveCSS("color","rgb(122, 128, 138)");
+ if(width===1440){const left=await actions.getByRole("button",{name:"再做一次",exact:true}).boundingBox();const right=await nextAction.boundingBox();const row=await actions.boundingBox();expect(Math.abs(left!.y-right!.y)).toBeLessThan(2);expect(Math.abs(right!.x+right!.width-row!.x-row!.width)).toBeLessThan(2);}
+ await page.screenshot({path:test.info().outputPath(`review-action-row-${width}.png`),fullPage:true});
+
  await page.getByRole("button",{name:"← 返回错题库",exact:true}).click();await page.getByRole("button",{name:"完成计划",exact:true}).click();await expect(page.locator(".review-schedule")).toContainText("计划已完成");
  await read(page,s);dialog=await open(page);await expect(summary()).toContainText("已掌握 · 保留复习");await expect(summary()).toContainText("尚无待复习计划");
  const latest=(await(await request.get(base+"/mistakes",{headers:s.headers})).json()).find((m:{id:string})=>m.id===s.mistake.id);expect(latest.mastered).toBe(true);expect(redoes).toBe(1);

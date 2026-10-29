@@ -21,6 +21,7 @@ from .notes import (
 from .note_exports import NoteExport
 from .ai import AIResult, RemoteQuery
 from .backup import AccountArchive
+from .portable_packages import PackageImport, PackagePreview
 from .exams import (
     ExamAnalysisReport,
     ExamAttempt,
@@ -42,6 +43,8 @@ __all__ = [
     "NoteAIConfig",
     "NoteCapture",
     "AccountArchive",
+    "PackageImport",
+    "PackagePreview",
     "AIResult",
     "RemoteQuery",
     "Asset",

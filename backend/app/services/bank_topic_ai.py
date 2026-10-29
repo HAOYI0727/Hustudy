@@ -38,7 +38,7 @@ class Output(BaseModel):
 
 class PreviewRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    question_ids: list[str] = Field(min_length=1, max_length=32)
+    question_ids: list[str] = Field(default_factory=list, max_length=5000)
 
 
 class ConfirmRequest(ConsentRequest):
@@ -106,42 +106,63 @@ def snapshot(db, paper, ids):
             for t in topics
         ],
     }
-    if len(bank.encode(result)) > 24000:
-        raise HTTPException(422, "题目与词表超过24000字符，请减少本次题目数量")
+    if len(bank.encode(result)) > 4_000_000:
+        raise HTTPException(422, "完整归类范围超过400万字符，请分次选择；不会截断")
     return result
 
 
-def fingerprint():
-    s = bank_ai.get_settings()
+def fingerprint(user_id):
+    s = bank_ai.get_user_settings(user_id)
     return {
         "endpoint": s.llm_endpoint,
-        "model": bank_ai.MODEL,
+        "model": bank_ai.effective_model(s),
         "prompt_version": VERSION,
+        "credential_revision": s.credential_revision,
         "key_hash": hashlib.sha256(
             s.zhipu_api_key.get_secret_value().encode()
         ).hexdigest(),
     }
 
 
-def preview(db, user_id, paper_id, ids):
+def preview(db, user_id, paper_id, ids, *, auto_apply=False):
     paper = owned_paper(db, user_id, paper_id, lock=True)
-    if not bank_ai.capabilities()["configured"]:
+    if not bank_ai.capabilities(user_id)["configured"]:
         raise HTTPException(
-            409, "请先展开“API接入与模型配置”，在本机配置智谱API Key并重启API与worker"
+            409, "请先展开“API接入与模型配置”，保存本账户的智谱API Key，无需重启"
         )
     meta = json.loads(paper.bank_meta_json)
     previous = meta.get("ai_topic_index", {})
+    if not ids:
+        ids = [
+            q.id
+            for q in db.scalars(
+                select(PastQuestion)
+                .where(
+                    PastQuestion.paper_id == paper.id,
+                    PastQuestion.user_id == user_id,
+                    PastQuestion.status != "SUPERSEDED",
+                )
+                .order_by(PastQuestion.created_at, PastQuestion.id)
+            )
+            if not json.loads(q.bank_data_json).get("topic_index", {}).get("reason")
+        ]
+    if not ids:
+        raise HTTPException(422, "当前题库没有待归类题目，可勾选题目重新归类")
+    if len(ids) > 5000:
+        raise HTTPException(422, "本次归类超过5000题，请分次选择；不会截断")
     if previous.get("job_id"):
         job = db.get(ProcessingJob, previous["job_id"])
         if job and job.status in {"QUEUED", "RUNNING"}:
             raise HTTPException(409, "本题库已有AI归类任务，请等待完成")
     scope = {
+        "auto_apply": auto_apply,
         "preview_id": str(uuid4()),
         "input": snapshot(db, paper, ids),
         "expires_at": (utc_now() + timedelta(minutes=15)).isoformat(),
-        **fingerprint(),
+        **fingerprint(user_id),
     }
-    key = bank_ai.get_settings().zhipu_api_key.get_secret_value()
+    scope["batch_count"] = len(batches(scope["input"]))
+    key = bank_ai.get_user_settings(user_id).zhipu_api_key.get_secret_value()
     if key and key in bank.encode(scope["input"]):
         raise HTTPException(422, "题目或词表包含服务密钥，已阻止发送")
     meta["ai_topic_index"] = scope
@@ -154,8 +175,8 @@ def validate_scope(db, paper, scope):
     owned_paper(db, paper.user_id, paper.id)
     if datetime.fromisoformat(scope["expires_at"]) <= utc_now():
         raise HTTPException(409, "预览已过期，请重新预览")
-    if not bank_ai.capabilities()["configured"] or any(
-        scope.get(k) != v for k, v in fingerprint().items()
+    if not bank_ai.capabilities(paper.user_id)["configured"] or any(
+        scope.get(k) != v for k, v in fingerprint(paper.user_id).items()
     ):
         raise HTTPException(409, "模型配置已变化，请重新预览")
     ids = [q["question_id"] for q in scope["input"]["questions"]]
@@ -166,7 +187,11 @@ def validate_scope(db, paper, scope):
 def response(db, paper):
     scope = json.loads(paper.bank_meta_json).get("ai_topic_index")
     if not scope:
-        return {"paper_id": paper.id, "status": "NONE", "model": bank_ai.MODEL}
+        return {
+            "paper_id": paper.id,
+            "status": "NONE",
+            "model": bank_ai.effective_model(bank_ai.get_user_settings(paper.user_id)),
+        }
     job = db.get(ProcessingJob, scope.get("job_id")) if scope.get("job_id") else None
     result = {
         "preview_id": scope["preview_id"],
@@ -176,6 +201,8 @@ def response(db, paper):
         "status": job.status if job else "PREVIEW",
         "error": job.error if job else None,
         "expires_at": scope["expires_at"],
+        "batch_count": scope.get("batch_count", 1),
+        "auto_apply": bool(scope.get("auto_apply")),
     }
     # Only explicit preview readers receive the input; never expose a revoked source.
     if not job:
@@ -216,7 +243,31 @@ def confirm(db, user_id, paper_id, preview_id):
     return response(db, paper)
 
 
-def classify(scope, provider):
+def batches(source):
+    result, current = [], []
+    for q in source["questions"]:
+        candidate = {"questions": [*current, q], "topics": source["topics"]}
+        if current and (len(current) >= 32 or len(bank.encode(candidate)) > 24000):
+            result.append({"questions": current, "topics": source["topics"]})
+            current = []
+        current.append(q)
+        if len(bank.encode({"questions": current, "topics": source["topics"]})) > 24000:
+            raise HTTPException(422, "单题与词表超过模型输入预算，请整理该题；不会截断")
+    if current:
+        result.append({"questions": current, "topics": source["topics"]})
+    return result
+
+
+def classify(scope, provider, before_batch=None):
+    result = {}
+    for index, batch in enumerate(batches(scope["input"])):
+        if before_batch:
+            before_batch(index)
+        result.update(_classify_batch({**scope, "input": batch}, provider))
+    return result
+
+
+def _classify_batch(scope, provider):
     payload, _usage = provider.structured(
         "按语义为每题匹配已有知识点，未匹配时提出备选标签",
         [{"source_id": "topic-classification", "text": bank.encode(scope["input"])}],
@@ -288,6 +339,8 @@ def classify(scope, provider):
 
 def apply(db, paper, scope, output):
     validate_scope(db, paper, scope)
+    if scope.get("auto_apply"):
+        return apply_automatic(db, paper, scope, output)
     for qid, suggestion in output.items():
         q = db.get(PastQuestion, qid)
         data = json.loads(q.bank_data_json)
@@ -296,3 +349,51 @@ def apply(db, paper, scope, output):
         q.revision += 1
         q.status = "DRAFT"
     paper.review_status = "DRAFT"
+
+
+def apply_automatic(db, paper, scope, output):
+    for qid, suggestion in output.items():
+        q = db.get(PastQuestion, qid)
+        data = json.loads(q.bank_data_json)
+        active = topic_tree.rows(db, paper.user_id, paper.course_id)
+        known_ids = {t.id for t in active}
+        if any(tid in known_ids for tid in data.get("topic_ids", [])):
+            raise ValueError("题目已被归类，未覆盖已有标签")
+        ids = [item["topic_id"] for item in suggestion["existing"]]
+        candidates = suggestion["candidates"] if not ids else []
+        if not ids and not candidates:
+            raise ValueError("AI无法可靠判断知识点，题目仍保留在未归类列表")
+        if len(ids) + len(candidates) > 5:
+            raise ValueError("AI归类超过5个标签，未自动采用")
+        for name in candidates:
+            match = next(
+                (
+                    t
+                    for t in active
+                    if bank.normal(t.name).casefold() == name.casefold()
+                ),
+                None,
+            )
+            if not match:
+                if len(active) >= 200:
+                    raise ValueError("已有标签达到200个，请先整理词表")
+                match = Topic(
+                    user_id=paper.user_id,
+                    course_id=paper.course_id,
+                    name=name,
+                    aliases_json="[]",
+                    sources_json=bank.encode({"created_by": "ai_auto_classification"}),
+                )
+                db.add(match)
+                db.flush()
+                active.append(match)
+            ids.append(match.id)
+        data["topic_ids"] = ids
+        data["topic_index"] = {
+            **suggestion,
+            "auto_assigned": True,
+            "selection_reviewed": False,
+        }
+        q.topic_id = ids[0]
+        q.bank_data_json = bank.encode(data)
+        q.revision += 1

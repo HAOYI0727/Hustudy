@@ -6,7 +6,7 @@ from uuid import uuid4
 from fastapi import HTTPException
 from sqlalchemy import select, update, exists
 from ..core.database import SessionLocal
-from ..core.config import get_settings
+from ..core.config import get_user_settings
 from ..models import RemoteQuery, ProcessingJob, AIResult
 from ..models.base import utc_now
 from ..ai.providers import ZhipuProvider, ProviderFailure, PROMPT_VERSION
@@ -17,9 +17,13 @@ from ..ai.study_reports import generate_report
 from ..schemas.question_drafts import candidate_envelope, CANDIDATE_PROMPT_VERSION
 from ..ai.question_drafts import generate_candidates
 from ..services.remote_ai import validate_request_dependencies
+from ..services.m2_execution import Execution, information
 
 
 def claim(db):
+    from ..services.m2_execution import expire_queued
+
+    expire_queued(db)
     own_resource = exists(
         select(RemoteQuery.id).where(
             RemoteQuery.id == ProcessingJob.resource_id,
@@ -120,8 +124,8 @@ def run_ai_once():
             owned_course(db, user_id, row.course_id, lock=True)
             validate_context(db, user_id, row.course_id, row.sources)
             validate_request_dependencies(db, row)
-            s = get_settings()
-            if s.llm_provider != "zhipu" or not s.zhipu_api_key.get_secret_value():
+            s = get_user_settings(user_id)
+            if s.llm_provider not in {"zhipu", "compatible"} or not s.zhipu_api_key.get_secret_value():
                 raise ProviderFailure(
                     "NOT_CONFIGURED", "智谱配置已停用，请重新配置后预览"
                 )
@@ -136,23 +140,40 @@ def run_ai_once():
             row.dispatched_at = utc_now()
             query, sources = row.query, row.sources
             db.commit()
+            provider = ZhipuProvider(s)
+            from ..services.m2_supplements import context
+
+            provider.m2_supplement = context(sources)
+            execution = Execution(db, job, row, token, s)
+            provider.m2_execution = execution
             # No SQLite write lock is held while waiting on the remote service.
             if report and report.batched:
                 from ..services.report_batches import run_step
 
-                return run_step(db, job, row, token, ZhipuProvider(s), report)
+                return run_step(db, job, row, token, provider, report)
+            from ..services import qa_batches
+
+            if qa_batches.batched(row):
+                return qa_batches.run_step(db, job, row, token, provider)
             if candidate:
-                output, status = generate_candidates(
-                    ZhipuProvider(s), candidate, sources
-                )
+                output, status = generate_candidates(provider, candidate, sources)
             elif report:
-                output, status = generate_report(ZhipuProvider(s), report, sources)
+                output, status = generate_report(provider, report, sources)
             else:
-                output, status = ZhipuProvider(s).answer(query, sources)
-        except HTTPException:
+                output, status = provider.answer(query, sources)
+                output["coverage"] = qa_batches.plan(row).get("coverage")
+            from ..services.m2_supplements import attach_output
+
+            attach_output(output, sources)
+            execution.check_deadline()
+        except HTTPException as failure:
             db.rollback()
+            changed_config = str(failure.detail).startswith("本账户API配置")
             error = ProviderFailure(
-                "SOURCE_UNAVAILABLE", "来源已删除、撤回或变化，未生成可用回答"
+                "CONFIG_CHANGED" if changed_config else "SOURCE_UNAVAILABLE",
+                "本账户API配置已变化，请重新预览确认"
+                if changed_config
+                else "来源已删除、撤回或变化，未生成可用回答",
             )
         except ProviderFailure as failure:
             db.rollback()
@@ -186,10 +207,15 @@ def run_ai_once():
                 owned_course(db, user_id, row.course_id)
                 validate_context(db, user_id, row.course_id, row.sources)
                 validate_request_dependencies(db, row)
-            except HTTPException:
-                error = ProviderFailure(
-                    "SOURCE_UNAVAILABLE", "请求中的来源已失效，远程结果未采纳"
-                )
+            except HTTPException as failure:
+                if error is None:
+                    changed_config = str(failure.detail).startswith("本账户API配置")
+                    error = ProviderFailure(
+                        "CONFIG_CHANGED" if changed_config else "SOURCE_UNAVAILABLE",
+                        "本账户API配置已变化，远程结果未采纳"
+                        if changed_config
+                        else "请求中的来源已失效，远程结果未采纳",
+                    )
             if error:
                 status = "provider_error"
                 output = {
@@ -224,6 +250,7 @@ def run_ai_once():
                 job.status, job.error = "FAILED", error.message
             else:
                 job.status, job.error, job.progress = "SUCCEEDED", None, 100
+            output["execution"] = information(db, row)
             result = AIResult(
                 user_id=user_id,
                 course_id=row.course_id,

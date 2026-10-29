@@ -35,5 +35,5 @@ def test_ppt_prompt_keeps_real_pages_and_strict_evidence(invalid):
     else:
         result, status = generate_report(provider(handler), request_for(s), [s])
         assert status == "grounded"
-        assert result["prompt_version"] == REPORT_PROMPT_VERSION == "zhipu-study-report-v7"
+        assert result["prompt_version"] == REPORT_PROMPT_VERSION == "zhipu-study-report-v10"
         assert result["study_report"]["topics"][0]["citations"][0]["locator"] == s["locator"]

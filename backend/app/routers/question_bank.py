@@ -1,6 +1,7 @@
 """User bank management and sampling, shared by M4 and the AI-study practice tab."""
 
 import json
+from pydantic import Field
 from ..services.topic_tree import active_clause
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form
 from sqlalchemy import select
@@ -20,10 +21,12 @@ from ..models import (
 from ..schemas.exams import (
     BankImport,
     BankBatch,
+    BankValuesBatch,
     BankSave,
     BankImageImport,
     BankQuestionEdit,
     BankDraw,
+    BankWholePaperPractice,
     SelfGrade,
     PaperResponse,
 )
@@ -44,6 +47,7 @@ router = APIRouter(prefix="/api/v1", tags=["question-bank"])
 def bank_upload(
     course_id: str,
     file: UploadFile = File(...),
+    mode: str = Form(default="local", pattern="^(local|ai)$"),
     user: User = Depends(current_user),
     db: Session = Depends(get_db),
 ):
@@ -53,6 +57,11 @@ def bank_upload(
     owned_course(db, user.id, course_id)
     bank.no_active_attempt(db, user.id, course_id)
     try:
+        if mode == "local":
+            from ..services.bank_strict_markdown import validate_file
+
+            validate_file(file.filename or "", file.file.read(2 * 1024 * 1024 + 1))
+            file.file.seek(0)
         _, _, job, _ = save_upload(
             file, course_id, user.id, db, library_scope="question_bank"
         )
@@ -136,6 +145,75 @@ def topic_ai_preview(
     return bank_topic_ai.preview(db, user.id, paper_id, payload.question_ids)
 
 
+class AutoClassifyRequest(bank_topic_ai.ConsentRequest):
+    revision: int = Field(ge=1, strict=True)
+
+
+@router.post(
+    "/courses/{course_id}/past-questions/{question_id}/auto-classify", status_code=202
+)
+def auto_classify_question(
+    course_id: str,
+    question_id: str,
+    payload: AutoClassifyRequest,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    from ..services.bank_edits import owned_question
+    from ..services import topic_tree
+
+    q, paper = owned_question(db, user.id, question_id)
+    if paper.course_id != course_id:
+        raise HTTPException(404, "题目不属于当前课程")
+    if q.revision != payload.revision:
+        raise HTTPException(409, "题目已变化，请刷新后重新归类")
+    ids = json.loads(q.bank_data_json).get(
+        "topic_ids", [q.topic_id] if q.topic_id else []
+    )
+    if set(ids).intersection(t.id for t in topic_tree.rows(db, user.id, course_id)):
+        raise HTTPException(409, "题目已归类，请刷新列表")
+    scope = bank_topic_ai.preview(db, user.id, paper.id, [q.id], auto_apply=True)
+    return bank_topic_ai.confirm(db, user.id, paper.id, scope["preview_id"])
+
+
+class AutoClassifyBatchRequest(bank_topic_ai.ConsentRequest):
+    revisions: dict[str, int] = Field(min_length=1, max_length=5000)
+
+
+@router.post(
+    "/courses/{course_id}/past-papers/{paper_id}/auto-classify", status_code=202
+)
+def auto_classify_batch(
+    course_id: str,
+    paper_id: str,
+    payload: AutoClassifyBatchRequest,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    from ..services.bank_edits import owned_question
+    from ..services import topic_tree
+
+    paper = bank_topic_ai.owned_paper(db, user.id, paper_id, lock=True)
+    if paper.course_id != course_id:
+        raise HTTPException(404, "题库不属于当前课程")
+    known = {t.id for t in topic_tree.rows(db, user.id, course_id)}
+    for qid, revision in payload.revisions.items():
+        q, owner = owned_question(db, user.id, qid)
+        if owner.id != paper.id:
+            raise HTTPException(404, "题目不属于当前题库")
+        if q.revision != revision:
+            raise HTTPException(409, "题目已变化，请刷新后重新归类")
+        ids = json.loads(q.bank_data_json).get(
+            "topic_ids", [q.topic_id] if q.topic_id else []
+        )
+        if known.intersection(ids):
+            raise HTTPException(409, "所选题目已有归类，请刷新后重选")
+    scope = bank_topic_ai.preview(
+        db, user.id, paper.id, list(payload.revisions), auto_apply=True
+    )
+    return bank_topic_ai.confirm(db, user.id, paper.id, scope["preview_id"])
+
+
 @router.get("/past-papers/{paper_id}/topic-ai-preview")
 def topic_ai_detail(
     paper_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)
@@ -157,7 +235,7 @@ def topic_ai_confirm(
 def ai_capabilities(user: User = Depends(current_user)):
     from ..services.bank_ai import capabilities
 
-    return capabilities()
+    return capabilities(user.id)
 
 
 @router.post("/courses/{course_id}/question-bank/ai-preview", status_code=201)
@@ -228,6 +306,7 @@ def archive_upload(
     course_id: str,
     file: UploadFile = File(...),
     selected_paths: str | None = Form(default=None),
+    mode: str = Form(default="local", pattern="^(local|ai)$"),
     user: User = Depends(current_user),
     db: Session = Depends(get_db),
 ):
@@ -244,7 +323,12 @@ def archive_upload(
         ):
             raise HTTPException(422, "ZIP选择列表格式错误")
         return import_archive(
-            db, user.id, course_id, file.file.read(MAX_ZIP + 1), chosen
+            db,
+            user.id,
+            course_id,
+            file.file.read(MAX_ZIP + 1),
+            chosen,
+            local=mode == "local",
         )
     finally:
         file.file.close()
@@ -322,6 +406,13 @@ def batch_questions_for_owner(
             raise HTTPException(409, "题目已经变化，请刷新后重新选择")
         if action in {"tag", "tag_add"}:
             bank.topic_rows(db, user_id, paper.course_id, topic_ids)
+        if action == "review_topics":
+            existing = json.loads(q.bank_data_json).get("topic_ids", [])
+            if not 1 <= len(existing) <= 5:
+                raise HTTPException(
+                    422, f"题号{q.number}需要先设置1至5个知识标签；整批未修改"
+                )
+            bank.topic_rows(db, user_id, paper.course_id, existing)
         rows.append((q, paper))
     if action == "confirm":
         from ..services.bank_images import check_images
@@ -329,7 +420,7 @@ def batch_questions_for_owner(
         errors = {}
         for q, paper in rows:
             data = json.loads(q.bank_data_json)
-            warnings = bank.validate_question(q, data)
+            warnings = bank.validate_question(q, data | {"images_reviewed": True})
             if warnings:
                 errors[q.id] = warnings
             bank.topic_rows(db, user_id, paper.course_id, data.get("topic_ids", []))
@@ -377,7 +468,17 @@ def batch_questions_for_owner(
     for q, paper in rows:
         data = json.loads(q.bank_data_json)
         if action == "confirm":
+            data["images_reviewed"] = True
+            data["topic_index"] = data.get("topic_index", {}) | {
+                "selection_reviewed": True
+            }
             q.status = "CONFIRMED"
+        elif action == "review_topics":
+            if data.get("topic_index", {}).get("selection_reviewed") is True:
+                continue
+            data["topic_index"] = data.get("topic_index", {}) | {
+                "selection_reviewed": True
+            }
         elif action == "delete":
             q.status = "SUPERSEDED"
             data["removed_by_user"] = True
@@ -414,6 +515,18 @@ def batch_questions(
         payload.topic_ids,
         course_id,
     )
+
+
+@router.post("/courses/{course_id}/question-bank/batch-values")
+def batch_question_values(
+    course_id: str,
+    payload: BankValuesBatch,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    from ..services.bank_edits import batch_values
+
+    return batch_values(db, user.id, course_id, payload)
 
 
 @router.post("/courses/{course_id}/question-bank/images", status_code=202)
@@ -606,6 +719,33 @@ def draw_questions(
     return _paper_payload(paper)
 
 
+@router.get("/courses/{course_id}/question-bank/practice-papers")
+def practice_papers(
+    course_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)
+):
+    from ..services.bank_paper_practice import papers
+
+    return papers(db, user.id, course_id)
+
+
+@router.post(
+    "/courses/{course_id}/question-bank/papers/{paper_id}/practice",
+    response_model=PaperResponse,
+    status_code=201,
+)
+def practice_whole_paper(
+    course_id: str,
+    paper_id: str,
+    payload: BankWholePaperPractice,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    from ..services.bank_paper_practice import create
+    from .exams import _paper_payload
+
+    return _paper_payload(create(db, user.id, course_id, paper_id, payload))
+
+
 @router.get("/courses/{course_id}/exam-papers")
 def list_exams(
     course_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)
@@ -703,6 +843,18 @@ def restore_attempt(
     }
 
 
+@router.delete("/attempts/{attempt_id}")
+def delete_attempt(
+    attempt_id: str,
+    confirm_delete: bool = False,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    from ..services.attempt_deletion import remove
+
+    return remove(db, user.id, attempt_id, confirm_delete)
+
+
 @router.post("/attempts/{attempt_id}/self-grades/{question_id}")
 def self_grade(
     attempt_id: str,
@@ -731,23 +883,58 @@ def self_grade(
         ]
     if automatic:
         raise HTTPException(422, "自动批改题不能通过自评覆盖")
-    if "self_correct" in g:
-        if g.get("self_correct") != payload.correct:
-            raise HTTPException(409, "该题已自行批改，不能用重复请求覆盖")
-    else:
-        g.update(
-            status="self_correct" if payload.correct else "self_incorrect",
-            self_correct=payload.correct,
-            reviewed_at=bank.utc_now().isoformat(),
-        )
-        if not payload.correct:
-            bank.mark_mistake(
-                db,
-                user.id,
-                attempt.id,
-                q,
-                json.loads(attempt.answers_json).get(question_id),
+    known = bank.points_known(q)
+    if known:
+        if (
+            payload.score is None
+            or payload.correct is not None
+            or payload.score > q["points"]
+        ):
+            raise HTTPException(422, "请输入0至本题满分的整数得分，不使用对错自评")
+        if "self_correct" in g:
+            if g.get("score") != payload.score:
+                raise HTTPException(409, "该题已评分，不能覆盖原评分")
+        else:
+            g.update(
+                status="self_scored",
+                score=payload.score,
+                max_score=q["points"],
+                self_correct=payload.score == q["points"],
+                reviewed_at=bank.utc_now().isoformat(),
             )
+            if payload.score < q["points"]:
+                bank.mark_mistake(
+                    db,
+                    user.id,
+                    attempt.id,
+                    q,
+                    json.loads(attempt.answers_json).get(question_id),
+                )
+    else:
+        if payload.correct is None or payload.score is not None:
+            raise HTTPException(422, "本题未设分值，请使用对错自评")
+        if "self_correct" in g:
+            if g.get("self_correct") != payload.correct:
+                raise HTTPException(409, "该题已自行批改，不能用重复请求覆盖")
+        else:
+            g.update(
+                status="self_correct" if payload.correct else "self_incorrect",
+                self_correct=payload.correct,
+                reviewed_at=bank.utc_now().isoformat(),
+            )
+            if not payload.correct:
+                bank.mark_mistake(
+                    db,
+                    user.id,
+                    attempt.id,
+                    q,
+                    json.loads(attempt.answers_json).get(question_id),
+                )
+    attempt.score = sum(
+        grades[item["id"]].get("score", 0)
+        for item in questions
+        if bank.points_known(item)
+    )
     attempt.grading_json = bank.encode(grades)
     attempt.status = (
         "SUBMITTED"

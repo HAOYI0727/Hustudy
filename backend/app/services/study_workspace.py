@@ -5,6 +5,14 @@ from ..models import AIResult
 from .workspace_record_query import metadata_query
 from ..repositories.source_links import json_references
 
+INTERNAL_VERSIONS = [
+    "m2-execution-v1",
+    "m2-report-checkpoint-v1",
+    "m2-report-progress-v1",
+    "m2-qa-checkpoint-v1",
+    "m2-qa-progress-v1",
+]
+
 
 def records(user_id, course_id):
     report = AIResult.prompt_version.contains("study-report")
@@ -23,6 +31,7 @@ def records(user_id, course_id):
     ).where(
         AIResult.user_id == user_id,
         AIResult.course_id == course_id,
+        AIResult.prompt_version.not_in(INTERNAL_VERSIONS),
         func.coalesce(func.json_extract(AIResult.result_json, "$.result_kind"), "")
         != "question_drafts",
     )
@@ -40,6 +49,7 @@ def summary(db, user, course_id):
     scope = (
         AIResult.user_id == user.id,
         AIResult.course_id == course_id,
+        AIResult.prompt_version.not_in(INTERNAL_VERSIONS),
         func.coalesce(func.json_extract(AIResult.result_json, "$.result_kind"), "")
         != "question_drafts",
     )

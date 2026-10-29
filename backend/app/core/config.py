@@ -23,12 +23,20 @@ class Settings(BaseSettings):
     jwt_secret: str = Field(default="", min_length=32, repr=False)
     access_token_minutes: int = 120
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
-    llm_provider: Literal["mock", "zhipu"] = "mock"
-    llm_model: Literal["glm-4.7-flash", "glm-5.3-flash"] = "glm-5.3-flash"
-    llm_endpoint: Literal["https://open.bigmodel.cn/api/paas/v4/chat/completions"] = (
+    llm_provider: Literal["mock", "zhipu", "compatible"] = "mock"
+    llm_model: str = Field(default="glm-5.3-flash", min_length=1, max_length=128)
+    llm_endpoint: str = (
         "https://open.bigmodel.cn/api/paas/v4/chat/completions"
     )
     zhipu_api_key: SecretStr = Field(default=SecretStr(""), repr=False)
+    credential_account_id: str | None = Field(default=None, repr=False)
+    credential_revision: int = 0
+    credential_scope: str = "active"
+    llm_vendor: str = "zhipu"
+    llm_vision: bool = True
+    llm_thinking: bool = False
+    llm_json_mode: bool = True
+    additional_ai_hosts: str = ""
 
     @property
     def manage_worker(self) -> bool:
@@ -55,3 +63,16 @@ def get_settings() -> Settings:
 
 
 get_settings.cache_clear = base_settings.cache_clear
+
+
+def get_user_settings(user_id: str) -> Settings:
+    from .account_connection import effective
+    from .model_connections import apply
+
+    return apply(effective(base_settings(), user_id), user_id)
+
+
+def get_zhipu_settings(user_id: str) -> Settings:
+    from .account_connection import effective
+
+    return effective(base_settings(), user_id).model_copy(update={"credential_scope": "zhipu"})

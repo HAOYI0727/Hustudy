@@ -4,11 +4,12 @@ import {folderOptions, insideFolder} from './organization';
 import {NotesDialog} from './NotesDialog';
 import {canDropNotes, type NoteDrag} from './noteDragging';
 
-export function FolderLibrary({token, courseId, folders, notes, selected, onSelect, disabled, perform, refresh, drag, startDrag, endDrag, drop, error}: {
+export function FolderLibrary({token, courseId, folders, notes, selected, onSelect, disabled, perform, refresh, drag, startDrag, endDrag, drop, error, onImportPackage, onExportPackage}: {
   token: string; courseId: string; folders: NoteFolder[]; notes: NoteSummary[]; selected: string; onSelect: (id: string) => void;
   disabled: boolean; perform: (action: () => Promise<void>) => Promise<void>; refresh: () => Promise<void>;
   drag: NoteDrag | null; startDrag: (event: DragEvent, value: NoteDrag) => void; endDrag: () => void; drop: (target: string | null) => void;
   error: string;
+  onImportPackage?: (folderId:string)=>void; onExportPackage?: (folderId:string)=>void;
 }) {
   const [editing, setEditing] = useState<NoteFolder | null>(null);
   const [form, setForm] = useState(false), [name, setName] = useState(''), [parent, setParent] = useState('');
@@ -43,6 +44,7 @@ export function FolderLibrary({token, courseId, folders, notes, selected, onSele
     <ul className="note-folder-tree">{branch(null)}</ul>
     {target && <div className="note-folder-actions"><button className="text-button" disabled={disabled} onClick={() => open(target)}>编辑文件夹</button><button className="text-button" disabled={disabled} onClick={() => {if (window.confirm(`删除空文件夹“${target.name}”？含有笔记或子文件夹时不会删除。`)) void perform(async () => {await api.deleteNoteFolder(token, target.id, target.revision); onSelect('*'); await refresh();});}}>删除空文件夹</button></div>}
     <button className="text-button" disabled={disabled} onClick={() => void perform(refresh)}>刷新文件夹</button>
+    {target&&(onImportPackage||onExportPackage)&&<div className="note-folder-actions">{onImportPackage&&<button className="text-button" onClick={()=>onImportPackage(target.id)}>导入到此文件夹</button>}{onExportPackage&&<button className="text-button" onClick={()=>onExportPackage(target.id)}>导出此文件夹</button>}</div>}
     <NotesDialog open={form} title={editing ? '编辑文件夹' : '新建文件夹'} onClose={() => setForm(false)} busy={disabled}>
     {error && <p role="alert">{error}</p>}
     <form className="note-folder-form" onSubmit={e => {e.preventDefault(); void submit();}}>

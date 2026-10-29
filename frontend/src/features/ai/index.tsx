@@ -1,6 +1,8 @@
+import {SupplementPreview} from "./SupplementInputs";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { api, ApiError, AIAnswer, SourceCitation } from "../../api/client";
 import { PageTitle, EmptyInline, EmptyState, ModuleStats } from "../../components/workspace";
+import { ExecutionSummary } from "./ExecutionSummary";
 import { AIResultStatus } from "./AIResultStatus";
 import { AIAnswerPreview } from "./AIAnswerPreview";
 import { RealQueries } from "./RealQueries";
@@ -141,6 +143,7 @@ function StudySession({token, courseId, onNotice, onError, onSource, initialStud
       <section hidden={embedded&&readerTab!=="result"} className="panel ai-result" id="ai-result" tabIndex={-1}>
         <div className="panel-title"><h3>{readerDocument?"课件知识点总结":"学习结果"}</h3>{answer && <AIResultStatus status={answer.status} errorCode={answer.result.error_code}/>}</div>
         {answer ? <>
+          <ExecutionSummary execution={answer.result.execution}/>
           {readerDocument&&initialStudy&&<ReadingCoverage answer={answer} versionId={initialStudy.versionId}/>}
           <div className="answer-box"><small>{answer.model_mode === "real" ? "真实AI · 待核实" : answer.result.question_drafts||answer.result.study_report ? "固定自制演示 · 待审阅" : "演示检索 · 原文展示"}</small>
             {answer.status !== "grounded" && answer.result.study_report_sections?.length ? <p role="alert">{answer.result.message} 已完成部分保留如下；当前不是完整报告。</p> : null}
@@ -150,6 +153,9 @@ function StudySession({token, courseId, onNotice, onError, onSource, initialStud
             <small>{answer.status === "provider_error" && ["INVALID_CITATION", "INVALID_OUTPUT", "INVALID_JSON"].includes(answer.result.error_code||"") ? "模型已返回内容，但未通过结果校验；本次未生成可用结果" : answer.result.model_notice || "结果需人工审阅"}</small>
           </div>
           {answer.status === "grounded" && !answer.result.question_drafts && <button className="secondary" disabled={savingDraft||draftPending} onClick={()=>makeDraft()}>整理为可编辑笔记草稿</button>}
+          {answer.result.supplement_notice&&<p className="hint">{answer.result.supplement_notice}</p>}
+          {answer.result.dependency_status==="stale"&&<p role="alert">补充笔记或标签依据已变化，以下保留生成时快照，请重新核对；不能直接复用此结果。</p>}
+          <SupplementPreview value={answer.result.m2_supplement}/>
           <h4>来源引用</h4>
           {answer.result.citations?.map((c, index) => <details className="citation-card" open key={`${c.chunk_id}-${index}`}><summary className="locator">{c.source_kind === "manual_transcript" ? "人工补录 · " : ""}定位 {c.locator?.value} · 展开/收起证据</summary><p>{c.quote}</p><button className="secondary" disabled={c.availability === "unavailable"} onClick={() => onSource(c.version_id, c.chunk_id)}>{c.availability === "unavailable" ? "来源已失效" : "回到原文 ↗"}</button></details>)}
           {!answer.result.citations?.length && <EmptyInline text="暂无可验证来源，请补充资料或查看异常原因"/>}

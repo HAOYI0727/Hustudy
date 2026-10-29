@@ -16,6 +16,7 @@ from test_question_bank import seed_choice, draw, start
 def bank_upload(client, h, c, text="1. 解释独立题库术语。", name="questions.md"):
     r = client.post(
         f"/api/v1/courses/{c}/question-bank/files",
+        data={"mode": "ai"},
         headers=h,
         files={"file": (name, text.encode(), "text/markdown")},
     )
@@ -107,6 +108,7 @@ def test_zip_files_and_material_export_are_isolated():
             z.writestr("exams/q.md", "1. 解释题目。")
         r = client.post(
             f"/api/v1/courses/{c}/question-bank/archives",
+            data={"mode": "ai"},
             headers=h,
             files={"file": ("q.zip", raw.getvalue(), "application/zip")},
         )

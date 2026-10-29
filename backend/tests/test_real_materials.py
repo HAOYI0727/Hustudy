@@ -281,7 +281,6 @@ def test_pdf_pptx_functional_code_is_parsed_and_all_pages_reach_preview(format):
 
 @pytest.mark.usefixtures("configured")
 def test_resume_rejects_other_account_config_change_and_removed_source(monkeypatch):
-    from app.core.config import get_settings
 
     with TestClient(app) as client:
         owner, course, version, body, pending = long_report(client)
@@ -297,14 +296,14 @@ def test_resume_rejects_other_account_config_change_and_removed_source(monkeypat
             client.post(base + "/resume", headers=other, json=consent).status_code
             == 404
         )
-        monkeypatch.setenv("HUSTUDY_LLM_MODEL", "glm-4.7-flash")
-        get_settings.cache_clear()
+        from ai_account_test_support import change_model
+
+        change_model(client, owner, "glm-4.7-flash")
         assert (
             client.post(base + "/resume", headers=owner, json=consent).status_code
             == 409
         )
-        monkeypatch.setenv("HUSTUDY_LLM_MODEL", "glm-5.3-flash")
-        get_settings.cache_clear()
+        change_model(client, owner, "glm-5.3-flash")
         client.delete(
             f"/api/v1/documents/{pending['sources'][0]['document_id']}", headers=owner
         )

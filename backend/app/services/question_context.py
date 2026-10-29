@@ -48,6 +48,7 @@ def attach_context(db, user_id, course_id, questions):
     ).all()
     rows = order_rows(rows)
     total = 0
+    whole_total = 0
     for snapshot in questions:
         q = selected.get(snapshot.get("source_question_id"))
         if not q or q.paper_id not in papers:
@@ -147,5 +148,37 @@ def attach_context(db, user_id, course_id, questions):
         validate_sources(db, user_id, course_id, sources, images)
         snapshot.update(
             context_stem=context, context_illustrations=images, context_sources=sources
+        )
+        # A complete prompt includes the selected child in its original position.
+        # Keep context_stem for historical consumers, but never reconstruct a
+        # complete problem by placing the selected child after all siblings.
+        complete_rows = order_rows([q, *members])
+        whole, whole_images = [], []
+        for row in complete_rows:
+            data = json.loads(row.bank_data_json)
+            body = snapshot["stem"] if row.id == q.id else row.stem
+            options = (
+                snapshot.get("options", [])
+                if row.id == q.id
+                else data.get("options", [])
+            )
+            if options:
+                body += "\n\n" + "\n".join(
+                    f"{chr(65 + i)}. {s}" for i, s in enumerate(options)
+                )
+            whole.append(f"### 原题 {row.number}\n\n{body}")
+            for image in data.get("illustrations", []):
+                if image not in whole_images:
+                    whole_images.append(image)
+        whole_stem = "\n\n".join(whole)
+        whole_total += len(whole_stem)
+        if len(whole_stem) > 50000 or whole_total > 500000 or len(whole_images) > 40:
+            raise HTTPException(
+                422, "完整大题超过预算，请减少题数或整理题干；未截断内容"
+            )
+        snapshot.update(
+            whole_stem=whole_stem,
+            whole_illustrations=whole_images,
+            source_number=q.number,
         )
     return questions

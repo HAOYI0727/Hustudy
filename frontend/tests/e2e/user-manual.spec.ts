@@ -24,3 +24,13 @@ test("手册首次离线/格式失败可重试，关闭拒绝迟到且不加载�
   await open.click();await expect(dialog.getByRole("alert")).toContainText("格式不正确");await page.keyboard.press("Escape");hold=true;await open.click();await expect(dialog.getByRole("status")).toContainText("正在读取");await page.keyboard.press("Escape");release();await expect(dialog).not.toBeVisible();await expect(open).toBeFocused();await page.unroute("**/user.md*");await open.click();await expect(dialog.getByRole("navigation",{name:"选择手册章节"}).getByRole("button")).toHaveCount(24);await expect(dialog).not.toContainText("迟到旧手册");await page.keyboard.press("Escape");
   let external=0;await page.route("https://manual-images.invalid/**",route=>{external++;return route.abort();});await page.route("**/user.md*",route=>route.request().resourceType()!=="fetch"?route.continue():route.fulfill({contentType:"text/markdown",body:'# Hustudy\n## 安全显示\n<script>window.manualInjected=true</script>\n![test](https://manual-images.invalid/image.png)\n[外部链接](https://manual-images.invalid/open)'}));await open.click();await expect(dialog.getByRole("article")).toContainText("图片请在原文中核对");await expect(dialog.locator("img,a[href],script")).toHaveCount(0);expect(await page.evaluate(()=>(window as any).manualInjected)).toBeUndefined();expect(external).toBe(0);
 });
+
+
+test("使用指南说明全部默认收起，支持逐项展开，重新进入重置",async({page,request})=>{
+ await setup(page,request);await page.goto('/help');
+ const section=page.locator('.help-columns section').filter({has:page.getByRole('heading',{name:'使用前，了解这些',exact:true})});
+ const items=section.locator('details');await expect(items).toHaveCount(9);await expect(section.locator('details[open]')).toHaveCount(0);
+ for(let i=0;i<await items.count();i++){const item=items.nth(i);await item.locator('summary').click();await expect(item).toHaveAttribute('open','');await item.locator('summary').click();await expect(item).not.toHaveAttribute('open','');}
+ await section.getByText('演示模型能做什么？',{exact:true}).click();await expect(section.locator('details[open]')).toHaveCount(1);
+ await page.reload();await expect(section.locator('details[open]')).toHaveCount(0);
+});

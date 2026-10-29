@@ -75,8 +75,11 @@ def run_bank_ai_once():
             return True
         job = db.get(ProcessingJob, jid)
         pid = job.resource_id
+        owner_id = job.user_id
         row = db.get(PastPaper, pid)
         try:
+            if not row or row.user_id != owner_id:
+                raise ValueError("任务归属不匹配")
             meta = json.loads(row.bank_meta_json)
             topic_mode = meta.get("ai_topic_index", {}).get("job_id") == jid
             scope = meta["ai_topic_index" if topic_mode else "ai_extract"]
@@ -91,11 +94,36 @@ def run_bank_ai_once():
             db.commit()
             return True
     output, error = None, None
+
+    def before_batch(index):
+        with SessionLocal() as check_db:
+            current = check_db.get(ProcessingJob, jid)
+            if (
+                not current
+                or current.status != "RUNNING"
+                or current.lease_token != token
+                or not current.lease_until
+                or current.lease_until.replace(tzinfo=timezone.utc) <= utc_now()
+            ):
+                raise ProviderFailure("CANCELLED", "归类任务已取消或失效")
+            bank_topic_ai.validate_scope(check_db, check_db.get(PastPaper, pid), scope)
+            current.lease_until = utc_now() + timedelta(seconds=180)
+            current.progress = min(
+                95, 5 + index * 90 // max(1, scope.get("batch_count", 1))
+            )
+            check_db.commit()
+
     try:
         output = (
-            bank_topic_ai.classify(scope, bank_ai.provider())
+            bank_topic_ai.classify(
+                scope,
+                bank_ai.provider(owner_id, scope.get("credential_revision")),
+                before_batch=before_batch,
+            )
             if topic_mode
-            else bank_ai.extract(content, bank_ai.provider())
+            else bank_ai.extract(
+                content, bank_ai.provider(owner_id, scope.get("credential_revision"))
+            )
         )
     except ProviderFailure as exc:
         error = f"{exc.code}：{exc.message}"

@@ -5,14 +5,16 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, model_validator
 from pydantic_core import PydanticCustomError
 from .remote_ai import Evidence, ExcerptReference, Text
+from .ai_supplements import SupplementSelection
 
 REQUEST_PREFIX = "hustudy:study-report:v1\n"
-REPORT_PROMPT_VERSION = "zhipu-study-report-v7"
+REPORT_PROMPT_VERSION = "zhipu-study-report-v10"
 DEMO_REPORT_PROMPT_VERSION = "demo-study-report-v2"
 
 
-class ReportPreviewRequest(BaseModel):
+class ReportPreviewRequest(SupplementSelection):
     model_config = ConfigDict(extra="forbid")
+    max_structure_repairs: int = Field(default=0, ge=0, le=2, strict=True)
     goal: Text = Field(default="理解所选资料，梳理知识点并完成自测", max_length=2000)
     version_ids: list[UUID] = Field(min_length=1, max_length=20)
     chunk_ids: list[UUID] = Field(default_factory=list, max_length=400)
@@ -42,7 +44,7 @@ class StrictOutput(BaseModel):
 class ReportLabel(StrictOutput):
     kind: Literal["key", "difficult", "exam"]
     reason: Text = Field(max_length=1000)
-    # Teacher/exam evidence is not connected in this slice.
+    # Model output only. Trusted teacher/exam labels are attached by the server.
     origin: Literal["ai_suggestion"]
 
 

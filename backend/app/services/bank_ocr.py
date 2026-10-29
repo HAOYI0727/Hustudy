@@ -55,7 +55,7 @@ def enqueue(db, user_id, course_id, payload):
 
         if not payload.confirm_remote_send:
             raise HTTPException(422, "请明确确认发送图片给AI")
-        config["vision_config"] = bank_vision.require_config()
+        config["vision_config"] = bank_vision.require_config(user_id)
         config["topic_snapshot"] = (
             bank_pdf.bank_topic_snapshot(db, user_id, course_id)
             if payload.classify_topics

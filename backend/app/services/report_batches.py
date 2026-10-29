@@ -53,7 +53,7 @@ def collection(db, row, report):
             ] = citation
         for key, value in data.get("usage", {}).items():
             usage[key] = usage.get(key, 0) + value
-    return {
+    body = {
         "result_kind": "study_report",
         "model": row.model,
         "study_mode": report.study_mode,
@@ -71,6 +71,10 @@ def collection(db, row, report):
             if step and step.status == "grounded"
         ),
     }
+    from .m2_supplements import attach_output
+
+    attach_output(body, row.sources)
+    return body
 
 
 def run_step(db, job, row, token, provider, report):
@@ -119,6 +123,8 @@ def run_step(db, job, row, token, provider, report):
     output, error = None, None
     try:
         output, status = generate_report(provider, report, batches[index])
+        if execution := getattr(provider, "m2_execution", None):
+            execution.check_deadline()
         if status != "grounded":
             raise ProviderFailure(
                 "INSUFFICIENT_EVIDENCE",
@@ -138,11 +144,16 @@ def run_step(db, job, row, token, provider, report):
     try:
         owned_course(db, row.user_id, row.course_id, lock=True)
         validate_context(db, row.user_id, row.course_id, row.sources)
+        from .remote_ai import validate_request_dependencies
+
+        validate_request_dependencies(db, row)
     except HTTPException:
         error = ProviderFailure(
             "SOURCE_UNAVAILABLE", "资料已撤回或改变，本批结果未采纳"
         )
     checkpoint = db.get(AIResult, checkpoint_id(row.id, index))
+    from .m2_execution import information
+
     if error:
         checkpoint.status = "provider_error"
         checkpoint.result_json = json.dumps(
@@ -154,6 +165,7 @@ def run_step(db, job, row, token, provider, report):
             f"第{index + 1}/{len(batches)}批：{error.message}",
         )
         body = collection(db, row, report)
+        body["execution"] = information(db, row)
         body.update(
             {
                 "message": current.error,
@@ -180,6 +192,7 @@ def run_step(db, job, row, token, provider, report):
         row.result_id = result.id
     else:
         checkpoint.status = "grounded"
+        output["execution"] = information(db, row)
         checkpoint.result_json = json.dumps(output, ensure_ascii=False)
         db.flush()
         done = sum(bool(s and s.status == "grounded") for s in checkpoints(db, row))
@@ -187,6 +200,7 @@ def run_step(db, job, row, token, provider, report):
         if done < len(batches):
             current.status, current.error = "QUEUED", None
             body = collection(db, row, report)
+            body["execution"] = information(db, row)
             body.update(
                 {
                     "partial": True,
@@ -213,6 +227,7 @@ def run_step(db, job, row, token, provider, report):
             row.result_id = draft.id
         else:
             body = collection(db, row, report)
+            body["execution"] = information(db, row)
             body["grounded"] = True
             # Preserve the established single-report shape for small materials.
             if len(batches) == 1:
@@ -236,13 +251,13 @@ def run_step(db, job, row, token, provider, report):
 
 
 def resume(db, row):
-    from ..core.config import get_settings
+    from ..core.config import get_user_settings
     from .remote_ai import response
 
     owned_course(db, row.user_id, row.course_id, lock=True)
     report = report_envelope(row.query)
     job = db.get(ProcessingJob, row.job_id) if row.job_id else None
-    settings = get_settings()
+    settings = get_user_settings(row.user_id)
     if (
         not report
         or not report.batched
@@ -251,13 +266,16 @@ def resume(db, row):
     ):
         raise HTTPException(409, "仅已停止的分批报告可确认续跑")
     if (
-        settings.llm_provider != "zhipu"
+        settings.llm_provider not in {"zhipu", "compatible"}
         or not settings.zhipu_api_key.get_secret_value()
         or row.model != settings.llm_model
         or row.endpoint != settings.llm_endpoint
     ):
         raise HTTPException(409, "模型配置已变化，请重新预览")
     validate_context(db, row.user_id, row.course_id, row.sources)
+    from .remote_ai import validate_request_dependencies
+
+    validate_request_dependencies(db, row)
     active = db.scalar(
         select(ProcessingJob.id).where(
             ProcessingJob.user_id == row.user_id,
@@ -273,5 +291,8 @@ def resume(db, row):
     job.status, job.error = "QUEUED", None
     job.max_attempts = job.attempt_count + state["total"] - state["completed"]
     row.consented_at = utc_now()
+    from .m2_execution import reset_window
+
+    reset_window(db, row)
     db.commit()
     return response(db, row)

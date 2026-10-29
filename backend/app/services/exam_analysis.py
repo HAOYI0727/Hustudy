@@ -12,6 +12,7 @@ from ..models import (
     ExamAnalysisReport,
     ExamAttempt,
     ExamPaper,
+    Mistake,
 )
 from ..repositories.materials import checked_chunk
 from .courses import owned_course
@@ -248,7 +249,7 @@ def inputs(db, user_id, course_id):
         )
         .order_by(PastQuestion.id)
     ).all()
-    pool = bank.eligible_questions(db, user_id, course_id)
+    pool = bank.eligible_questions(db, user_id, course_id, deduplicate=True)
     fingerprint = {
         "papers": [
             (p.id, p.year, p.review_status, p.content_hash, p.bank_meta_json)
@@ -286,7 +287,8 @@ def create_report(db, user_id, course_id):
     papers, topics, pool, digest = inputs(db, user_id, course_id)
     pmap = {p.id: p for p in papers}
     included = {q.paper_id for q, _ in pool}
-    years = {pmap[pid].year for pid in included if pmap[pid].year is not None}
+    question_years = {q.id: data.get("year", pmap[q.paper_id].year) for q, data in pool}
+    years = {year for year in question_years.values() if year is not None}
     known = sum(q.points is not None for q, _ in pool)
     total = sum(q.points or 0 for q, _ in pool)
     rows = []
@@ -299,7 +301,7 @@ def create_report(db, user_id, course_id):
             q for q, data in pool if data["topic_ids"] and data["topic_ids"][0] == t.id
         ]
         seen_years = {
-            pmap[q.paper_id].year for q in matched if pmap[q.paper_id].year is not None
+            question_years[q.id] for q in matched if question_years[q.id] is not None
         }
         points = sum(q.points or 0 for q in primary)
         rows.append(
@@ -323,7 +325,10 @@ def create_report(db, user_id, course_id):
         "pending_papers": sum(p.review_status != "CONFIRMED" for p in papers),
         "question_count": len(pool),
         "known_years": sorted(years),
-        "unknown_years": sum(pmap[pid].year is None for pid in included),
+        "unknown_years": sum(
+            any(question_years[q.id] is None for q, _ in pool if q.paper_id == pid)
+            for pid in included
+        ),
         "unknown_points": len(pool) - known,
         "known_points": total,
         "known_points_coverage": known / len(pool) if pool else None,
@@ -397,6 +402,28 @@ def gaps(db, user_id, report_id):
             tid = topic_map[tid].merged_into_id
         return tid
 
+    from .mistake_progress import mastered_since
+
+    mistakes = db.scalars(
+        select(Mistake.detail_json)
+        .join(ExamAttempt, ExamAttempt.id == Mistake.attempt_id)
+        .join(ExamPaper, ExamPaper.id == ExamAttempt.paper_id)
+        .where(
+            Mistake.user_id == user_id,
+            ExamPaper.user_id == user_id,
+            ExamPaper.course_id == course_id,
+        )
+    ).all()
+    current = [
+        json.loads(value)
+        for value in mistakes
+        if not json.loads(value).get("removed_from_bank")
+    ]
+    descendant_ids = {
+        t.id: topic_tree.expand(db, user_id, course_id, [t.id])
+        for t in topics
+        if not t.merged_into_id
+    }
     matrix = []
     for t in topics:
         if t.merged_into_id:
@@ -428,14 +455,14 @@ def gaps(db, user_id, report_id):
             snapshot = json.loads(a.snapshot_json)
             grades = json.loads(a.grading_json)
             for q in snapshot.get("questions", []):
-                if not topic_tree.expand(db, user_id, t.course_id, [t.id]).intersection(
+                if not descendant_ids[t.id].intersection(
                     {canonical(tid) for tid in q.get("topic_ids", [])}
                 ):
                     continue
                 g = grades.get(q["id"], {})
                 if g.get("automatic") or "self_correct" in g:
                     judged += 1
-                    errors += g.get("status") in {
+                    errors += g.get("self_correct") is False or g.get("status") in {
                         "incorrect",
                         "unanswered",
                         "self_incorrect",
@@ -473,6 +500,26 @@ def gaps(db, user_id, report_id):
                 else "no_recorded_errors",
                 "judged_count": judged,
                 "error_count": errors,
+                "current_pending": sum(
+                    mastered_since(m) is None
+                    for m in current
+                    if descendant_ids[t.id].intersection(
+                        {
+                            canonical(tid)
+                            for tid in m.get("question", {}).get("topic_ids", [])
+                        }
+                    )
+                ),
+                "current_mastered": sum(
+                    mastered_since(m) is not None
+                    for m in current
+                    if descendant_ids[t.id].intersection(
+                        {
+                            canonical(tid)
+                            for tid in m.get("question", {}).get("topic_ids", [])
+                        }
+                    )
+                ),
             }
         )
     return {"report_id": report_id, "status": response["status"], "topics": matrix}
