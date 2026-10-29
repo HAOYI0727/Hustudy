@@ -462,7 +462,7 @@ def gaps(db, user_id, report_id):
                 g = grades.get(q["id"], {})
                 if g.get("automatic") or "self_correct" in g:
                     judged += 1
-                    errors += g.get("status") in {
+                    errors += g.get("self_correct") is False or g.get("status") in {
                         "incorrect",
                         "unanswered",
                         "self_incorrect",

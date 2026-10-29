@@ -469,7 +469,9 @@ def batch_questions_for_owner(
         data = json.loads(q.bank_data_json)
         if action == "confirm":
             data["images_reviewed"] = True
-            data["topic_index"] = data.get("topic_index", {}) | {"selection_reviewed": True}
+            data["topic_index"] = data.get("topic_index", {}) | {
+                "selection_reviewed": True
+            }
             q.status = "CONFIRMED"
         elif action == "review_topics":
             if data.get("topic_index", {}).get("selection_reviewed") is True:
@@ -881,23 +883,58 @@ def self_grade(
         ]
     if automatic:
         raise HTTPException(422, "自动批改题不能通过自评覆盖")
-    if "self_correct" in g:
-        if g.get("self_correct") != payload.correct:
-            raise HTTPException(409, "该题已自行批改，不能用重复请求覆盖")
-    else:
-        g.update(
-            status="self_correct" if payload.correct else "self_incorrect",
-            self_correct=payload.correct,
-            reviewed_at=bank.utc_now().isoformat(),
-        )
-        if not payload.correct:
-            bank.mark_mistake(
-                db,
-                user.id,
-                attempt.id,
-                q,
-                json.loads(attempt.answers_json).get(question_id),
+    known = bank.points_known(q)
+    if known:
+        if (
+            payload.score is None
+            or payload.correct is not None
+            or payload.score > q["points"]
+        ):
+            raise HTTPException(422, "请输入0至本题满分的整数得分，不使用对错自评")
+        if "self_correct" in g:
+            if g.get("score") != payload.score:
+                raise HTTPException(409, "该题已评分，不能覆盖原评分")
+        else:
+            g.update(
+                status="self_scored",
+                score=payload.score,
+                max_score=q["points"],
+                self_correct=payload.score == q["points"],
+                reviewed_at=bank.utc_now().isoformat(),
             )
+            if payload.score < q["points"]:
+                bank.mark_mistake(
+                    db,
+                    user.id,
+                    attempt.id,
+                    q,
+                    json.loads(attempt.answers_json).get(question_id),
+                )
+    else:
+        if payload.correct is None or payload.score is not None:
+            raise HTTPException(422, "本题未设分值，请使用对错自评")
+        if "self_correct" in g:
+            if g.get("self_correct") != payload.correct:
+                raise HTTPException(409, "该题已自行批改，不能用重复请求覆盖")
+        else:
+            g.update(
+                status="self_correct" if payload.correct else "self_incorrect",
+                self_correct=payload.correct,
+                reviewed_at=bank.utc_now().isoformat(),
+            )
+            if not payload.correct:
+                bank.mark_mistake(
+                    db,
+                    user.id,
+                    attempt.id,
+                    q,
+                    json.loads(attempt.answers_json).get(question_id),
+                )
+    attempt.score = sum(
+        grades[item["id"]].get("score", 0)
+        for item in questions
+        if bank.points_known(item)
+    )
     attempt.grading_json = bank.encode(grades)
     attempt.status = (
         "SUBMITTED"

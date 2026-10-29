@@ -285,4 +285,5 @@ class BankWholePaperPractice(BaseModel):
 
 class SelfGrade(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    correct: bool = Field(strict=True)
+    correct: bool | None = Field(default=None, strict=True)
+    score: int | None = Field(default=None, ge=0, le=500, strict=True)

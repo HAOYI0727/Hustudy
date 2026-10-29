@@ -454,6 +454,7 @@ def shuffled_question(q, data, points=None, *, shuffle_options=True):
         or len(re.findall(r"_{2,}|（\s*）|\(\s*\)", q.stem))
         or 1,
         "points": points or q.points or 1,
+        "points_known": points is not None or q.points is not None,
         "topic_ids": data["topic_ids"],
         "topic": "题库知识标签",
         "source_question_id": q.id,
@@ -533,7 +534,7 @@ def draw(db, user_id, course_id, payload):
 
 
 def public_question(q):
-    return {
+    return {"points_known": points_known(q)} | {
         k: q[k]
         for k in (
             "id",
@@ -679,6 +680,10 @@ def deadline(attempt, snapshot):
     return started + timedelta(minutes=snapshot["duration_minutes"])
 
 
+def points_known(q):
+    return q.get("points_known", not bool(q.get("source_question_id")))
+
+
 def grade(q, given):
     answered = (
         isinstance(given, str)
@@ -691,7 +696,11 @@ def grade(q, given):
     kind = q["type"]
     if kind in {"solution", "short_answer"}:
         return {
-            "status": "submitted" if answered else "unanswered",
+            "status": "pending_self_review"
+            if points_known(q)
+            else "submitted"
+            if answered
+            else "unanswered",
             "automatic": False,
             "submitted": bool(answered),
         }
@@ -718,8 +727,11 @@ def grade(q, given):
         "status": "correct" if correct else "incorrect" if answered else "unanswered",
         "automatic": True,
         "submitted": bool(answered),
-        "score": q["points"] if correct else 0,
-        "max_score": q["points"],
+        **(
+            {"score": q["points"] if correct else 0, "max_score": q["points"]}
+            if points_known(q)
+            else {}
+        ),
     }
 
 
@@ -785,7 +797,9 @@ def finish_grading(db, attempt, questions):
         g = grades[q["id"]]
         if g["automatic"] and g["status"] != "correct":
             mark_mistake(db, attempt.user_id, attempt.id, q, answers.get(q["id"]))
-    attempt.score = sum(g.get("score", 0) for g in grades.values())
+    attempt.score = sum(
+        grades[q["id"]].get("score", 0) for q in questions if points_known(q)
+    )
     attempt.grading_json = encode(grades)
     attempt.status = (
         "SUBMITTED"

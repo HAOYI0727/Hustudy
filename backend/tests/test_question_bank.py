@@ -228,7 +228,7 @@ def test_choice_auto_solution_submission_self_review_and_retries():
         )
         result = client.post(path + "/submit", headers=owner).json()
         assert result == client.post(path + "/submit", headers=owner).json()
-        assert result["status"] == "SCORED" and result["score"] == 1
+        assert result["status"] == "SCORED" and result["score"] == 0
         solution = next(q for q in questions if q["type"] == "solution")
         assert result["grading"][solution["id"]] == {
             "automatic": False,

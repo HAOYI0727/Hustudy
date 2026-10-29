@@ -96,7 +96,7 @@ export type PastQuestion = {display_group?:DisplayGroup|null; id: string; number
 export type QuestionDirectoryItem = Pick<PastQuestion,"id"|"paper_id"|"number"|"stem"|"question_type"|"status"|"revision"|"topic_id"> & {fingerprint:string;bank_data:{topic_ids:string[]}};
 export type Blueprint = { id: string; name: string; config: Record<string, unknown>; status: string };
 export type ExamPaper = { id: string; title: string; mode: string; status: string; questions: Question[] };
-export type Question = {practice_unit?:"major";whole_stem?:string;whole_illustrations?:BankImage[];source_number?:string;context_stem?:string;context_illustrations?:BankImage[];display_group?:DisplayGroup|null;illustrations?:BankImage[]; id: string; type: string; stem: string; options?: string[]; points: number; topic: string; answer?: string | boolean; rubric?: string[]; explanation?: string;blank_count?:number;blank_answers?:string[];unique_answer?:boolean|null;topic_ids?:string[] };
+export type Question = {points_known?:boolean;source_question_id?:string;practice_unit?:"major";whole_stem?:string;whole_illustrations?:BankImage[];source_number?:string;context_stem?:string;context_illustrations?:BankImage[];display_group?:DisplayGroup|null;illustrations?:BankImage[]; id: string; type: string; stem: string; options?: string[]; points: number; topic: string; answer?: string | boolean; rubric?: string[]; explanation?: string;blank_count?:number;blank_answers?:string[];unique_answer?:boolean|null;topic_ids?:string[] };
 export type PracticePaper = {id:string;title:string;year:number|null;question_count:number;major_question_count:number;eligible_count:number;available:boolean;reason:string};
 export type ApiConnection={configured:boolean;model:string;revision:number;scope:string;endpoint:string;test_status:string;tested_at?:string;message:string;guide_url:string;key_url:string};
 export type Redo={id:string;question:Question;status:string;answer:unknown;grading:Grade|null;correct:boolean|null};
@@ -400,6 +400,7 @@ export const api = {
   editBankMetadata: (token:string,id:string,payload:Record<string,unknown>) => request(`/past-papers/${id}/metadata`,{method:"PATCH",body:JSON.stringify(payload)},token),
   deleteAttempt: (token:string,id:string) => request<{deleted:boolean;mistakes_deleted:number;review_tasks_deleted:number}>(`/attempts/${id}?confirm_delete=true`,{method:"DELETE"},token),
   restoreAttempt: (token:string,id:string,courseId?:string) => request<Attempt>(`/attempts/${id}${courseId?"?course_id="+encodeURIComponent(courseId):""}`,{},token),
+  selfScore:(token:string,id:string,qid:string,score:number)=>request<Attempt>(`/attempts/${id}/self-grades/${qid}`,{method:"POST",body:JSON.stringify({score})},token),
   selfGrade: (token:string,id:string,qid:string,correct:boolean) => request<Attempt>(`/attempts/${id}/self-grades/${qid}`,{method:"POST",body:JSON.stringify({correct})},token),
   createTopic: (token: string, courseId: string, name: string, parent_id?:string|null) => request<Topic>(`/courses/${courseId}/topics`, { method: "POST", body: JSON.stringify({ name, aliases: [],parent_id }) }, token),
   papers: (token: string, courseId: string) => request<Paper[]>(`/courses/${courseId}/past-papers`, {}, token),
