@@ -63,7 +63,13 @@ for (const width of [390, 1440]) test('识别仅插入当前笔记、关闭保�
 test('真实DOCX后台识别为文本并追加当前笔记，没有生成新笔记', async ({page, request}) => {
   test.setTimeout(90000);
   const {headers, note} = await seed(page, request);
-  const data = execFileSync('python', ['-c', 'from docx import Document; import io,sys; d=Document(); d.add_heading("Source title",1); d.add_paragraph("Plain recognized text."); b=io.BytesIO(); d.save(b); sys.stdout.buffer.write(b.getvalue())']);
+  // Use the same locked environment that runs the API and worker.  Calling the
+  // shell's `python` made this otherwise valid fixture depend on a system-wide
+  // python-docx installation and failed on clean developer machines.
+  const python = process.platform === 'win32'
+    ? resolve('../.venv/Scripts/python.exe')
+    : resolve('../.venv/bin/python');
+  const data = execFileSync(python, ['-c', 'from docx import Document; import io,sys; d=Document(); d.add_heading("Source title",1); d.add_paragraph("Plain recognized text."); b=io.BytesIO(); d.save(b); sys.stdout.buffer.write(b.getvalue())']);
   const editor = page.getByLabel('Markdown 正文');
   await editor.evaluate((el: HTMLTextAreaElement) => {el.focus(); el.setSelectionRange(el.value.length, el.value.length);});
   await page.getByRole('button', {name: '文字识别', exact: true}).click();
