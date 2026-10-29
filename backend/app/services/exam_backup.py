@@ -118,6 +118,9 @@ def validate(db, user_id, source_user, tables, all_ids, paths):
         meta = json.loads(paper["bank_meta_json"])
         if not isinstance(meta, dict):
             raise ValueError("题库来源元数据必须为对象")
+        from .bank_identity import validate as validate_identity
+
+        validate_identity(meta.get("exam_identity"))
         extraction = meta.get("ai_extract")
         classification = meta.get("ai_topic_index")
         if classification:
@@ -276,6 +279,10 @@ def validate(db, user_id, source_user, tables, all_ids, paths):
         ):
             raise ValueError("大题上下文结构或预算不正确")
         check_images(data.get("context_illustrations", []), course_id, 40)
+        whole = data.get("whole_stem", "")
+        if not isinstance(whole, str) or len(whole) > 50000:
+            raise ValueError("完整大题题干不正确或超过预算")
+        check_images(data.get("whole_illustrations", []), course_id, 40)
         for source in sources:
             if not isinstance(source, dict) or set(source) - {
                 "source_version_id",

@@ -103,7 +103,7 @@ def test_directory_keeps_display_dedup_and_blocks_active_attempt():
         rows = client.get(path, headers=headers).json()["items"]
         assert (
             rows[0]["fingerprint"] == rows[1]["fingerprint"]
-            and rows[0]["fingerprint"] != rows[2]["fingerprint"]
+            and rows[0]["fingerprint"] == rows[2]["fingerprint"]
         )
         with SessionLocal() as db:
             bp = ExamBlueprint(

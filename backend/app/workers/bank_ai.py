@@ -94,10 +94,31 @@ def run_bank_ai_once():
             db.commit()
             return True
     output, error = None, None
+
+    def before_batch(index):
+        with SessionLocal() as check_db:
+            current = check_db.get(ProcessingJob, jid)
+            if (
+                not current
+                or current.status != "RUNNING"
+                or current.lease_token != token
+                or not current.lease_until
+                or current.lease_until.replace(tzinfo=timezone.utc) <= utc_now()
+            ):
+                raise ProviderFailure("CANCELLED", "归类任务已取消或失效")
+            bank_topic_ai.validate_scope(check_db, check_db.get(PastPaper, pid), scope)
+            current.lease_until = utc_now() + timedelta(seconds=180)
+            current.progress = min(
+                95, 5 + index * 90 // max(1, scope.get("batch_count", 1))
+            )
+            check_db.commit()
+
     try:
         output = (
             bank_topic_ai.classify(
-                scope, bank_ai.provider(owner_id, scope.get("credential_revision"))
+                scope,
+                bank_ai.provider(owner_id, scope.get("credential_revision")),
+                before_batch=before_batch,
             )
             if topic_mode
             else bank_ai.extract(

@@ -33,7 +33,7 @@ test('混合子题按大题展示且独立判分，提交后直接显示Markdown
  await expect(firstEditor.locator('.bank-topic-create .bank-topic-search>.tag-list')).toHaveCount(0);await firstEditor.getByRole('button',{name:'清除新标签的上级',exact:true}).click();await expect(parentAgain).toHaveValue('');
  await page.setViewportSize({width:390,height:900});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBeTruthy();await page.setViewportSize({width:1440,height:1000});
  expect((await request.post(`${base}/past-papers/${p.id}/confirm`,{headers})).ok()).toBeTruthy();
- await page.getByRole('button',{name:'随机练习与作答',exact:true}).click();await page.getByLabel('题数',{exact:true}).fill('3');await page.getByRole('button',{name:'随机抽取题库练习',exact:true}).click();
+ await page.getByRole('button',{name:'题库练习与作答',exact:true}).click();await page.getByLabel('题数',{exact:true}).fill('3');await page.getByRole('button',{name:'随机抽取题库练习',exact:true}).click();
  await expect(page.locator('.bank-practice .bank-group-heading')).toContainText('第1大题');
  await expect(page.getByRole('region',{name:'参考答案与解答'})).toHaveCount(0);
  await page.getByRole('button',{name:'已核对题干，确认练习',exact:true}).click();await page.getByRole('button',{name:'开始作答',exact:true}).click();
@@ -46,7 +46,7 @@ test('混合子题按大题展示且独立判分，提交后直接显示Markdown
  const solution=written.getByRole('region',{name:'参考答案与解答'});
  await expect(solution.getByRole('table')).toBeVisible();await expect(solution.locator('.katex')).toHaveCount(1);await expect(solution).toContainText('这是完整解答过程');
  await solution.screenshot({path:'local_only/submitted-reference.png'});
- await page.reload();await page.getByRole('button',{name:'随机练习与作答',exact:true}).click();await expect(page.getByRole('table')).toBeVisible();
+ await page.reload();await page.getByRole('button',{name:'题库练习与作答',exact:true}).click();await expect(page.getByRole('table')).toBeVisible();
 });
 
 test('恢复页面可见AI正在等待，排队与完成状态区分且始终有核对提醒',async({page,request})=>{
@@ -64,20 +64,18 @@ test('只抽一个子问时仍有完整公共题干和表格，不泄露其他�
  const p=await(await request.post(`${base}/courses/${course.id}/question-bank/import`,{headers,data:{title:'共用题干',content:'1. 已知容量为8KB，请使用表中数据。\n\n| 地址 | 数值 |\n| --- | --- |\n| 0 | 2 |\n答案：父答案禁止泄露'}})).json();
  const r=await request.post(`${base}/past-questions/${p.questions[0].id}/split`,{headers,data:{revision:1,parts:['计算地址。\n答案：子问甲答案保密','解释数据。\n答案：子问乙答案保密']}});expect(r.ok()).toBeTruthy();
  expect((await request.post(`${base}/past-papers/${p.id}/confirm`,{headers})).ok()).toBeTruthy();
- await page.goto(`/exam?course=${course.id}`);await page.getByRole('button',{name:'随机练习与作答',exact:true}).click();await page.getByLabel('题数',{exact:true}).fill('1');await page.getByRole('button',{name:'随机抽取题库练习',exact:true}).click();
+ await page.goto(`/exam?course=${course.id}`);await page.getByRole('button',{name:'题库练习与作答',exact:true}).click();await page.getByLabel('题数',{exact:true}).fill('1');await page.getByRole('button',{name:'随机抽取题库练习',exact:true}).click();
  await expect(page.locator('.question-card')).toHaveCount(1);
- const context=page.getByRole('region',{name:'完整大题题干上下文',exact:true});
+ const context=page.getByRole('region',{name:'整道题目',exact:true});
  await expect(context).toContainText('8KB');await expect(context.getByRole('table')).toBeVisible();
- const view=page.getByRole('button',{name:'查看整道题',exact:true});await view.click();const whole=page.getByRole('dialog',{name:'整道题',exact:true});
- await expect(whole).toBeVisible();await expect(whole).toContainText('8KB');await expect(whole).toContainText('计算地址');await expect(whole).toContainText('解释数据');await expect(whole.getByRole('table')).toBeVisible();
- await expect(whole).not.toContainText('答案保密');await expect(whole).not.toContainText('父答案禁止泄露');
- await page.setViewportSize({width:390,height:900});const modalBox=await whole.boundingBox();expect(modalBox!.x).toBeGreaterThanOrEqual(0);expect(modalBox!.x+modalBox!.width).toBeLessThanOrEqual(390);
- await whole.screenshot({path:'local_only/whole-question-mobile.png'});await page.keyboard.press('Escape');await expect(whole).not.toBeVisible();await expect(view).toBeFocused();await expect(page.locator('.question-card')).toHaveCount(1);
- await page.setViewportSize({width:1440,height:1000});await view.click();await whole.getByRole('button',{name:'关闭整道题',exact:true}).click();await expect(whole).not.toBeVisible();
+ await expect(context).toContainText('计算地址');await expect(context).toContainText('解释数据');
+ await expect(page.getByRole('button',{name:'查看整道题',exact:true})).toHaveCount(0);
+ await page.setViewportSize({width:390,height:900});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBeTruthy();
+ await expect(context).toBeVisible();await page.setViewportSize({width:1440,height:1000});
  await expect(page.locator('.bank-practice')).not.toContainText('答案保密');await expect(page.locator('.bank-practice')).not.toContainText('父答案禁止泄露');
  await page.getByRole('button',{name:'已核对题干，确认练习',exact:true}).click();await page.getByRole('button',{name:'开始作答',exact:true}).click();
  await page.getByLabel('解答内容',{exact:true}).fill('自己的回答');await page.getByRole('button',{name:'保存本题答案',exact:true}).click();
- await page.reload();await page.getByRole('button',{name:'随机练习与作答',exact:true}).click();await expect(context).toContainText('8KB');
+ await page.reload();await page.getByRole('button',{name:'题库练习与作答',exact:true}).click();await expect(context).toContainText('8KB');
  await expect(page.locator('.question-card')).toHaveCount(1);
 });
 
@@ -90,7 +88,7 @@ test('随机抽取后的新题号从小到大显示，原卷题号不再重排�
   body.questions.sort((a:any,b:any)=>b.display_group.order[0]-a.display_group.order[0]);
   await route.fulfill({response,json:body});
  });
- await page.goto(`/exam?course=${course.id}`);await page.getByRole('button',{name:'随机练习与作答',exact:true}).click();await page.getByLabel('题数',{exact:true}).fill('3');await page.getByRole('button',{name:'随机抽取题库练习',exact:true}).click();
+ await page.goto(`/exam?course=${course.id}`);await page.getByRole('button',{name:'题库练习与作答',exact:true}).click();await page.getByLabel('题数',{exact:true}).fill('3');await page.getByRole('button',{name:'随机抽取题库练习',exact:true}).click();
  const cards=page.locator('.question-card');await expect(cards.locator(':scope > strong')).toHaveText([/^1\./,/^2\./,/^3\./]);
  await expect(cards.nth(0)).toContainText('第三原题');await expect(cards.nth(1)).toContainText('第二原题');await expect(cards.nth(2)).toContainText('第一原题');
 });

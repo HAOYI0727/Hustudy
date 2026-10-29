@@ -9,7 +9,7 @@ GROUP = re.compile(
     r"(?m)^[ \t]*(?:#{1,6}[ \t]*)?(?:题目|大题)[ \t]*(\d{1,3})[ \t]*(?:[:：][^\n]*)?[ \t]*$"
 )
 META = re.compile(
-    r"^\s*(?:【\s*|\[\s*)?(参考答案|正确答案|答案解析|答案|解析|详解|解答|分析|知识点|知识标签|标签|唯一答案|分值)(?:\s*[】\]]\s*[:：]?|\s*[:：]|\s*$)\s*(.*)$"
+    r"^\s*(?:【\s*|\[\s*)?(参考答案|正确答案|答案解析|答案|解析|详解|解答|分析|知识点|知识标签|标签|唯一答案|分值|年份|题目年份|考试年份)(?:\s*[】\]]\s*[:：]?|\s*[:：]|\s*$)\s*(.*)$"
 )
 ANSWER_SECTION = re.compile(
     r"(?m)^\s*(?:#{1,6}\s*)?(?:【|\[)?(?:参考答案与解析|答案与解析|参考答案及解析|答案及解析|参考答案|答案汇总)(?:】|\])?\s*[:：]?\s*$"
@@ -169,8 +169,14 @@ def parse(content):
             ),
         )
         points = values.get("分值", "").strip().removesuffix("分")
+        from .bank_values import source_values
+
+        metadata = source_values(raw)
+        if "year" not in metadata:
+            metadata.update(source_values(body[: spans[0][1]], header=True))
         result.append(
             dict(
+                **({"year": metadata["year"]} if "year" in metadata else {}),
                 number=f"{group}-{number}" if group else number,
                 stem=stem or "待补充题干（仅答案或解析）",
                 kind=kind,
@@ -183,7 +189,7 @@ def parse(content):
                 tag_names=list(dict.fromkeys(t.strip() for t in tags if t.strip())),
                 points=int(points)
                 if points.isdigit() and 0 < int(points) <= 500
-                else None,
+                else metadata.get("points"),
                 explanation=explanation,
                 start=start,
                 end=end,

@@ -4,9 +4,7 @@ export type TopicQuestion=Pick<PastQuestion,"id"|"stem"|"question_type"|"topic_i
 const normal=(value:string)=>value.normalize("NFKC").replace(/\r\n?/g,"\n").trim();
 export function questionDisplayKey(q:TopicQuestion){
  if(q.fingerprint)return q.fingerprint;
- const data=q.bank_data;
- const images=data.illustrations?.length?data.illustrations:data.source_images||[];
- return JSON.stringify([q.question_type,normal(q.stem),(data.options||[]).map(normal),images.map(v=>[v.asset_id,v.box||[0,0,1,1]])]);
+ return normal(q.stem);
 }
 function questionTopicIds(q:TopicQuestion){return (q.bank_data.topic_ids||[q.topic_id]).filter((id):id is string=>Boolean(id));}
 export function directTopicQuestions<T extends TopicQuestion>(topics:Topic[],questions:T[],id:string){

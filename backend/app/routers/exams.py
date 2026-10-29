@@ -134,15 +134,6 @@ def create_paper(
     _course(course_id, user, db, lock=True)
     bank.no_active_attempt(db, user.id, course_id)
     digest = hashlib.sha256(payload.content.encode()).hexdigest()
-    existing = db.scalar(
-        select(PastPaper).where(
-            PastPaper.course_id == course_id,
-            PastPaper.user_id == user.id,
-            PastPaper.content_hash == digest,
-        )
-    )
-    if existing:
-        return _paper_response(existing, db)
     paper = PastPaper(
         user_id=user.id,
         course_id=course_id,
@@ -251,7 +242,9 @@ def confirm_paper(
         raise HTTPException(status_code=422, detail="请先拆分题目")
     bank.no_active_attempt(db, user.id, paper.course_id)
     errors = {
-        q.id: bank.validate_question(q, json.loads(q.bank_data_json))
+        q.id: bank.validate_question(
+            q, json.loads(q.bank_data_json) | {"images_reviewed": True}
+        )
         for q in questions
         if q.bank_data_json != "{}"
     }
@@ -267,6 +260,10 @@ def confirm_paper(
             paper.course_id,
             json.loads(q.bank_data_json).get("illustrations", []),
         )
+        data = json.loads(q.bank_data_json)
+        data["images_reviewed"] = True
+        data["topic_index"] = data.get("topic_index", {}) | {"selection_reviewed": True}
+        q.bank_data_json = bank.encode(data)
         q.status = "CONFIRMED"
     paper.review_status = "CONFIRMED"
     db.commit()
@@ -591,7 +588,11 @@ def list_mistakes(
         .join(ExamAttempt, Mistake.attempt_id == ExamAttempt.id)
         .join(ExamPaper, ExamAttempt.paper_id == ExamPaper.id)
         .join(Course, ExamPaper.course_id == Course.id)
-        .where(Mistake.user_id == user.id, Course.user_id == user.id, Course.deleted_at.is_(None))
+        .where(
+            Mistake.user_id == user.id,
+            Course.user_id == user.id,
+            Course.deleted_at.is_(None),
+        )
         .order_by(Mistake.created_at.desc())
     ).all():
         detail = json.loads(m.detail_json)
@@ -645,8 +646,11 @@ def list_mistakes(
 
 
 @router.get("/mistakes/{mistake_id}/sources", response_model=MistakeSources)
-def mistake_source_links(mistake_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)):
+def mistake_source_links(
+    mistake_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)
+):
     from ..services.exam_workspace import mistake_sources
+
     return MistakeSources.model_validate(mistake_sources(db, user, mistake_id))
 
 
@@ -715,13 +719,16 @@ def today_tasks(
 @router.get("/review-tasks", response_model=ReviewSchedulePage)
 def review_schedule(
     state: Literal["pending", "all", "completed"] = "pending",
-    offset: int = Query(default=0, ge=0, le=1000000), limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0, le=1000000),
+    limit: int = Query(default=20, ge=1, le=100),
     course_id: str | None = Query(default=None, min_length=1, max_length=36),
     q: str = Query(default="", max_length=200),
     period: Literal["all", "due", "overdue", "today", "upcoming"] = "all",
-    user: User = Depends(current_user), db: Session = Depends(get_db),
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
 ):
     from ..services.review_schedule import page
+
     return ReviewSchedulePage.model_validate(
         page(db, user, state, offset, limit, course_id=course_id, q=q, period=period),
         from_attributes=True,

@@ -17,7 +17,7 @@ test('多题草稿离开只提示一次，取消可继续编辑，接受可切�
  await expect(stem).toHaveValue('未保存条件甲。');await expect(fill.getByRole('textbox',{name:'题干',exact:true})).toHaveValue('第一道题的未保存条件。');await stem.fill('取消后继续修改。');
  accept=true;await page.getByRole('button',{name:'考点、统计与蓝图',exact:true}).click();await expect(page.getByRole('button',{name:'考点、统计与蓝图',exact:true})).toHaveClass('primary');expect(prompts).toHaveLength(2);
  await page.getByRole('button',{name:'上传与校正题库',exact:true}).click();await expect(editors).toHaveCount(2);
- await page.getByRole('button',{name:'随机练习与作答',exact:true}).click();await expect(page.getByRole('button',{name:'随机练习与作答',exact:true})).toHaveClass('primary');expect(prompts).toHaveLength(2);
+ await page.getByRole('button',{name:'题库练习与作答',exact:true}).click();await expect(page.getByRole('button',{name:'题库练习与作答',exact:true})).toHaveClass('primary');expect(prompts).toHaveLength(2);
  await page.getByRole('button',{name:'上传与校正题库',exact:true}).click();await expect(editors).toHaveCount(2);const current=editors.nth(1);await current.locator(':scope > summary').click();await current.getByText('编辑Markdown源码与答案',{exact:true}).click();await current.getByRole('textbox',{name:'题干',exact:true}).fill('主导航离开测试。');
  await page.getByRole('button',{name:'使用反馈',exact:true}).click();await expect(page.getByRole('heading',{name:'使用反馈',exact:true}).first()).toBeVisible();expect(prompts).toHaveLength(3);
 });
@@ -28,5 +28,5 @@ test('含空位题直接作为解答题，不再显示填空设置，保存草�
  await item.getByText('编辑Markdown源码与答案',{exact:true}).click();const selector=item.getByLabel('题型',{exact:true});await expect(selector).toHaveValue('solution');await expect(selector.locator('option')).toHaveText(['选择题（四选一）','解答题（只检查提交）']);
  const control=await selector.boundingBox();expect(control!.height).toBeGreaterThanOrEqual(44);expect(await selector.evaluate(e=>getComputedStyle(e).backgroundSize)).toBe('20px 20px');await item.getByRole('button',{name:'保存本题校正',exact:true}).click();
  await expect(page.getByText('已保存校正，请核验修改后的题目',{exact:true})).toBeVisible();await expect(page.locator('.bank-paper-review .bank-badge')).toHaveText('待审核');await item.getByText('编辑Markdown源码与答案',{exact:true}).click();await page.setViewportSize({width:390,height:900});await selector.scrollIntoViewIfNeeded();expect((await selector.boundingBox())!.height).toBeGreaterThanOrEqual(48);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBeTruthy();
- let prompts=0;page.on('dialog',async dialog=>{prompts++;await dialog.dismiss();});await page.getByRole('button',{name:'随机练习与作答',exact:true}).click();await expect(page.getByRole('button',{name:'随机练习与作答',exact:true})).toHaveClass('primary');expect(prompts).toBe(0);
+ let prompts=0;page.on('dialog',async dialog=>{prompts++;await dialog.dismiss();});await page.getByRole('button',{name:'题库练习与作答',exact:true}).click();await expect(page.getByRole('button',{name:'题库练习与作答',exact:true})).toHaveClass('primary');expect(prompts).toBe(0);
 });

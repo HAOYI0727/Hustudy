@@ -13,7 +13,7 @@ test('标签归类限制展示、批量核验、考点跳转、练习搜索与�
  await page.getByLabel('全选本页').check();await page.getByRole('button',{name:'核验所选（2）',exact:true}).click();await expect(page.getByText('所选题目已核验，题库审核状态已同步',{exact:true})).toBeVisible();
  await page.getByRole('button',{name:'考点、统计与蓝图',exact:true}).click();
  await page.getByRole('button',{name:'缓存 · 1题',exact:true}).click();await page.getByRole('button',{name:'在上传与校正中查看'}).click();await expect(page.getByRole('heading',{name:'题目校正 · 共1题'})).toBeVisible();await expect(first).toContainText('解释缓存。');
- await page.getByRole('button',{name:'随机练习与作答',exact:true}).click();await expect(page.getByText('未选标签：从当前课程全部已确认题目中随机抽取。',{exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'随机抽取题库练习',exact:true})).toBeEnabled();await expect(page.getByRole('button',{name:'＋ 缓存',exact:true})).toHaveCount(0);
+ await page.getByRole('button',{name:'题库练习与作答',exact:true}).click();await expect(page.getByText('未选标签：从当前课程全部已确认题目中随机抽取。',{exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'随机抽取题库练习',exact:true})).toBeEnabled();await expect(page.getByRole('button',{name:'＋ 缓存',exact:true})).toHaveCount(0);
  await page.getByLabel('搜索知识标签',{exact:true}).fill('缓存');await page.getByRole('button',{name:'＋ 缓存',exact:true}).click();await expect(page.getByRole('button',{name:'缓存 ×',exact:true})).toBeVisible();
  // Create an objectively wrong submitted attempt through the same public APIs.
  const choice=await(await request.post(`${base}/courses/${course.id}/question-bank/import`,{headers,data:{title:'错题样例',content:'1. 哪个是缓存？\nA.甲 B.乙 C.丙 D.丁\n答案：A\n知识标签：缓存'}})).json();

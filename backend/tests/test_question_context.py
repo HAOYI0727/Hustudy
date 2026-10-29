@@ -70,6 +70,9 @@ def test_single_subquestion_has_complete_context_without_other_answers_or_extra_
         assert q["type"] == "solution"
         assert "8KB" in q["context_stem"] and "| 地址 | 数值 |" in q["context_stem"]
         assert "解释求值过程" in q["context_stem"] + q["stem"]
+        assert "8KB" in q["whole_stem"]
+        assert "结果是" in q["whole_stem"] and "解释求值过程" in q["whole_stem"]
+        assert q["whole_stem"].index("结果是") < q["whole_stem"].index("解释求值过程")
         assert "不得泄露" not in json.dumps(drawn, ensure_ascii=False)
         attempt = start(c, h, drawn)
         assert (
@@ -89,6 +92,7 @@ def test_single_subquestion_has_complete_context_without_other_answers_or_extra_
             assert db.get(ExamAttempt, attempt["id"]).snapshot_json == old
         result = c.get(f"/api/v1/attempts/{attempt['id']}/result", headers=h).json()
         assert "8KB" in result["questions"][0]["context_stem"]
+        assert result["questions"][0]["whole_stem"] == q["whole_stem"]
         from test_account_backups import exported, restored, empty_account
         from app.models import User
 

@@ -50,7 +50,7 @@ for(const width of [1440,390])test(`题库练习保存恢复和分类批改 ${wi
  expect((await request.post(`${base}/past-papers/${imported.id}/confirm`,{headers:s.headers})).ok()).toBeTruthy();
  await page.addInitScript(a=>{localStorage.setItem('hustudy_token',a.access_token);localStorage.setItem('hustudy_user',a.user.username);},s.auth);
  const calls:string[]=[];page.on('request',r=>{if(r.method()==='POST'&&/question-drafts|remote-queries/.test(r.url()))calls.push(r.url());});
- await page.goto(`/exam?course=${s.course.id}`);await page.getByRole('button',{name:'随机练习与作答',exact:true}).click();
+ await page.goto(`/exam?course=${s.course.id}`);await page.getByRole('button',{name:'题库练习与作答',exact:true}).click();
  await page.getByLabel('搜索知识标签',{exact:true}).fill('网络');await page.getByRole('button',{name:'＋ 网络',exact:true}).click();await page.getByLabel('题数',{exact:true}).fill('3');
  await page.getByRole('button',{name:'随机抽取题库练习'}).click();
  await page.getByRole('button',{name:'已核对题干，确认练习'}).click();await page.getByRole('button',{name:'开始作答',exact:true}).click();
@@ -59,7 +59,7 @@ for(const width of [1440,390])test(`题库练习保存恢复和分类批改 ${wi
  const fill=page.locator('.question-card').filter({hasText:'TCP名称是'});await fill.getByLabel('解答内容').fill('自己的说法');await fill.getByRole('button',{name:'保存本题答案'}).click();
  const solution=page.locator('.question-card').filter({hasText:'解释TCP。'});await solution.getByLabel('解答内容').fill('我提交了解答');await solution.getByRole('button',{name:'保存本题答案'}).click();
  await expect(solution.getByText('与服务器保存内容一致')).toBeVisible();
- await page.reload();await page.getByRole('button',{name:'随机练习与作答',exact:true}).click();
+ await page.reload();await page.getByRole('button',{name:'题库练习与作答',exact:true}).click();
  await expect(solution.getByLabel('解答内容')).toHaveValue('我提交了解答');
  await page.getByRole('button',{name:'交卷并查看答案'}).click();
  await expect(fill.getByRole('region',{name:'参考答案与解答'})).toContainText('传输控制协议');
@@ -133,7 +133,7 @@ test('本地实际图片OCR显式启动、按题号切分、裁取插图并确�
  const solution=page.locator('details.bank-question-editor').filter({has:page.locator('summary').filter({hasText:'题号 2'})});
  await expect(solution).toHaveAttribute('open','');
  await solution.getByText('编辑Markdown源码与答案',{exact:true}).click();
- await solution.getByText('对照题目原图 / 从原图裁取插图',{exact:true}).click();
+ await solution.getByText('从题目原图截图 / 裁取插图',{exact:true}).click();
  await expect(solution.getByRole('img',{name:'OCR原图区域（仅审核，不在作答展示）'})).toBeVisible();
  await solution.getByRole('button',{name:'调整裁剪区域'}).click();
  const picker=solution.getByRole('group',{name:'在原图拖动框选插图'});
@@ -143,7 +143,7 @@ test('本地实际图片OCR显式启动、按题号切分、裁取插图并确�
  await expect(solution.getByLabel('裁剪宽度 %')).toHaveValue('80');
  for(const [label,value] of [['左侧位置 %','8'],['顶部位置 %','61'],['裁剪宽度 %','82'],['裁剪高度 %','17']])await solution.getByLabel(label).fill(value);
  await solution.getByRole('button',{name:'将预览区域用作插图'}).click();
- await solution.getByLabel('已核对插图完整且不含答案或解析').check();
+ await solution.getByLabel('已核对插图').check();
  await solution.getByRole('button',{name:'保存本题校正',exact:true}).click();
  await expect(solution.getByRole('button',{name:'保存本题校正',exact:true})).toBeEnabled();
  await page.getByRole('button',{name:'确认题库「我的课程题库」',exact:true}).click();

@@ -71,6 +71,13 @@ def _children(folders, root):
 
 
 def _normalize(tables, kind, warnings):
+    if any(
+        (s.row_json(row)["bank_meta_json"].get("exam_identity") or {}).get("confirmed")
+        for row in tables.get("past_papers", [])
+    ):
+        warnings.add(
+            "课程包中的真题身份声明会保留；导入后须由当前账户重新确认，原确认不冒充当前用户决定。"
+        )
     for name, rows in tables.items():
         for row in rows:
             for field, value in s.row_json(row).items():
@@ -622,6 +629,19 @@ def import_content(
                 row["folder_id"] = parent_folder_id
     all_ids = contract.ids(tables)
     # Allow existing parent only for the explicitly checked folder destination.
+    for row in tables.get("past_papers", []):
+        meta = s.row_json(row)["bank_meta_json"]
+        identity = meta.get("exam_identity")
+        if identity:
+            from .bank_identity import validate as validate_identity
+
+            validate_identity(identity)
+            meta["exam_identity"] = identity | {
+                "confirmed": False,
+                "confirmed_at": None,
+                "revision": identity.get("revision", 0) + 1,
+            }
+            row["bank_meta_json"] = s.encode(meta)
     if parent_folder_id:
         all_ids["note_folders"].add(parent_folder_id)
     decoded = (

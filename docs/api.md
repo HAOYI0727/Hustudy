@@ -572,3 +572,50 @@ POST /courses/{id}/question-bank/batch新增action=tag_add（去重追加），�
 ## M4-RETIRE-FILL-BLANK-16（2026-10-22）
 
 新来源题和新抽题仅single_choice/solution；导入文本与AI旧输出fill_blank统一保存为solution，原blank_answers在缺答案时连接为参考解答。BankQuestionEdit/BankDraw/QuestionTypeQuota兼容接收旧fill_blank请求并归一为solution，公开题型枚举移除fill_blank（历史Paper及Attempt快照读取兼容仍保留）。旧填空来源启动时在线备份后幂等转换、revision递增，旧空答案元数据归档在retired_fill_blank；不重写试卷/作答/错题原始快照。账户恢复仅转换本次恢复的来源题，其他账户不受影响；新redo副本转solution，已存在redo保持。无schema迁移或真实模型调用。
+
+
+## M4严格本地录入与批量身份（2026-10-28）
+
+- `POST /courses/{id}/question-bank/files`、`POST /courses/{id}/question-bank/archives`新增表单`mode=local|ai`，默认local。本地仅严格UTF-8 Markdown，ZIP仅选中的Markdown，全部预检后保存；AI上传保留多格式，上传不代表确认发送。
+- `POST /courses/{id}/question-bank/import`新增`strict_markdown`；本地文件/粘贴入口传true，原文读取校验SHA-256，使用M1原始Unicode偏移建立逐题引用及来源版本。旧内联调用兼容，不改变历史题或远程识别策略。
+- `PATCH /past-papers/{id}/metadata`支持`exam_identity:{kind:exercise|past_exam,confirmed:boolean}`，身份操作要求显式expected_revision；来源/年份/卷别变化撤销原确认，来源变化与确认不能在同一请求完成；服务端维护身份revision/UTC时间。
+- `POST /courses/{id}/question-bank/metadata-batch`接受`items`（1–100项），每项paper_id、expected_revision及可修改元数据；归属/删除/修订/代表卷关系全部校验后单事务保存。冲突409整批不修改，返回changed/revisions；不签署官方真实性。
+- `POST /courses/{id}/question-bank/batch`新增`action=review_topics`，明确核对现有1–5个合法知识标签后标记selection_reviewed；不替换标签、不确认真题身份，沿用每题revision与整批预检。
+- gaps响应新增current_pending/current_mastered，历史judged_count/error_count不回写。真题只读依据包含identity_revision/paper_metadata_revision，身份撤销/重确认使旧快照失效；完整账户备份保留声明，课程包导入清除确认并提示重新核对。
+
+
+### M4-PAPER-PRACTICE-19（2026-10-28）
+
+- `GET /courses/{course_id}/question-bank/practice-papers`：仅本人当前课程，最近200份未移除题库的`id/title/year/question_count/eligible_count/available/reason`，无题干答案；作答期间可读。
+- `POST /courses/{course_id}/question-bank/papers/{paper_id}/practice`：`{request_id: UUID, duration_minutes: 1..180}`，返回原有PaperResponse草稿。整卷最多500题，不按随机抽题的100题限制截断；全部有效题目须已确认、来源有效。保留原题号与选项顺序及卷内重复题；公开题目新增可选`source_number`。幂等键与来源卷、时长绑定，跨账户/课程404、变参或未交卷409、校正未完成/超限422。沿原review/start/answer/submit接口。
+- 保存答案仍以同一attempt_id/question_id覆盖；练习历史每个attempt只返回当前状态，不追加阶段行，不删除不同次作答。
+
+
+### M4-ATTEMPT-DELETE-MAJOR-20（2026-10-28）
+
+`DELETE /attempts/{attempt_id}?confirm_delete=true`：删除本人有效课程下该次作答、关联Mistake（含其重做快照）及ReviewTask，并清理其他错题上该作答的relapses事件；不删除来源试卷、题库或其他作答。必须显式确认，缺确认422，不可访问/已删除404；事务内完成，可删除进行中作答但不代提交。返回`deleted/mistakes_deleted/review_tasks_deleted`。前端点击前提示永久删除范围、未保存内容丢弃，成功清除该次恢复指针。
+
+新练习题快照可含`whole_stem/whole_illustrations/source_number/practice_unit=major`；公开接口只提供题干、图表和原题号，不含答案解析。整卷按明确大题分组显示一次完整题干，子问仍使用独立UUID和原保存/判分接口。整卷列表增`major_question_count`，`question_count`仍为独立作答项数。旧快照保持兼容，缺完整题干不得拼造原文。
+
+
+M4-DEEPSEEK-22：GET /question-bank/ai-capabilities新增vendor/endpoint字段（不含凭据），用于显示当前账户实际模型与发送目的地；既有configured/model/vision_configured保持。DeepSeek使用已存在的Chat Completions结构化适配，文字与图片任务沿现有预览/确认/账户修订路径，无重复Key表或新的自动调用接口。
+
+
+M4-TOPIC-BATCH-RECOVERY-23：topic-ai-preview的question_ids可空（本人该卷全部待归类题），非空最多5000题；完整范围≤400万字符，预览返回batch_count。内部每批≤32题/24000字符为单次模型预算，不再限制用户整次32题；每批前复核租约、来源、修订和配置，事务采用。题库papers列表新增recognition元数据(status/error/completed_pages/total_pages/engine)，无正文；复用vision-resume恢复检查点。重复原题号独立保存为有页位置的草稿并警告，不推断续接。
+
+M4-BANK-UX-DEDUPE-24：BankImport新增可选request_id（UUID），同请求同字段幂等，同键变参409，跨账户/课程404。不同请求或未指定请求时不按内容hash合并原题库。去重仅由分析和蓝图调用显式开启，按NFKC规范化及去首尾空白后的题干相同判定，忽略整卷duplicate_of标记作为过滤条件。默认题库/随机/整卷池保留重复。
+
+
+M4-AUTO-CLASSIFY-26：POST /courses/{course_id}/past-questions/{question_id}/auto-classify，JSON {revision:int>=1,confirm_remote_send:true}，202返回原BankTopicJob结构；auto_apply标识自动采用任务。只接受本人当前未归类题，陈旧revision/已归类409，越权或异课程404，未同意422。沿原任务查询/取消及配置校验，成功自动关联/创建标签且不改正文或答案，失败保留原数据；AI关联selection_reviewed=false。
+
+
+M4-27：POST /courses/{course_id}/past-papers/{paper_id}/auto-classify，{revisions:{题目UUID:revision},confirm_remote_send:true}，202后台任务，单库自动分批/事务采用。PATCH /past-questions/{id}新增year（省略保持，null未知，1900–2200整数）；年份仅本题，统计按此值优先。详见docs/xtc/m4_analysis_bulk_edit_2026_10_28.md。
+
+
+M4-BULK-VALUES-29（2026-10-28）：上传与校正批量工具新增年份/分值，各字段支持不修改、统一设置、设为未知。勾选题目或全选本页后应用，分值是每题值，年份仅所选题；原草稿/修订/归属检查，冲突整批拒绝，改变回草稿，旧作答保留。POST /courses/{course_id}/question-bank/batch-values，question_ids/revisions及可选year/points，省略保持、null未知；最多100题，事务提交，无AI调用或迁移。
+
+
+M4-IMPORT-VALUES-30（2026-10-29）：题目年份/分值移到源码折叠区上方；严格Markdown可用三级年份/分值字段自动设置，AI扫描和文本元数据沿原文读取保存。ans6两稿更新演示2023年与5/10/15分（17题总170分），明确虚构字段，仅local。78后端通过/2跳过、6Chrome、TypeScript/构建/Ruff通过，无真实模型或日常写入，人工待接收；详见docs/xtc/m4_import_values_2026_10_29.md。
+
+
+M4-SELF-SCORE-37（2026-10-29）：明确分值的自评题改为输入0至满分整数得分，替代对错按钮；未知分值题仍按对错自评。交卷后展示已评得分，全部题目分值明确才显示总分，待自评明确提示；部分得分视为未完全答对，错题与统计一致。新快照冻结points_known，未知分值内部占位不计分，旧题库快照缺标志不猜分值。POST self-grades支持score或correct互斥模式，原评分同值重试幂等/不同值拒绝。Chrome两种汇总流程通过，相关后端得分范围与幂等通过。无迁移/模型或日常题目写入。先前发布在GitHub树上传阶段网络中断，没有合并；本轮评分验证后续提交，网络恢复再合并。

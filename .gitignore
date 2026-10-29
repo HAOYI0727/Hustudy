@@ -23,6 +23,7 @@ frontend/test-results/
 frontend/playwright-report/
 frontend/.vitest/
 local_only/
+local/
 
 # Generated isolated Office preview runtime
 frontend/public/native-office/
