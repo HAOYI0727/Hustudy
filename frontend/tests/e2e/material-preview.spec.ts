@@ -10,7 +10,13 @@ async function sample(request:APIRequestContext,page:Page,ext:string) {
   const bytes=await readFile(fileURLToPath(new URL(`../../../fixtures/preview_demo.${ext}`,import.meta.url)));
   const uploaded=await request.post(base+`/courses/${course.id}/documents`,{headers,multipart:{file:{name:'preview.'+ext,mimeType:'application/octet-stream',buffer:bytes}}});expect(uploaded.status()).toBe(202);
   const job=await uploaded.json();
-  await expect.poll(async()=>{const r=await request.get(base+`/versions/${job.resource_id}`,{headers});return (await r.json()).preview_status;},{timeout:35_000}).toBe('SUCCEEDED');
+  await expect.poll(async()=>{const r=await request.get(base+`/versions/${job.resource_id}`,{headers});return (await r.json()).preview_status;},{timeout:35_000}).toBe(ext==='pdf'?'SUCCEEDED':'TEXT_ONLY');
+  if(ext!=='pdf'){
+    const requested=await request.post(base+`/versions/${job.resource_id}/preview-jobs`,{headers});
+    expect(requested.status()).toBe(202);
+    const previewJob=await requested.json();
+    await expect.poll(async()=>{const r=await request.get(base+`/jobs/${previewJob.id}`,{headers});return (await r.json()).status;},{timeout:120_000}).toBe('SUCCEEDED');
+  }
   const version=await (await request.get(base+`/versions/${job.resource_id}`,{headers})).json();
   await page.addInitScript(({token,username})=>{if(window===window.top){localStorage.setItem('hustudy_token',token);localStorage.setItem('hustudy_user',username);}},{token:auth.access_token,username});
   await page.goto(`/materials?course=${course.id}&document=${version.document_id}&version=${version.id}`);

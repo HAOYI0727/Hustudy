@@ -1,6 +1,6 @@
 # Fixtures
 
-新增`learning_loop_material.md`与`learning_loop_questions.md`为项目自制传输层闭环体验材料：配套3选择题/1解答题，没有新填空题或真实用户内容。根user.md说明先上传题库原件并从版本导入以保留原题出处，讲义来源另行确认到知识点；网站使用指南提供显式下载，不自动导入或调用模型。原`materialhub_demo.md`的固定报告演示仍仅适配操作系统材料。
+新增`learning_loop_material.md`与`learning_loop_questions.md`为项目自制传输层闭环体验材料；题库示例和`question_bank_demo.md`均采用当前`# Hustudy 题库 v1`严格Markdown格式，可直接从本地入口或资料库版本导入：配套3选择题/1解答题，没有新填空题或真实用户内容。根user.md说明先上传题库原件并从版本导入以保留原题出处，讲义来源另行确认到知识点；网站使用指南提供显式下载，不自动导入或调用模型。原`materialhub_demo.md`的固定报告演示仍仅适配操作系统材料。
 
 仅放自制或已获授权的小型测试资料。当前尚未加入真实课程文件，避免把未核实版权材料提交到仓库。
 

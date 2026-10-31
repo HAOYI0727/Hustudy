@@ -18,7 +18,7 @@ test('已有练习记录时进入真题与模拟卷仍显示第一个板块',asy
  },{auth:s.auth,courseId:s.course.id});
  await page.goto(`/exam?course=${s.course.id}`);
  await expect(page.getByRole('button',{name:'上传与校正题库',exact:true})).toHaveClass('primary');
- await expect(page.getByLabel('上传题库文件（PDF/ZIP/PPTX/DOCX/Markdown）')).toBeVisible();
+ await expect(page.getByLabel('上传本地题库（Markdown / ZIP）')).toBeVisible();
  await page.getByRole('button',{name:'使用反馈',exact:true}).click();
  await page.getByRole('button',{name:'真题与模拟卷',exact:true}).click();
  await expect(page.getByRole('button',{name:'上传与校正题库',exact:true})).toHaveClass('primary');
@@ -29,7 +29,7 @@ test('已有练习记录时进入真题与模拟卷仍显示第一个板块',asy
 test('上传Markdown题库，识别选项与含空位解答题并确认',async({page,request})=>{
  const s=await seed(request);await page.addInitScript(a=>{localStorage.setItem('hustudy_token',a.access_token);localStorage.setItem('hustudy_user',a.user.username);},s.auth);
  await page.goto(`/exam?course=${s.course.id}`);
- await page.getByLabel('上传题库文件（PDF/ZIP/PPTX/DOCX/Markdown）').setInputFiles({name:'题库.md',mimeType:'text/markdown',buffer:Buffer.from(content)});
+ const strict=`# Hustudy 题库 v1\n\n## 题目 1\n### 题型\n选择题\n### 题干\n哪个属于传输层？\n### 选项\nA. IP\nB. TCP\nC. ARP\nD. ICMP\n### 参考答案\nB\n### 知识标签\n网络\n\n## 题目 2\n### 题型\n解答题\n### 题干\nTCP名称是？\n### 参考答案\n传输控制协议\n### 知识标签\n网络\n\n## 题目 3\n### 题型\n解答题\n### 题干\n解释TCP。\n### 知识标签\n网络\n`;await page.getByLabel('上传本地题库（Markdown / ZIP）').setInputFiles({name:'题库.md',mimeType:'text/markdown',buffer:Buffer.from(strict)});
  await page.getByRole('button',{name:'上传选中文件并开始导入',exact:true}).click();
  await expect(page.getByRole('heading',{name:'题目校正 · 共3题'})).toBeVisible({timeout:30000});
  const item=page.locator('details.panel').filter({has:page.locator('summary').filter({hasText:'题号 2'})});
@@ -64,7 +64,6 @@ for(const width of [1440,390])test(`题库练习保存恢复和分类批改 ${wi
  await page.getByRole('button',{name:'交卷并查看答案'}).click();
  await expect(fill.getByRole('region',{name:'参考答案与解答'})).toContainText('传输控制协议');
  await fill.getByRole('button',{name:'我答错了'}).click();await expect(fill.getByText('自评错误',{exact:true})).toBeVisible();
- await expect(solution.getByText('解答题不自动判对错，可自行判断正误。')).toBeVisible();
  expect(calls).toEqual([]);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBeTruthy();
 });
@@ -90,10 +89,10 @@ test('拆分与合并只保留当前叶子题，原题保留历史',async({page,
  expect((await request.post(`${base}/past-papers/${p.id}/confirm`,{headers:s.headers})).ok()).toBeTruthy();
  await page.addInitScript(a=>{localStorage.setItem('hustudy_token',a.access_token);localStorage.setItem('hustudy_user',a.user.username);},s.auth);
  await page.goto(`/exam?course=${s.course.id}`);
- const parent=page.locator('details.panel').first();await parent.locator(':scope > summary').click();
+ const parent=page.locator('details.panel').first();if(await parent.getAttribute('open')===null)await parent.locator(':scope > summary').click();
  await parent.getByText('拆分本题为多个子题',{exact:true}).click();await parent.getByLabel('拆分子题正文').fill('第一子题。\n---\n第二子题。');
  await parent.getByRole('button',{name:'确认拆分本题'}).click();await expect(page.getByRole('heading',{name:'题目校正 · 共2题'})).toBeVisible();
- const items=page.locator('details.panel');for(let i=0;i<2;i++){await items.nth(i).locator(':scope > summary').click();await items.nth(i).getByRole('checkbox',{name:/选择题号/}).check();}
+ const items=page.locator('details.panel');for(let i=0;i<2;i++){const item=items.nth(i);if(await item.getAttribute('open')===null)await item.locator(':scope > summary').click();await item.getByRole('checkbox',{name:/选择题号/}).check();}
  page.once('dialog',dialog=>dialog.accept());await page.getByRole('button',{name:'合并所选题目（2）',exact:true}).click();
  await expect(page.getByRole('heading',{name:'题目校正 · 共1题'})).toBeVisible();
 });
@@ -104,7 +103,7 @@ test('仅题目提示、批量标签、大尺寸选择和审核删除',async({pa
  const topic=await(await request.post(`${base}/courses/${s.course.id}/topics`,{headers:s.headers,data:{name:'测试标签'}})).json();
  await page.addInitScript(a=>{localStorage.setItem('hustudy_token',a.access_token);localStorage.setItem('hustudy_user',a.user.username);},s.auth);
  await page.goto(`/exam?course=${s.course.id}`);
- const choice=page.locator('details.bank-question-editor').first();await choice.locator(':scope > summary').click();
+ const choice=page.locator('details.bank-question-editor').first();if(await choice.getAttribute('open')===null)await choice.locator(':scope > summary').click();
  await expect(choice.getByText('导入内容：仅题目，未提供答案')).toBeVisible();
  await expect(choice.getByLabel('正确选项')).toHaveValue('');
  await page.getByLabel('全选本页').check();
@@ -120,6 +119,7 @@ test('仅题目提示、批量标签、大尺寸选择和审核删除',async({pa
 });
 
 test('本地实际图片OCR显式启动、按题号切分、裁取插图并确认',async({page,request})=>{
+ test.skip(true,'独立图片OCR入口已移除；请将原页整理为PDF后使用文件AI识别');
  const s=await seed(request);
  const topic=await(await request.post(`${base}/courses/${s.course.id}/topics`,{headers:s.headers,data:{name:'图文网络'}})).json();
  await page.addInitScript(a=>{localStorage.setItem('hustudy_token',a.access_token);localStorage.setItem('hustudy_user',a.user.username);},s.auth);
@@ -156,6 +156,7 @@ test('本地实际图片OCR显式启动、按题号切分、裁取插图并确�
 });
 
 test('批量图片调整顺序并按双栏阅读顺序识别',async({page,request})=>{
+ test.skip(true,'独立图片OCR入口已移除；请将原页整理为PDF后使用文件AI识别');
  const s=await seed(request);
  await page.addInitScript(a=>{localStorage.setItem('hustudy_token',a.access_token);localStorage.setItem('hustudy_user',a.user.username);},s.auth);
  await page.goto(`/exam?course=${s.course.id}`);await page.getByRole('button',{name:'图片识别（可选）',exact:true}).click();

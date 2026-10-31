@@ -158,6 +158,11 @@ def save_upload(
             mime_type=mime,
             size_bytes=len(data),
             sha256=digest,
+            # Native readers are the default.  A PDF is already a directly
+            # readable page source; Office files keep their original format
+            # until the user explicitly asks for a compatibility PDF.
+            preview_status="SUCCEEDED" if suffix == ".pdf" else "TEXT_ONLY",
+            preview_path=str(stored) if suffix == ".pdf" else None,
         )
         db.add(version)
         db.flush()

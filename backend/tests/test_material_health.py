@@ -68,7 +68,7 @@ def test_current_version_counts_ignore_old_failures_and_do_not_project_content_o
             and row["issues"] == []
         )
         assert (
-            len(row["jobs"]) == 3
+            len(row["jobs"]) == 2
             and next(j for j in row["jobs"] if j["type"] == "INDEX")["status"]
             == "SUCCEEDED"
         )

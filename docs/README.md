@@ -1,10 +1,12 @@
 # Hustudy 文档导航
 
+2026-10-31 新增[四方面最终验收准备报告](final_acceptance_2026_10_30.md)：按功能展示、非功能性、关键技术和工作量整理案例、分工、测试结果与剩余边界。
+
 2026-10-24 新增[原文关联笔记检索验收](zhy/materialhub/reference_notes_acceptance.md)：资料与笔记的搜索/分页/预览/编辑回源，使用方法同步根[user.md](../user.md)；[121项人工清单](zhy/materialhub/captain_acceptance_2026_10_23.md#manual-checklist)为当前逐项入口。
 
 2026-10-24 新增[当前课程复习日程验收](zhy/integration/course_agenda_acceptance.md)，操作已同步根[user.md](../user.md)；[118项人工清单](zhy/materialhub/captain_acceptance_2026_10_23.md#manual-checklist)为当前逐项入口。
 
-- [现行完整用户手册](../user.md)：24章、下载示例和可实际走完的学习闭环；[本轮全站核查](zhy/integration/user_manual_acceptance.md)区分自动证据、真实模型/设备及正式接收。
+- [现行完整用户手册](../user.md)：25章、下载示例和可实际走完的学习闭环；[本轮全站核查](zhy/integration/user_manual_acceptance.md)区分自动证据、真实模型/设备及正式接收。
 
 - [课件知识点导航](zhy/materialhub/reading_navigator_acceptance.md)：本地搜索、当前页引用反查、每页8项与逐点讲解/草稿保护。
 

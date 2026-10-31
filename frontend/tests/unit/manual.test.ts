@@ -13,8 +13,8 @@ describe("complete user manual",()=>{
   });
   it("uses the actual root manual and covers all current modules and the worked example",()=>{
     const text=readFileSync(new URL("../../../user.md",import.meta.url),"utf8"),rows=manualChapters(text);
-    expect(rows).toHaveLength(24);
-    for(const term of ["学习闭环","当前PPT专用AI阅读助手","知识笔记与编辑器","导入自己的题库","错题复盘与复习计划","导出、备份与恢复","保存结果未知","从资料库导入"])expect(text).toContain(term);
+    expect(rows).toHaveLength(25);
+    for(const term of ["当前版本功能总览与完整测试","学习闭环","当前PPT专用AI阅读助手","知识笔记与编辑器","导入自己的题库","错题复盘与复习计划","导出、备份与恢复","保存结果未知","从资料库导入"])expect(text).toContain(term);
     expect(new TextEncoder().encode(text).length).toBeLessThan(MANUAL_MAX_BYTES);
   });
   it("rejects a successful HTML fallback, oversized or incomplete documents",async()=>{

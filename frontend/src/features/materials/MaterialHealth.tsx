@@ -42,7 +42,7 @@ export function MaterialHealth({open,token,courseId,onClose,onVersion,onRefresh,
    {loading?<p role="status">正在核对资料最新版本…</p>:error?<div role="alert"><p>资料检查暂时无法读取：{error}</p><button className="secondary" onClick={()=>setReload(value=>value+1)}>重试资料检查</button></div>:data?<>
     <div className="material-health-counts"><span>匹配资料 <strong>{data.counts.materials}</strong></span><span>需检查 <strong>{data.counts.attention}</strong></span><span>有可用正文 <strong>{data.counts.readable}</strong></span><span>处理中 <strong>{data.counts.processing}</strong></span></div>
     <p className="hint">当前范围 {data.total} 份 · 同一资料可有多项问题。兼容预览异常时仍可尝试文本或原格式阅读。</p>
-    <div className="material-health-grid">{data.items.map(item=><article className="material-health-card" key={item.document_id}>
+    <div className="material-health-grid">{data.items.map((item,index)=><article className="material-health-card" key={`${item.document_id}:${index}`}>
      <header><span className="material-health-file"><Icon name="file" size={22}/></span><div><h4>{item.name}</h4><small>最新版本 v{item.version_no} · {item.has_text?"有可用正文":"暂无当前可用正文"}</small></div><button className="secondary" disabled={busy} aria-label={`打开检查资料：${item.name}`} onClick={()=>{onClose();void callbacks.current.onVersion(item).catch(callbacks.current.onError);}}>打开版本 <Icon name="arrow" size={14}/></button></header>
      <div className="material-health-issues">{item.issues.filter(value=>value!=="processing").map(value=><span key={value}>{filters.find(([key])=>key===value)?.[1]}</span>)}{!item.issues.length&&<span>当前检查正常</span>}</div>
      {item.issues.includes("text")&&<p className="hint">请核对原件与解析；扫描PDF可在阅读页人工补录并确认文字。</p>}

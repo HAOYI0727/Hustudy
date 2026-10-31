@@ -1,5 +1,5 @@
 import {afterEach,beforeEach,expect,test,vi} from "vitest";
-import {accentPresets,moduleNames,appearanceKey,appearanceTokens,applyAppearance,contrastRatio,defaultAppearance,mixColor,readAppearance,readableAccent,saveAppearance,validAppearance} from "../../src/features/appearance/preferences";
+import {accentPresets,moduleNames,appearanceKey,appearanceTokens,applyAppearance,applyTypography,contrastRatio,defaultAppearance,defaultTypography,FONT_SIZE_MAX,FONT_SIZE_MIN,mixColor,readAppearance,readTypography,readableAccent,saveAppearance,saveTypography,typographyKey,typographyTokens,validAppearance,validTypography} from "../../src/features/appearance/preferences";
 let store:Map<string,string>;
 beforeEach(()=>{store=new Map();vi.stubGlobal("localStorage",{getItem:(key:string)=>store.get(key)??null,setItem:(key:string,value:string)=>store.set(key,value)});});
 afterEach(()=>vi.unstubAllGlobals());
@@ -37,6 +37,18 @@ test("应用只设置界面令牌/数据属性，不包含CSS/URL或变更内容
  vi.stubGlobal("document",{documentElement:{style:{setProperty:(key:string,value:string)=>props.set(key,value)},dataset},querySelector:()=>({setAttribute})});
  applyAppearance({...defaultAppearance,surface:"paper",navigation:"dark",width:"focused",density:"compact"});
  expect(dataset).toEqual({surface:"paper",navigation:"dark",width:"focused",density:"compact"});expect(props.get("--content-width")).toBe("1240px");expect(props.get("--panel-space")).toBe("18px");expect(setAttribute).toHaveBeenCalledWith("content",props.get("--canvas"));expect([...props.values()].some(v=>v.includes("url("))).toBe(false);
+});
+
+test("字体风格与字号偏好独立保存并应用，不覆盖外观记录",()=>{
+ expect(readTypography()).toEqual({value:defaultTypography,error:""});
+ const changed={font:"songti" as const,size:17};
+ expect(validTypography(changed)).toBe(true);expect(saveTypography(changed)).toBe("");expect(readTypography().value).toEqual(changed);
+ expect(JSON.parse(store.get(typographyKey)!)).toEqual({version:1,value:changed});expect(store.has(appearanceKey)).toBe(false);
+ const props=new Map<string,string>(),dataset:Record<string,string>={};
+ vi.stubGlobal("document",{documentElement:{style:{setProperty:(key:string,value:string)=>props.set(key,value)},dataset}});
+ applyTypography(changed);expect(dataset).toEqual({fontPreset:"songti",fontSize:"17"});expect(props.get("--font-ui")).toContain("Songti");expect(props.get("--font-size-base")).toBe("17px");
+ expect(typographyTokens(defaultTypography)["--font-reading"]).toContain("Heiti");
+ expect(validTypography({...changed,size:FONT_SIZE_MIN-1})).toBe(false);expect(validTypography({...changed,size:FONT_SIZE_MAX+1})).toBe(false);
 });
 
 test("所有模块随同一主色联动，三基调/预设/极端自定色可读，旧偏好不迁移",()=>{

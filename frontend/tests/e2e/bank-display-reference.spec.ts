@@ -18,7 +18,7 @@ test('混合子题按大题展示且独立判分，提交后直接显示Markdown
  await page.goto(`/exam?course=${course.id}`);
  await expect(page.locator('.bank-group-heading')).toContainText('第1大题');
  await expect(page.locator('.bank-question-editor .bank-question-number')).toHaveText(['题号 1-1','题号 1-2','题号 1-3']);
- const editor=page.locator('.bank-question-editor').first();await editor.locator(':scope > summary').click();
+ const editor=page.locator('.bank-question-editor').first();if(await editor.getAttribute('open')===null)await editor.locator(':scope > summary').click();
  const parent=editor.getByLabel('新标签的上级',{exact:true});const name=editor.getByLabel('自定义知识点',{exact:true});const create=editor.getByRole('button',{name:'创建并选中',exact:true});
  const boxes=await Promise.all([parent.boundingBox(),name.boundingBox(),create.boundingBox()]);
  expect(Math.max(...boxes.map(b=>b!.y))-Math.min(...boxes.map(b=>b!.y))).toBeLessThan(2);
@@ -27,7 +27,7 @@ test('混合子题按大题展示且独立判分，提交后直接显示Markdown
  await parent.fill('计算机');await editor.getByRole('button',{name:'＋ 计算机',exact:true}).click();
  await expect(parent).toHaveValue('计算机');await expect(editor.locator('.bank-topic-create .bank-topic-search>.tag-list')).toHaveCount(0);
  const second=await(await request.post(`${base}/courses/${course.id}/topics`,{headers,data:{name:'存储系统'}})).json();
- await page.reload();const firstEditor=page.locator('.bank-question-editor').first();await firstEditor.locator(':scope > summary').click();
+ await page.reload();const firstEditor=page.locator('.bank-question-editor').first();if(await firstEditor.getAttribute('open')===null)await firstEditor.locator(':scope > summary').click();
  const parentAgain=firstEditor.getByLabel('新标签的上级',{exact:true});await parentAgain.fill('计算机');await firstEditor.getByRole('button',{name:'＋ 计算机',exact:true}).click();
  await parentAgain.fill(second.name);await firstEditor.getByRole('button',{name:'＋ 存储系统',exact:true}).click();await expect(parentAgain).toHaveValue('存储系统');
  await expect(firstEditor.locator('.bank-topic-create .bank-topic-search>.tag-list')).toHaveCount(0);await firstEditor.getByRole('button',{name:'清除新标签的上级',exact:true}).click();await expect(parentAgain).toHaveValue('');
@@ -37,7 +37,7 @@ test('混合子题按大题展示且独立判分，提交后直接显示Markdown
  await expect(page.locator('.bank-practice .bank-group-heading')).toContainText('第1大题');
  await expect(page.getByRole('region',{name:'参考答案与解答'})).toHaveCount(0);
  await page.getByRole('button',{name:'已核对题干，确认练习',exact:true}).click();await page.getByRole('button',{name:'开始作答',exact:true}).click();
- const questions=page.locator('.question-card');const choice=questions.filter({hasText:/^\d+\. 选择题/}),blank=questions.filter({has:page.locator('.bank-math').filter({hasText:/^补全____。$/})}),written=questions.filter({has:page.locator('.bank-math').filter({hasText:/^说明数据。$/})});await expect(questions.locator(':scope > strong')).toHaveText([/^1\./,/^2\./,/^3\./]);await choice.getByRole('button',{name:/甲/}).click();
+ const questions=page.locator('.question-card');const choice=questions.filter({hasText:'1-1.'}),blank=questions.filter({hasText:'1-2.'}),written=questions.filter({hasText:'1-3.'});await expect(questions).toHaveCount(3);for(const number of ['1-1.','1-2.','1-3.'])await expect(questions.filter({hasText:number})).toHaveCount(1);await choice.getByRole('button',{name:/甲/}).click();
  await blank.getByLabel('解答内容').fill('缓存');await blank.getByRole('button',{name:'保存本题答案'}).click();
  await written.getByLabel('解答内容').fill('自己的解答');await written.getByRole('button',{name:'保存本题答案'}).click();
  await page.getByRole('button',{name:'交卷并查看答案',exact:true}).click();

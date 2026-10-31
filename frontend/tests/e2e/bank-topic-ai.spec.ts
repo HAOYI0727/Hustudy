@@ -10,7 +10,7 @@ async function setup(page:any,request:any){
 }
 async function upload(page:any,course:any){
  await page.goto(`/exam?course=${course.id}`);
- await page.getByLabel('上传题库文件（PDF/ZIP/PPTX/DOCX/Markdown）').setInputFiles({name:'semantic.md',mimeType:'text/markdown',buffer:Buffer.from('1. 发送方发现丢包时如何调整发送窗口？\n答案：这段参考答案不应出现在分类预览里。')});
+ await page.getByLabel('上传本地题库（Markdown / ZIP）').setInputFiles({name:'semantic.md',mimeType:'text/markdown',buffer:Buffer.from('# Hustudy 题库 v1\n\n## 题目 1\n### 题型\n解答题\n### 题干\n发送方发现丢包时如何调整发送窗口？\n### 参考答案\n这段参考答案不应出现在分类预览里。')});
  await page.getByRole('button',{name:'上传选中文件并开始导入',exact:true}).click();
  await expect(page.getByRole('heading',{name:'题目校正 · 共1题'})).toBeVisible({timeout:30000});
 }
@@ -18,7 +18,7 @@ async function upload(page:any,course:any){
 test('未配置时提供可见API接入说明，上传不再短语自动分配',async({page,request})=>{
  const s=await setup(page,request);await upload(page,s.course);
  const details=page.locator('.bank-api-setup').first();await expect(details.getByRole('link',{name:'打开左侧“API接入”按图设置 →'})).toHaveAttribute('href','/api-connect');
- await expect(page.getByRole('button',{name:'AI归类这1题',exact:true})).toBeDisabled();
+ await expect(page.getByRole('button',{name:'AI归类本卷待归类题目',exact:true})).toBeDisabled();
  const q=page.locator('.bank-question-editor').first();await expect(q.locator('.bank-topic-match')).toHaveCount(0);
 });
 
@@ -38,7 +38,7 @@ for(const candidate of [false,true])test(`AI预览确认、轮询与${candidate?
   await r.fulfill({response,json:data});
  });
  await upload(page,s.course);
- await page.getByRole('button',{name:'AI归类这1题',exact:true}).click();
+ await page.getByRole('button',{name:'AI归类本卷待归类题目',exact:true}).click();
  const consent=page.locator('.bank-topic-ai .bank-ai-consent');await expect(consent).toBeVisible();expect(confirmed).toBe(0);
  await expect(consent).toContainText('发送方发现丢包');await expect(consent).not.toContainText('这段参考答案');
  await consent.getByRole('button',{name:'确认发送并AI归类',exact:true}).click();

@@ -55,6 +55,52 @@ def test_capability_is_authenticated_and_never_exposes_configured_path(
         assert not client.get(path, headers=headers).json()["office_available"]
 
 
+def test_disabled_production_compatibility_keeps_native_formats_available(monkeypatch):
+    from app.core import config
+
+    settings = config.Settings(_env_file=None, env="production")
+    assert settings.office_compatibility_enabled is False
+    from app.services import preview_runtime
+    monkeypatch.setattr(preview_runtime, "get_settings", lambda: settings)
+    data = preview_runtime.preview_capabilities()
+    assert data["native_pdf"] is True
+    assert data["office_available"] is False
+    assert data["office_status"] == "disabled_by_config"
+
+
+def test_native_formats_do_not_enqueue_compatibility_preview_by_default(monkeypatch):
+    with TestClient(app) as client:
+        headers, course = context(client)
+        office = upload(client, headers, course, pptx(), "native-default.pptx")
+        materials.drain_jobs()
+        office_version = client.get(
+            f"/api/v1/versions/{office['resource_id']}", headers=headers
+        ).json()
+        assert office_version["parse_status"] == office_version["index_status"] == "SUCCEEDED"
+        assert office_version["preview_status"] == "TEXT_ONLY"
+        with SessionLocal() as db:
+            assert not db.scalar(
+                select(ProcessingJob.id).where(
+                    ProcessingJob.resource_id == office["resource_id"],
+                    ProcessingJob.type == "PREVIEW",
+                )
+            )
+        monkeypatch.setattr(preview_runtime, "office_executable", lambda: "/fake/office")
+        requested = client.post(
+            f"/api/v1/versions/{office['resource_id']}/preview-jobs", headers=headers
+        )
+        assert requested.status_code == 202
+
+        pdf = upload(client, headers, course, blank_pdf(), "native-default.pdf")
+        pdf_version = client.get(
+            f"/api/v1/versions/{pdf['resource_id']}", headers=headers
+        ).json()
+        assert pdf_version["preview_status"] == "SUCCEEDED"
+        assert client.get(
+            f"/api/v1/versions/{pdf['resource_id']}/preview", headers=headers
+        ).status_code == 200
+
+
 def test_missing_converter_recovery_retains_job_budget_and_citations(monkeypatch):
     with TestClient(app) as client:
         headers, course = context(client)
@@ -67,22 +113,14 @@ def test_missing_converter_recovery_retains_job_budget_and_citations(monkeypatch
             f"/api/v1/versions/{version_id}/chunks", headers=headers
         ).json()
         assert before
-        with SessionLocal() as db:
-            preview = db.scalar(
-                select(ProcessingJob).where(
-                    ProcessingJob.resource_id == version_id,
-                    ProcessingJob.type == "PREVIEW",
-                )
-            )
-            job_id, attempt = preview.id, preview.attempt_count
         assert client.post(path, headers=stranger).status_code == 404
         assert client.post(path, headers=headers).status_code == 409
         monkeypatch.setattr(
             preview_runtime, "office_executable", lambda: "/fake/office"
         )
         first = client.post(path, headers=headers)
-        assert first.status_code == 202 and first.json()["id"] == job_id
-        assert first.json()["attempt_count"] == attempt
+        assert first.status_code == 202
+        job_id = first.json()["id"]
         duplicate = client.post(path, headers=headers)
         assert duplicate.status_code == 202 and duplicate.json()["id"] == job_id
 
@@ -117,12 +155,10 @@ def test_native_pdf_recovery_works_without_office_and_text_format_is_rejected():
     with TestClient(app) as client:
         headers, course = context(client)
         pdf = upload(client, headers, course, blank_pdf(), "scan.pdf")
-        # A separate preview request can serve a scan even before text parsing.
+        # PDF is already a directly readable page source; no conversion task is needed.
         path = f"/api/v1/versions/{pdf['resource_id']}/preview-jobs"
         first = client.post(path, headers=headers)
-        assert first.status_code == 202
-        assert client.post(path, headers=headers).json()["id"] == first.json()["id"]
-        materials.drain_jobs()
+        assert first.status_code == 409
         assert (
             client.get(
                 f"/api/v1/versions/{pdf['resource_id']}/preview", headers=headers
@@ -148,7 +184,7 @@ def test_conversion_errors_are_safe_and_do_not_publish_output(monkeypatch, failu
     monkeypatch.setattr(preview_runtime, "office_executable", lambda: "/fake/office")
 
     def convert(args, **kwargs):
-        assert kwargs["timeout"] == 60 and kwargs["check"]
+        assert kwargs["timeout"] == 120 and kwargs["check"]
         assert "--headless" in args and "--norestore" in args
         assert any(value.startswith("-env:UserInstallation=file:") for value in args)
         if failure == "timeout":
@@ -205,13 +241,6 @@ def test_pptx_hidden_slide_mapping_rejects_old_cache_and_preserves_existing_imag
             )  # One original slide versus two preview pages.
             version.preview_status = "SUCCEEDED"
             version.preview_path = str(bad)
-            job = db.scalar(
-                select(ProcessingJob).where(
-                    ProcessingJob.resource_id == version_id,
-                    ProcessingJob.type == "PREVIEW",
-                )
-            )
-            job.status = "SUCCEEDED"
             db.commit()
         assert (
             client.get(
@@ -230,7 +259,8 @@ def test_pptx_hidden_slide_mapping_rejects_old_cache_and_preserves_existing_imag
             f"/api/v1/versions/{version_id}/preview-jobs", headers=headers
         )
         assert response.status_code == 202
-        client.post(f"/api/v1/jobs/{response.json()['id']}/cancel", headers=headers)
+        job_id = response.json()["id"]
+        client.post(f"/api/v1/jobs/{job_id}/cancel", headers=headers)
         with SessionLocal() as db:
             version = db.get(DocumentVersion, version_id)
             version.preview_status = "SUCCEEDED"

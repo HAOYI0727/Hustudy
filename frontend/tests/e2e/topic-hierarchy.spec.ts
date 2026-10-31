@@ -11,7 +11,7 @@ test('标签父子管理、贴标签搜索和自动归属、父级题数及抽�
  const child=await(await request.post(`${base}/courses/${course.id}/topics`,{headers,data:{name:'高速缓存',aliases:['Cache'],parent_id:root.id}})).json();
  await request.post(`${base}/courses/${course.id}/question-bank/import`,{headers,data:{title:'层级样题',content:'1. 解释缓存。'}});
  await page.addInitScript(a=>{localStorage.setItem('hustudy_token',a.access_token);localStorage.setItem('hustudy_user',a.user.username);},auth);
- await page.goto(`/exam?course=${course.id}`);const editor=page.locator('.bank-question-editor').first();await editor.locator(':scope > summary').click();await editor.getByLabel('搜索其他知识标签').fill('Cache');
+ await page.goto(`/exam?course=${course.id}`);const editor=page.locator('.bank-question-editor').first();if(!(await editor.evaluate(e=>(e as HTMLDetailsElement).open))){await editor.locator(':scope > summary').click();}await editor.getByLabel('搜索其他知识标签').fill('Cache');
  await editor.locator('.bank-topic-option').filter({hasText:'高速缓存'}).locator('input').check();await expect(editor.getByLabel('自动归属父标签')).toContainText('计算机组成');
  await editor.getByRole('button',{name:'保存本题校正',exact:true}).click();await page.getByLabel('全选本页').check();await page.getByRole('button',{name:'核验所选（1）',exact:true}).click();await expect(page.getByText('所选题目已核验，题库审核状态已同步',{exact:true})).toBeVisible();
  await page.getByRole('button',{name:'考点、统计与蓝图',exact:true}).click();await expect(page.getByRole('button',{name:'计算机组成 · 1题',exact:true})).toBeVisible();

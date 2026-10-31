@@ -18,6 +18,7 @@ from app.main import create_app
 from app.models import DocumentVersion, ProcessingJob
 from app.services import worker_runtime as runtime
 from app.services import worker_supervisor as supervisor
+from app.services import preview_runtime
 from app.workers import materials
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -34,6 +35,11 @@ def test_autostart_defaults_and_explicit_external_mode():
     assert Settings(
         _env_file=None, env="production", worker_autostart=True
     ).manage_worker
+
+
+def test_production_native_reading_does_not_require_office_converter():
+    assert Settings(_env_file=None, env="production").office_compatibility_enabled is False
+    assert Settings(_env_file=None, env="development").office_compatibility_enabled is True
 
 
 def test_runtime_readonly_lock_freshness_and_duplicate_process(tmp_path, monkeypatch):
@@ -206,15 +212,20 @@ def test_slow_preview_does_not_block_parse_index_and_cancel_keeps_lease(
             headers=headers,
             files={
                 "file": (
-                    "preview.pdf",
-                    io.BytesIO((ROOT / "fixtures/preview_demo.pdf").read_bytes()),
-                    "application/pdf",
+                    "preview.pptx",
+                    io.BytesIO((ROOT / "fixtures/preview_demo.pptx").read_bytes()),
+                    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
                 )
             },
         ).json()
         materials.run_once(("PARSE", "INDEX"))
         materials.run_once(("PARSE", "INDEX"))
         monkeypatch.setattr(materials, "preview_file", slow)
+        monkeypatch.setattr(preview_runtime, "office_executable", lambda: "/fake/office")
+        requested = client.post(
+            f"/api/v1/versions/{first['resource_id']}/preview-jobs", headers=headers
+        )
+        assert requested.status_code == 202
         errors = []
 
         def preview():

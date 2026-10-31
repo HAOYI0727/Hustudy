@@ -1,6 +1,6 @@
 /* English uses Times; Chinese adopts a role-specific local fallback, without splitting text. */
-:root {font-family:var(--font-ui);font-kerning:normal;}
-.app-shell,.auth-page,.navigation-drawer,.notes-dialog,.select-menu {font-family:var(--font-ui);}
+:root {font-family:var(--font-ui);font-size:var(--font-size-base,14px);font-kerning:normal;}
+.app-shell,.auth-page,.navigation-drawer,.notes-dialog,.select-menu {font-family:var(--font-ui);font-size:var(--font-size-base,14px);}
 .app-shell :where(h1,h2,h3,h4,h5,h6),.auth-page :where(h1,h2,h3,h4),.notes-dialog :where(h1,h2,h3,h4) {font-family:var(--font-ui);}
 .app-shell .brand,.navigation-drawer .brand,.auth-page .brand,.app-shell .course-icon,.app-shell .blueprint-summary strong,.app-shell .score-card strong {font-family:var(--font-ui);}
 /* Native form controls also use the UI face; explicit source/math monospace rules stay stronger. */
