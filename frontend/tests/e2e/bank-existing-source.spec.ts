@@ -13,16 +13,14 @@ async function setup(page:any,request:any,name:string,raw:Buffer){
 
 test('已有扫描PDF复用本地转图OCR与AI原页选项，不重复上传',async({page,request})=>{
  test.setTimeout(120000);
- await page.route('**/question-bank/ai-capabilities',route=>route.fulfill({json:{configured:true}}));
+ await page.route('**/question-bank/ai-capabilities',route=>route.fulfill({json:{configured:true,vision_configured:true,model:'glm-5.3-flash'}}));
  const raw=readFileSync(fileURLToPath(new URL('../../../fixtures/question_bank_scan_demo.pdf',import.meta.url)));
  const {headers,c,job}=await setup(page,request,'已有扫描.pdf',raw);
- await page.getByRole('button',{name:'识别已上传题库',exact:true}).click();await expect(page.getByRole('button',{name:'识别扫描页并拆分题目',exact:true})).toBeVisible({timeout:30000});
- await expect(page.getByRole('button',{name:'AI转写原页与公式',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'整份PDF转图识别（文字层异常时）',exact:true})).toBeVisible();
+ await page.getByLabel('识别方式',{exact:true}).selectOption('ai');await page.getByRole('button',{name:'识别已上传题库',exact:true}).click();const aiButton=page.getByRole('button',{name:/^AI转写原页与公式/});await expect(aiButton).toBeVisible({timeout:60000});
  expect(await(await request.get(`${base}/courses/${c.id}/question-bank/image-jobs`,{headers})).json()).toEqual([]);
- await page.getByRole('button',{name:'识别扫描页并拆分题目',exact:true}).click();await expect(page.getByRole('heading',{name:'题目校正 · 共2题'})).toBeVisible({timeout:90000});
  expect(await(await request.get(`${base}/courses/${c.id}/documents`,{headers})).json()).toHaveLength(1);
  let sent:any=null;await page.route(`**/question-bank/pdf/${job.resource_id}/ocr`,route=>{sent=route.request().postDataJSON();return route.fulfill({json:{paper_id:'isolated-vision-job',status:'QUEUED'}});});
- page.once('dialog',d=>d.accept());await page.getByRole('button',{name:'AI转写原页与公式',exact:true}).click();await expect.poll(()=>sent?.engine).toBe('ai');expect(sent.confirm_remote_send).toBe(true);expect(sent.classify_topics).toBe(true);expect(sent.questions_only).toBe(false);
+ page.once('dialog',d=>{expect(d.message()).toContain('glm-5.3-flash');d.accept();});await aiButton.click();await expect.poll(()=>sent?.engine).toBe('ai');expect(sent.confirm_remote_send).toBe(true);expect(sent.classify_topics).toBe(true);expect(sent.questions_only).toBe(false);
 });
 
 test('已有文字文件复用AI原文预览，确认前不发送模型请求',async({page,request})=>{

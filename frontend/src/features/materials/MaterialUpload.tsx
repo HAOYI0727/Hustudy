@@ -71,7 +71,7 @@ export function MaterialUpload({token, courseId, active, disabled, pending=false
     {!!rows.length && <section className="document-upload-queue" aria-label="资料上传队列">
       <p role="status">已保存 {saved} / {rows.length} 份{uploading ? " · 正在逐份上传" : outstanding.length ? " · 等待操作" : " · 本批完成"}</p>
       <progress aria-label="资料批次进度" max={rows.length} value={saved}/>
-      <ol>{rows.map(row => <li key={row.id} data-state={row.state}><div><span title={row.file.name}>{row.file.name}</span><strong>{labels[row.state]}</strong></div>{(row.message || documentFileError(row.file)) && <small>{row.message || documentFileError(row.file)}</small>}</li>)}</ol>
+      <ol>{rows.map((row,index) => <li key={`${row.id}:${index}`} data-state={row.state}><div><span title={row.file.name}>{row.file.name}</span><strong>{labels[row.state]}</strong></div>{(row.message || documentFileError(row.file)) && <small>{row.message || documentFileError(row.file)}</small>}</li>)}</ol>
       {!!saved && <small>原件已入库，解析与索引进度见处理记录。</small>}
     </section>}
     <button className="primary" disabled={disabled || !outstanding.length || (mode === "version" && !target)}><Icon name={uploading ? "refresh" : "upload"} className={uploading ? "is-spinning" : ""}/>{uploading ? "正在上传…" : rows.some(row => ["failed", "paused"].includes(row.state)) ? "重试未成功文件" : mode === "version" ? "保存为新版本" : "上传并开始整理"}</button>

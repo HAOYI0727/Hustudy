@@ -163,11 +163,16 @@ def parse_isolated(source):
 
 def preview_file(source):
     from ..core.storage import check_capacity, get_storage
+    from ..core.config import get_settings
 
     if source.suffix.lower() == ".pdf":
         return str(source)
     if source.suffix.lower() not in {".pptx", ".docx"}:
         return None
+    if not get_settings().office_compatibility_enabled:
+        raise ValueError(
+            "服务器未启用兼容PDF转换；PPTX/DOCX仍可直接原格式阅读，无需安装额外服务"
+        )
     from ..services.preview_runtime import office_executable
 
     executable = office_executable()
@@ -200,13 +205,13 @@ def preview_file(source):
                     str(scratch),
                     str(source.resolve()),
                 ],
-                timeout=60,
+                timeout=120,
                 check=True,
                 capture_output=True,
             )
         except subprocess.TimeoutExpired as exc:
             raise ValueError(
-                "Office转PDF超过60秒，已停止；可继续读文本，或自行导出PDF后上传"
+                "Office转PDF超过120秒，已停止；可继续读文本，或自行导出PDF后上传"
             ) from exc
         except (subprocess.CalledProcessError, OSError) as exc:
             raise ValueError(
@@ -306,8 +311,6 @@ def run_once(kinds=("PARSE", "INDEX", "PREVIEW")):
             )
             if kind == "PARSE":
                 version.parse_error = error
-                # Scan PDFs still get a preview even when text extraction fails.
-                enqueue(db, version, "PREVIEW")
             elif kind == "PREVIEW":
                 version.preview_error = error
         else:
@@ -333,7 +336,6 @@ def run_once(kinds=("PARSE", "INDEX", "PREVIEW")):
                 version.parse_status = "SUCCEEDED"
                 version.parse_error = None
                 enqueue(db, version, "INDEX")
-                enqueue(db, version, "PREVIEW")
             elif kind == "INDEX":
                 db.flush()
                 try:

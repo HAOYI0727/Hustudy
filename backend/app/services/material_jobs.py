@@ -175,11 +175,17 @@ def request_preview(db, user_id, version_id):
     """Serialize duplicate clicks and reuse failed jobs without resetting budgets."""
     from pathlib import Path
     from .preview_runtime import office_executable
+    from ..core.config import get_settings
 
     version = lock_version(db, version_id, user_id)
     source = Path(version.source_path)
     if source.suffix.lower() not in {".pdf", ".pptx", ".docx"}:
         raise HTTPException(422, "该格式使用文本阅读；PDF预览支持PDF/PPTX/DOCX")
+    if source.suffix.lower() != ".pdf" and not get_settings().office_compatibility_enabled:
+        raise HTTPException(
+            409,
+            "服务器未启用兼容PDF转换；PPTX/DOCX仍可直接原格式阅读，无需安装额外服务",
+        )
     if not source.is_file():
         raise HTTPException(404, "原始文件不可用，无法生成预览")
     jobs = db.scalars(

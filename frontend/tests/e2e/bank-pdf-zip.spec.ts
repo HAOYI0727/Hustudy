@@ -12,31 +12,30 @@ async function setup(page:any,request:any){
 }
 test('ZIP文档自动显示，附带图片只入待识别队列',async({page,request})=>{
  const s=await setup(page,request);
- const zip=new JSZip();zip.file('unit/answers.md','题目1\n1. 什么是队头阻塞？\n这是原文中的参考解答。\n2. 指出处理顺序。\n按FIFO处理。');
+ const zip=new JSZip();zip.file('unit/answers.md','# Hustudy 题库 v1\n\n## 题目 1\n### 题型\n解答题\n### 题干\n什么是队头阻塞？\n### 参考答案\n这是原文中的参考解答。\n\n## 题目 2\n### 题型\n解答题\n### 题干\n指出处理顺序。\n### 参考答案\n按FIFO处理。');
  zip.file('unit/figure.png',readFileSync(fileURLToPath(new URL('../../../fixtures/question_bank_scan_demo.png',import.meta.url))));zip.file('ignored.exe','not executed');
  const buffer=await zip.generateAsync({type:'nodebuffer'});
- await page.getByLabel('上传题库文件（PDF/ZIP/PPTX/DOCX/Markdown）').setInputFiles({name:'questions.zip',mimeType:'application/zip',buffer});
+ await page.getByLabel('上传本地题库（Markdown / ZIP）').setInputFiles({name:'questions.zip',mimeType:'application/zip',buffer});
  await page.getByRole('button',{name:'上传选中文件并开始导入',exact:true}).click();
  await expect(page.getByRole('heading',{name:'题目校正 · 共2题'})).toBeVisible({timeout:30000});
  const first=page.locator('.bank-question-editor').first();await first.getByText('编辑Markdown源码与答案',{exact:true}).click();await expect(first.getByRole('textbox',{name:'题干',exact:true})).toHaveValue('什么是队头阻塞？');
  await expect(first.getByRole('textbox',{name:'参考解答（原文提供，可校正，不用于自动评分）',exact:true})).toHaveValue('这是原文中的参考解答。');
- await page.getByRole('button',{name:/查看ZIP图片/}).click();
- await expect(page.getByRole('button',{name:'识别图片文字并拆分题目',exact:true})).toBeVisible();
+ await expect(page.getByRole('region',{name:'题库插图库'})).toContainText('0 张插图');
  expect(await(await request.get(`${base}/courses/${s.course.id}/question-bank/image-jobs`,{headers:s.headers})).json()).toEqual([]);
  await page.setViewportSize({width:390,height:900});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBeTruthy();
 });
 
 test('缺少模型密钥时明确禁用AI选项，本地导入仍可用',async({page,request})=>{
  await setup(page,request);
- await expect(page.getByRole('button',{name:'本地直接上传（PDF / ZIP）',exact:true})).toHaveClass('primary');
+ await expect(page.getByRole('button',{name:'本地直接上传（Markdown / ZIP）',exact:true})).toHaveClass('primary');
  await expect(page.getByLabel('从已上传资料或题库原件导入（含人工补录）')).toBeHidden();
  await page.getByRole('button',{name:'从资料库导入',exact:true}).click();
  await expect(page.getByLabel('从已上传资料或题库原件导入（含人工补录）')).toBeVisible();
- await expect(page.getByLabel('上传题库文件（PDF/ZIP/PPTX/DOCX/Markdown）')).toBeHidden();
- await page.getByRole('button',{name:'本地直接上传（PDF / ZIP）',exact:true}).click();
- await expect(page.getByText(/本机未配置模型密钥/)).toBeVisible();
+ await expect(page.getByLabel('上传本地题库（Markdown / ZIP）')).toBeHidden();
+ await page.getByRole('button',{name:'本地直接上传（Markdown / ZIP）',exact:true}).click();
+ await expect(page.getByText(/未配置模型密钥/)).toBeVisible();
  await expect(page.getByLabel('识别方式').locator('option[value="ai"]')).toHaveJSProperty('disabled',true);
- await page.getByLabel('上传题库文件（PDF/ZIP/PPTX/DOCX/Markdown）').setInputFiles({name:'basic.md',mimeType:'text/markdown',buffer:Buffer.from('1. 简述协议。')});
+ await page.getByLabel('上传本地题库（Markdown / ZIP）').setInputFiles({name:'basic.md',mimeType:'text/markdown',buffer:Buffer.from('# Hustudy 题库 v1\n\n## 题目 1\n### 题型\n解答题\n### 题干\n简述协议。')});
  await page.getByRole('button',{name:'上传选中文件并开始导入',exact:true}).click();
  await expect(page.getByRole('heading',{name:'题目校正 · 共1题'})).toBeVisible({timeout:30000});
 });
@@ -45,7 +44,7 @@ test('本地直接选择ZIP，内部实际PDF也能自动拆题',async({page,req
  test.skip(!process.env.HUSTUDY_TEST_BANK_PDF,'Private user PDF requires explicitly supplied path');
  await setup(page,request);
  const zip=new JSZip();zip.file('试卷/6-ans.pdf',readFileSync(process.env.HUSTUDY_TEST_BANK_PDF!));
- await page.getByLabel('上传题库文件（PDF/ZIP/PPTX/DOCX/Markdown）').setInputFiles({name:'本地题库.zip',mimeType:'application/zip',buffer:await zip.generateAsync({type:'nodebuffer'})});
+ await page.getByLabel('上传本地题库（Markdown / ZIP）').setInputFiles({name:'本地题库.zip',mimeType:'application/zip',buffer:await zip.generateAsync({type:'nodebuffer'})});
  await page.getByLabel('试卷/6-ans.pdf',{exact:true}).check();
  await page.getByRole('button',{name:'上传选中文件并开始导入',exact:true}).click();
  await expect(page.getByRole('heading',{name:'题目校正 · 共17题'})).toBeVisible({timeout:30000});
@@ -57,7 +56,7 @@ test('本地直接选择ZIP，内部实际PDF也能自动拆题',async({page,req
 test('用户实际PDF上传后自动拆为17题并立即展开，跨页解答保留',async({page,request})=>{
  test.skip(!process.env.HUSTUDY_TEST_BANK_PDF,'Private user PDF requires explicitly supplied local path');
  await setup(page,request);
- await page.getByLabel('上传题库文件（PDF/ZIP/PPTX/DOCX/Markdown）').setInputFiles(process.env.HUSTUDY_TEST_BANK_PDF!);
+ await page.getByLabel('上传本地题库（Markdown / ZIP）').setInputFiles(process.env.HUSTUDY_TEST_BANK_PDF!);
  await page.getByRole('button',{name:'上传选中文件并开始导入',exact:true}).click();
  await expect(page.getByRole('heading',{name:'题目校正 · 共17题'})).toBeVisible({timeout:30000});
  await expect(page.locator('details.bank-question-editor[open]')).toHaveCount(17);

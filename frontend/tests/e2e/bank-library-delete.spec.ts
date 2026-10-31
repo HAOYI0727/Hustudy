@@ -1,5 +1,6 @@
 import {test,expect} from '@playwright/test';
 const base='http://127.0.0.1:8056/api/v1';
+const strictBank=`# Hustudy 题库 v1\n\n## 题目 1\n### 题型\n解答题\n### 题干\n简述第一题。\n\n## 题目 2\n### 题型\n解答题\n### 题干\n简述第二题。\n`;
 async function setup(page:any,request:any){
  const a=await(await request.post(base+'/auth/register',{data:{username:'lib_'+crypto.randomUUID().replaceAll('-',''),password:'Test-password-2026'}})).json();
  const headers={Authorization:'Bearer '+a.access_token};
@@ -9,7 +10,7 @@ async function setup(page:any,request:any){
 }
 async function upload(page:any,c:any){
  await page.goto(`/exam?course=${c.id}`);
- await page.getByLabel('上传题库文件（PDF/ZIP/PPTX/DOCX/Markdown）').setInputFiles({name:'bank.md',mimeType:'text/markdown',buffer:Buffer.from('1. 简述第一题。\n2. 简述第二题。')});
+ await page.getByLabel('上传本地题库（Markdown / ZIP）').setInputFiles({name:'bank.md',mimeType:'text/markdown',buffer:Buffer.from(strictBank)});
  await page.getByRole('button',{name:'上传选中文件并开始导入',exact:true}).click();
  await expect(page.getByRole('heading',{name:'题目校正 · 共2题'})).toBeVisible({timeout:30000});
 }

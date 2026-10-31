@@ -89,7 +89,25 @@ def main():
                     ]
                 )
                 db.commit()
-            drain_jobs(limit=1000)
+            # The managed worker may still be committing the final index batch when
+            # the synchronous drain returns. Wait for the explicit terminal state
+            # instead of turning scheduler timing into a flaky capacity failure.
+            deadline = time.monotonic() + 30
+            while True:
+                with SessionLocal() as db:
+                    pending_versions = db.scalar(
+                        select(func.count())
+                        .select_from(DocumentVersion)
+                        .where(DocumentVersion.index_status != "SUCCEEDED")
+                    )
+                if pending_versions == 0:
+                    break
+                if time.monotonic() >= deadline:
+                    raise RuntimeError(
+                        f"capacity seed did not finish indexing ({pending_versions} versions pending)"
+                    )
+                drain_jobs(limit=1000)
+                time.sleep(0.05)
             with SessionLocal() as db:
                 counts = {
                     name: db.scalar(select(func.count()).select_from(model))

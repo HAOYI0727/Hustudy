@@ -55,7 +55,7 @@ export function Search({ token, courseId, onMaterial, onNote, onError }: {
   };
   const search = (event:FormEvent) => { event.preventDefault(); if (query.trim()) void load(query.trim()); };
   return <div className="page search-page">
-    <section className="search-hero"><p className="eyebrow">FIND YOUR KNOWLEDGE</p><h2>想找的知识，就在这门课里。</h2><p>一次查找课程原文和笔记，直接回到知识所在的位置。</p>
+    <section className="search-hero"><p className="eyebrow">FIND YOUR KNOWLEDGE</p><h2>想找的知识，就在这门课里</h2><p>一次查找课程原文和笔记，直接回到知识所在的位置。</p>
       <form className="workspace-search" onSubmit={search}><Icon name="search" size={21}/><input autoFocus aria-label="查找课程资料与笔记" value={query} onChange={e => setQuery(e.target.value)} placeholder="输入概念、章节或笔记关键词…" maxLength={200}/><button className="primary" disabled={busy || !query.trim()}>{busy ? "查找中…" : "查找"}<Icon name="arrow" size={16}/></button></form>
       <div className="search-scope"><select aria-label="查找资料分类" value={category} onChange={e => { setCategory(e.target.value); clearResults(); }}><option value="">全部资料分类</option>{scopes.categories.map(value => <option key={value}>{value}</option>)}</select><select aria-label="查找资料标签" value={tag} onChange={e => { setTag(e.target.value); clearResults(); }}><option value="">全部资料标签</option>{scopes.tags.map(value => <option key={value}>{value}</option>)}</select><select aria-label="查找资料版本范围" value={latestOnly ? "latest" : "all"} onChange={e => { setLatestOnly(e.target.value === "latest"); clearResults(); }}><option value="latest">只查最新版本</option><option value="all">包含历史版本</option></select></div>
       {(category || tag) && <p className="scope-notice">分类与标签筛选适用于资料；笔记仍按课程关键词查找。</p>}{scopeFailed && <p className="scope-notice" role="status">分类列表暂未加载，仍可按课程关键词查找。</p>}

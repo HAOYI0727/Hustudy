@@ -455,7 +455,7 @@ POST /backups→202控制记录；GET /backups返回本人最近50条，GET /bac
 
 GET /material-capabilities（Bearer）返回native_pdf、office_available、office_status、message、installation_url，不暴露本机路径；发现可执行程序不保证所有课件一定转换成功。可配置后端HUSTUDY_LIBREOFFICE_PATH。
 
-POST /versions/{id}/preview-jobs（无需正文）→202 ProcessingJob。活跃返回已有记录；失败/取消重试原记录、保留次数上限。可用预览409；旧PPTX缓存页号不匹配且没有有效截图时可新建恢复任务，有截图时409要求人工核对。Markdown/TXT422、原件缺失404、归属/删除404。安装转换器后无需重传文件，用户从阅读区显式重试。
+上传PPTX/DOCX不自动创建PREVIEW任务：原格式阅读与正文解析/索引独立可用。POST /versions/{id}/preview-jobs（无需正文）→202 ProcessingJob。活跃返回已有记录；失败/取消重试原记录、保留次数上限。可用预览409；旧PPTX缓存页号不匹配且没有有效截图时可新建恢复任务，有截图时409要求人工核对。Markdown/TXT422、原件缺失404、归属/删除404。安装转换器后无需重传文件，用户从阅读区显式重试。
 
 PPTX导出包括隐藏幻灯片并核对页数；GET preview与截图拒绝旧错位缓存，不能把PDF第N页静默冒充原PPT第N张。DOCX继续标preview_page，正文引用仍docx_block。PDF.js使用同版本legacy显示层/worker，以支持缺少新Map方法的Safari。详情见[本轮验收](zhy/materialhub/preview_recovery_acceptance.md)。
 

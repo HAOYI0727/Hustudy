@@ -116,7 +116,7 @@ test('M3 登录过期后恢复原账户仍保留标签且不会自动重放', as
   await page.getByRole('button', {name: '添加标签', exact: true}).click();
   await page.getByRole('button', {name: '关闭文件夹与标签', exact: true}).click();
   await page.getByRole('button', {name: '立即保存', exact: true}).click();
-  const modal = page.getByRole('dialog'); await expect(modal).toBeVisible();
+  const modal = page.getByRole('dialog', {name: /登录已过期/}); await expect(modal).toBeVisible();
   await modal.getByLabel('密码', {exact: true}).fill('Test-password-2026');
   await modal.getByRole('button', {name: '登录', exact: true}).click();
   await expect(modal).not.toBeVisible();

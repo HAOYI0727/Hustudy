@@ -4,7 +4,7 @@ test('题目默认显示编译Markdown表格与公式，源码折叠、保存规
  const auth=await(await request.post(base+'/auth/register',{data:{username:'md_'+crypto.randomUUID().replaceAll('-',''),password:'Test-password-2026'}})).json();const headers={Authorization:'Bearer '+auth.access_token};const c=await(await request.post(base+'/courses',{headers,data:{name:'Markdown题目'}})).json();
  const p=await(await request.post(`${base}/courses/${c.id}/question-bank/import`,{headers,data:{title:'表格题',content:'1. 根据表格解释 $D_8\\oplus D_7$。\n输入\t输出\n0\t≤ 2\n1\t$x_1$'}})).json();
  await page.addInitScript(a=>{localStorage.setItem('hustudy_token',a.access_token);localStorage.setItem('hustudy_user',a.user.username);},auth);await page.goto(`/exam?course=${c.id}`);
- const q=page.locator('.bank-question-editor').first();await q.locator(':scope > summary').click();
+ const q=page.locator('.bank-question-editor').first();if(await q.getAttribute('open')===null)await q.locator(':scope > summary').click();
  await expect(q.locator('.bank-math table')).toBeVisible();await expect(q.locator('.bank-math .katex').first()).toBeVisible();await expect(q.getByRole('textbox',{name:'题干',exact:true})).not.toBeVisible();
  await q.getByText('编辑Markdown源码与答案',{exact:true}).click();await expect(q.getByRole('textbox',{name:'题干',exact:true})).toHaveValue(/\| 输入 \| 输出 \|/);
  await q.getByRole('textbox',{name:'题干',exact:true}).fill('根据下表解释 $D_8$。\n状态\t值\n启用\t∑ ≤ 3\n关闭\t0');await q.getByRole('button',{name:'保存本题校正',exact:true}).click();

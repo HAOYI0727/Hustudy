@@ -63,6 +63,7 @@ test('未保存草稿禁止批量删除与回收站写入，关闭窗口保留�
   await request.delete(base + `/notes/${s.notes[2].id}?revision=1`, {headers: s.headers});
   await page.locator('.note-manager').getByRole('button', {name: '数据库复习', exact: true}).click();
   await page.route('**/notes/' + s.notes[0].id, route => route.request().method() === 'PATCH' ? route.abort('failed') : route.continue());
+  await page.getByLabel('自动保存笔记').check();
   await page.getByLabel('Markdown 正文').fill('尚未保存的草稿内容');
   await expect(page.getByRole('alert').filter({hasText: '本地内容仍在'})).toBeVisible();
   await page.getByRole('button', {name: '笔记管理', exact: true}).click();

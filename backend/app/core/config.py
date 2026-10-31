@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     storage_root: str = "./data/storage"
     worker_autostart: bool | None = None
     storage_reserve_bytes: int = Field(default=64 * 1024 * 1024, ge=1024 * 1024)
+    # Native PDF/PPTX/DOCX reading never depends on a system converter.
+    # Compatibility PDF generation is opt-in in production so a deployment
+    # does not need LibreOffice just to accept and read course files.
+    compatibility_preview_enabled: bool | None = None
     libreoffice_path: str = Field(default="", max_length=1024, repr=False)
     jwt_secret: str = Field(default="", min_length=32, repr=False)
     access_token_minutes: int = 120
@@ -44,6 +48,14 @@ class Settings(BaseSettings):
             self.worker_autostart
             if self.worker_autostart is not None
             else self.env == "development"
+        )
+
+    @property
+    def office_compatibility_enabled(self) -> bool:
+        return (
+            self.compatibility_preview_enabled
+            if self.compatibility_preview_enabled is not None
+            else self.env != "production"
         )
 
     @property

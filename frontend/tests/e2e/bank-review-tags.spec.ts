@@ -36,7 +36,7 @@ test('追加超过5标签逐题列出题库和原题号且整批不改',async({p
  const rows=async()=>(await(await request.get(`${base}/courses/${course.id}/question-bank`,{headers})).json()).items;
  const before=await rows();expect(before).toHaveLength(2);
  await page.addInitScript((a:any)=>{localStorage.setItem('hustudy_token',a.access_token);localStorage.setItem('hustudy_user',a.user.username);},auth);await page.goto(`/exam?course=${course.id}`);
- await expect(page.locator('.bank-question-editor')).toHaveCount(2);await page.getByLabel('全选本页').check();await page.getByLabel('批量知识标签',{exact:true}).fill('标签5');await page.getByRole('button',{name:'＋ 标签5',exact:true}).click();await page.getByRole('button',{name:'都添加这个标签',exact:true}).click();
+ await page.getByLabel('显示题库').selectOption('');await expect(page.locator('.bank-question-editor')).toHaveCount(2);await page.getByLabel('全选本页').check();await page.getByLabel('批量知识标签',{exact:true}).fill('标签5');await page.getByRole('button',{name:'＋ 标签5',exact:true}).click();await page.getByRole('button',{name:'都添加这个标签',exact:true}).click();
  const alert=page.locator('.bank-manager > .course-conflict');await expect(alert).toContainText('每题5个标签');await expect(alert).toContainText('题库「试卷甲」题号 1（6/5个标签）');await expect(alert).toContainText('题库「试卷乙」题号 1（6/5个标签）');
  expect(await rows()).toEqual(before);await expect(page.getByRole('button',{name:'核验所选（2）',exact:true})).toBeEnabled();
 });

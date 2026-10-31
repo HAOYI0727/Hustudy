@@ -1,5 +1,6 @@
 import {test,expect} from '@playwright/test';
 const base='http://127.0.0.1:8056/api/v1';
+const strictBank=(stems:string[])=>`# Hustudy 题库 v1\n\n${stems.map((stem,i)=>`## 题目 ${i+1}\n### 题型\n解答题\n### 题干\n${stem}`).join("\n\n")}\n`;
 async function setup(page:any,request:any){
  const auth=await(await request.post(base+'/auth/register',{data:{username:'batch_'+crypto.randomUUID().replaceAll('-',''),password:'Test-password-2026'}})).json();const headers={Authorization:'Bearer '+auth.access_token};const c=await(await request.post(base+'/courses',{headers,data:{name:'校正与目录'}})).json();
  await page.addInitScript((a:any)=>{localStorage.setItem('hustudy_token',a.access_token);localStorage.setItem('hustudy_user',a.user.username);},auth);return {headers,c};
@@ -17,7 +18,7 @@ test('多级子树中出现同题时父级不再重复展示，题目原记录�
 test('全选批量保存当前草稿，冲突保留草稿，未选编辑保持且手机适配',async({page,request})=>{
  const {headers,c}=await setup(page,request);await request.post(`${base}/courses/${c.id}/question-bank/import`,{headers,data:{title:'批量保存',content:'1. 第一题。\n2. 第二题。\n3. 第三题。'}});
  await page.goto(`/exam?course=${c.id}`);const editors=page.locator('.bank-question-editor');
- for(let i=0;i<3;i++){await editors.nth(i).locator(':scope > summary').click();await editors.nth(i).getByText('编辑Markdown源码与答案',{exact:true}).click();await editors.nth(i).getByRole('textbox',{name:'题干',exact:true}).fill(`本地校正${i+1}。`);}
+ for(let i=0;i<3;i++){const editor=editors.nth(i);if(await editor.getAttribute('open')===null)await editor.locator(':scope > summary').click();await editor.getByText('编辑Markdown源码与答案',{exact:true}).click();await editor.getByRole('textbox',{name:'题干',exact:true}).fill(`本地校正${i+1}。`);}
  await page.getByLabel('选择题号 1',{exact:true}).check();await page.getByLabel('选择题号 2',{exact:true}).check();let sent:any;
  await page.route('**/question-bank/save',async route=>{sent=route.request().postDataJSON();await route.fulfill({status:409,json:{error:{code:'REVISION_CONFLICT',message:'题目已变化，请保留草稿',details:{}}}});await page.unroute('**/question-bank/save');});
  await page.getByRole('button',{name:'保存所选（2）',exact:true}).click();await expect(page.getByText('题目已变化，请保留草稿',{exact:false}).first()).toBeVisible();expect(sent.items.map((v:any)=>v.stem)).toEqual(['本地校正1。','本地校正2。']);await expect(editors.nth(0).getByRole('textbox',{name:'题干',exact:true})).toHaveValue('本地校正1。');
@@ -28,6 +29,6 @@ test('全选批量保存当前草稿，冲突保留草稿，未选编辑保持�
 });
 
 test('进入上传校正和导入完成均不自动跳到下方校验区',async({page,request})=>{
- const {c}=await setup(page,request);await page.goto(`/exam?course=${c.id}`);await page.getByLabel('上传题库文件（PDF/ZIP/PPTX/DOCX/Markdown）').setInputFiles({name:'top.md',mimeType:'text/markdown',buffer:Buffer.from('1. 页面顶部测试。')});await page.getByRole('button',{name:'上传选中文件并开始导入',exact:true}).click();await page.evaluate(()=>window.scrollTo(0,0));await expect(page.getByRole('heading',{name:'题目校正 · 共1题'})).toBeVisible({timeout:30000});await expect.poll(()=>page.evaluate(()=>window.scrollY)).toBeLessThan(150);
+ const {c}=await setup(page,request);await page.goto(`/exam?course=${c.id}`);await page.getByLabel('上传本地题库（Markdown / ZIP）').setInputFiles({name:'top.md',mimeType:'text/markdown',buffer:Buffer.from(strictBank(['页面顶部测试。']))});await page.getByRole('button',{name:'上传选中文件并开始导入',exact:true}).click();await page.evaluate(()=>window.scrollTo(0,0));await expect(page.getByRole('heading',{name:'题目校正 · 共1题'})).toBeVisible({timeout:30000});await expect.poll(()=>page.evaluate(()=>window.scrollY)).toBeLessThan(150);
  await page.getByRole('button',{name:'考点、统计与蓝图',exact:true}).click();await page.evaluate(()=>window.scrollTo(0,document.body.scrollHeight));await page.getByRole('button',{name:'上传与校正题库',exact:true}).click();await expect.poll(()=>page.evaluate(()=>window.scrollY)).toBeLessThan(150);await expect(page.getByRole('heading',{name:'上传自己的题库'})).toBeVisible();
 });

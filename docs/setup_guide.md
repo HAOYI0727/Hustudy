@@ -61,7 +61,7 @@ npm run dev --prefix frontend
 
 访问http://localhost:5173；API健康检查http://127.0.0.1:8000/health，OpenAPI为/api文档地址http://127.0.0.1:8000/docs。若只单独启动API，需另开终端运行bash scripts/worker.sh，否则解析/预览/AI/备份会停留排队；不要重复启动多个无意的worker。修改.env后重启API与worker。
 
-PPTX/DOCX预览转换需要LibreOffice的soffice可执行程序。没有时保留明确失败状态和文本阅读；PDF直接由本地PDF.js阅读。不能把缺少转换器当作解析失败，也不能声称已验证Office成功预览。文件/数据库位于data，禁止提交用户原件；低磁盘预检默认保留64MiB，HTTP507时先释放空间再重试。
+PPTX/DOCX默认由前端内置原格式阅读器直接读取，PDF由前端内置PDF.js按页读取；普通上线不需要LibreOffice。生产环境`HUSTUDY_ENV=production`默认关闭兼容PDF转换，只有确实需要静态版式/截图时才显式启用并安装LibreOffice。文件/数据库位于data，禁止提交用户原件；低磁盘预检默认保留64MiB，HTTP507时先释放空间再重试。
 
 ## 日常检查
 

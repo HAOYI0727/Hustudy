@@ -30,6 +30,15 @@ def office_executable() -> str | None:
 
 
 def preview_capabilities():
+    settings = get_settings()
+    if not settings.office_compatibility_enabled:
+        return {
+            "native_pdf": True,
+            "office_available": False,
+            "office_status": "disabled_by_config",
+            "message": "服务器已关闭兼容PDF转换；PPTX/DOCX仍可直接原格式阅读，PDF可直接按页阅读。",
+            "installation_url": INSTALL_URL,
+        }
     available = bool(office_executable())
     return {
         "native_pdf": True,
@@ -37,12 +46,12 @@ def preview_capabilities():
         "office_status": "available"
         if available
         else "configured_unavailable"
-        if get_settings().libreoffice_path.strip()
+        if settings.libreoffice_path.strip()
         else "not_installed",
         "message": "已检测到本机Office转换器；实际结果以预览任务为准。"
         if available
         else "Office转换器路径不可执行，请检查后端HUSTUDY_LIBREOFFICE_PATH配置。"
-        if get_settings().libreoffice_path.strip()
-        else "未安装LibreOffice：PPTX/DOCX需先转换成PDF，原始PDF可直接预览。",
+        if settings.libreoffice_path.strip()
+        else "未安装LibreOffice：原格式PPTX/DOCX仍可直接阅读，兼容PDF按需功能不可用。",
         "installation_url": INSTALL_URL,
     }

@@ -12,14 +12,14 @@ export function ExamPilot(props:BankProps & {initialTopicId?:string;onTopics?:()
  const [topicFilter,setTopicFilter]=useState("");
  const [tab,setTab]=useState<ExamTab>(props.initialTab||"bank");
  useEffect(()=>{setTab(props.initialTab||"bank");},[props.initialTab]);
- const changeTab=(value:ExamTab)=>{if(props.onTab)props.onTab(value);else setTab(value);};
+ const changeTab=(value:ExamTab)=>{if(props.onTab)props.onTab(value);else setTab(value);window.scrollTo({top:0,left:0,behavior:"auto"});window.requestAnimationFrame(()=>window.scrollTo({top:0,left:0,behavior:"auto"}));};
  return <div className="page exam-pilot"><PageTitle eyebrow="EXAM PILOT" title="自己的题库，按知识点练习" text="上传、识别并校正题库，确认后随机抽题或整卷练习；选择题有标准答案时自动批改，解答题提交后自行核对。"/>{props.onTopics&&<button className="secondary" onClick={props.onTopics}><Icon name="link" size={16}/>知识点学习中心</button>}<div className="bank-tabs">{[["bank","上传与校正题库"],["analysis","考点、统计与蓝图"],["practice","题库练习与作答"]].map(([id,label])=><button key={id} className={tab===id?"primary":"secondary"} onClick={()=>{const event=new Event("hustudy:before-navigate",{cancelable:true});if(props.onTab||window.dispatchEvent(event))changeTab(id as ExamTab);}}><Icon name={id==="bank"?"upload":id==="analysis"?"link":"exam"} size={16}/>{label}</button>)}</div>{tab==="bank"?<BankManager {...props} topicFilter={topicFilter} onTopicFilter={setTopicFilter}/>:tab==="analysis"?<BankAnalysis {...props} onTopicOpen={id=>{if(props.onTab||window.dispatchEvent(new Event("hustudy:before-navigate",{cancelable:true}))){setTopicFilter(id);changeTab("bank");}}} onReady={p=>{localStorage.removeItem(`hustudy-bank-attempt:${props.courseId}`);localStorage.setItem(`hustudy-bank-paper:${props.courseId}`,p.id);changeTab("practice");}}/>:<BankPractice {...props} onReview={props.onReview} initialAttemptId={props.initialAttemptId} initialTopicId={props.initialTopicId}/>}</div>;
 }
 
 export {Review} from "./Review";
 
 export function FeedbackPage(props:{token:string;onNotice:(s:string)=>void;onError:(e:unknown)=>void}){
- return <div className="page"><PageTitle eyebrow="FEEDBACK" title="使用反馈" text="遇到问题或有改进建议，在这里单独记录。"/><section className="panel"><Feedback {...props}/></section></div>;
+ return <div className="page feedback-page"><PageTitle eyebrow="FEEDBACK" title="使用反馈" text="遇到问题或有改进建议，在这里单独记录。"/><section className="panel"><Feedback {...props}/></section></div>;
 }
 
 export function Feedback({ token, onNotice, onError }: { token: string; onNotice: (s: string) => void; onError: (e: unknown) => void }) {

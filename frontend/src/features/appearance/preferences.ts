@@ -1,4 +1,4 @@
-import {fontFamilies} from "./typography";
+import {fontFamilies,fontPresets,type FontPreset} from "./typography";
 export const accentPresets=[
   {id:"iris",name:"鸢尾紫",color:"#6255c5"},
   {id:"ocean",name:"远山蓝",color:"#2965bc"},
@@ -9,8 +9,14 @@ export const accentPresets=[
 ] as const;
 export const moduleNames=["material","ai","notes","exam","review"] as const;
 export type Appearance={accent:typeof accentPresets[number]["id"]|"custom";customColor:string;surface:"cloud"|"paper"|"mist";navigation:"light"|"dark";density:"comfortable"|"compact";width:"wide"|"focused"};
-export const defaultAppearance:Appearance={accent:"iris",customColor:"#6255c5",surface:"cloud",navigation:"light",density:"comfortable",width:"wide"};
+export const defaultAppearance:Appearance={accent:"ocean",customColor:"#2965bc",surface:"cloud",navigation:"dark",density:"comfortable",width:"wide"};
 export const appearanceKey="hustudy-appearance:v1";
+export const FONT_SIZE_MIN=12;
+export const FONT_SIZE_MAX=18;
+export const FONT_SIZE_STEP=1;
+export type TypographyPreference={font:FontPreset;size:number};
+export const defaultTypography:TypographyPreference={font:"heiti",size:14};
+export const typographyKey="hustudy-typography:v1";
 const hex=(value:unknown):value is string=>typeof value==="string"&&/^#[\da-f]{6}$/i.test(value);
 export function validAppearance(value:unknown):value is Appearance {
   if(!value||typeof value!=="object"||Array.isArray(value))return false;
@@ -18,6 +24,12 @@ export function validAppearance(value:unknown):value is Appearance {
   return Object.keys(row).length===6&&Object.keys(row).every(k=>Object.prototype.hasOwnProperty.call(defaultAppearance,k))&&
     [...accentPresets.map(p=>p.id),"custom"].includes(row.accent)&&hex(row.customColor)&&["cloud","paper","mist"].includes(row.surface)&&
     ["light","dark"].includes(row.navigation)&&["comfortable","compact"].includes(row.density)&&["wide","focused"].includes(row.width);
+}
+export function validTypography(value:unknown):value is TypographyPreference {
+  if(!value||typeof value!=="object"||Array.isArray(value))return false;
+  const row=value as Record<string,unknown>;
+  return Object.keys(row).length===2&&Object.keys(row).every(k=>Object.prototype.hasOwnProperty.call(defaultTypography,k))&&
+    Object.keys(fontPresets).includes(String(row.font))&&typeof row.size==="number"&&Number.isInteger(row.size)&&row.size>=FONT_SIZE_MIN&&row.size<=FONT_SIZE_MAX;
 }
 export function readAppearance():{value:Appearance;error:string} {
   try {
@@ -29,10 +41,35 @@ export function readAppearance():{value:Appearance;error:string} {
     return {value:stored.value,error:""};
   }catch{return {value:{...defaultAppearance},error:"本机外观偏好暂不可读，当前使用默认样式；原记录保留。"};}
 }
+export function readTypography():{value:TypographyPreference;error:string} {
+  try{
+    const raw=localStorage.getItem(typographyKey);
+    if(raw===null)return {value:{...defaultTypography},error:""};
+    if(new Blob([raw]).size>1024)throw new Error("size");
+    const stored=JSON.parse(raw) as {version:number;value:unknown};
+    if(!stored||typeof stored!=="object"||Object.keys(stored).length!==2||stored.version!==1)throw new Error("invalid");
+    if(validTypography(stored.value))return {value:stored.value,error:""};
+    // The first local-only release used descriptive aliases.  Migrate only
+    // those known values; arbitrary records still fall back safely.
+    const legacy=stored.value as {font?:unknown;scale?:unknown;size?:unknown};
+    const fontMap:Record<string,FontPreset>={heiti:"heiti",songti:"songti",kaiti:"kaiti",balanced:"heiti",clear:"heiti",book:"songti"};
+    const legacySizes:Record<string,number>={small:13,medium:14,large:15};
+    const size=typeof legacy?.size==="number"?legacy.size:(typeof legacy?.scale==="string"?legacySizes[legacy.scale]:undefined);
+    const mapped=typeof legacy?.font==="string"&&fontMap[legacy.font]&&typeof size==="number"
+      ? {font:fontMap[legacy.font],size}:null;
+    if(!mapped||!validTypography(mapped))throw new Error("invalid");
+    return {value:mapped,error:""};
+  }catch{return {value:{...defaultTypography},error:"本机字体偏好暂不可读，当前使用默认字体；原记录保留。"};}
+}
 export function saveAppearance(value:Appearance):string {
   if(!validAppearance(value))return "外观选项无效，未保存";
   try{localStorage.setItem(appearanceKey,JSON.stringify({version:1,value}));return "";}
   catch{return "已应用于本次使用，但未能保存到浏览器；请检查存储空间后重试。";}
+}
+export function saveTypography(value:TypographyPreference):string {
+  if(!validTypography(value))return "字体选项无效，未保存";
+  try{localStorage.setItem(typographyKey,JSON.stringify({version:1,value}));return "";}
+  catch{return "已应用字体设置，但未能保存到浏览器；请检查存储空间后重试。";}
 }
 const rgb=(value:string)=>[1,3,5].map(start=>parseInt(value.slice(start,start+2),16));
 const toHex=(values:number[])=>"#"+values.map(v=>Math.round(v).toString(16).padStart(2,"0")).join("");
@@ -70,9 +107,19 @@ export function appearanceTokens(value:Appearance):Record<string,string>{
     "--content-width":value.width==="focused"?"1240px":"1560px","--panel-space":value.density==="compact"?"18px":"24px","--row-space":value.density==="compact"?"11px":"16px","--workspace-gap":value.density==="compact"?"16px":"24px","--shadow-card":"0 2px 8px #25334c03,0 10px 32px #25334c03",
   };
 }
+export function typographyTokens(value:TypographyPreference):Record<string,string>{
+  const families=fontPresets[value.font].families;
+  return {"--font-ui":families.ui,"--font-reading":families.reading,"--font-reflection":families.reflection,"--font-size-base":`${value.size}px`};
+}
 export function applyAppearance(value:Appearance):void {
   const root=document.documentElement;
   for(const [key,setting] of Object.entries(appearanceTokens(value)))root.style.setProperty(key,setting);
   root.dataset.surface=value.surface;root.dataset.navigation=value.navigation;root.dataset.density=value.density;root.dataset.width=value.width;
   document.querySelector('meta[name="theme-color"]')?.setAttribute("content",appearanceTokens(value)["--canvas"]);
+}
+export function applyTypography(value:TypographyPreference):void {
+  const root=document.documentElement;
+  for(const [key,setting] of Object.entries(typographyTokens(value)))root.style.setProperty(key,setting);
+  root.dataset.fontPreset=value.font;root.dataset.fontSize=String(value.size);
+  root.style.fontSize=typographyTokens(value)["--font-size-base"];
 }

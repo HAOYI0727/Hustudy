@@ -6,7 +6,8 @@ from app.core.database import SessionLocal
 from app.models import ProcessingJob, DocumentChunk
 from app.workers import materials
 from test_materialhub import context, upload
-from test_preview_assets import import_pdf
+from test_preview_assets import blank_pdf, import_pdf
+from test_preview_recovery import pptx
 from test_manual_transcripts import draft, confirm
 
 
@@ -24,7 +25,8 @@ def test_queued_cancel_restore_is_idempotent_and_preserves_original():
             assert r.json()["attempt_count"] == 0
         v = c.get(version, headers=h).json()
         assert (
-            v["parse_status"] == v["preview_status"] == v["index_status"] == "CANCELLED"
+            v["parse_status"] == v["index_status"] == "CANCELLED"
+            and v["preview_status"] == "TEXT_ONLY"
         )
         assert "取消不删除" in c.get(version + "/original", headers=h).text
         assert c.get(version + "/chunks", headers=h).json() == []
@@ -170,11 +172,16 @@ def test_preview_cancel_discards_only_own_output_and_dependencies_keep_budget(
 ):
     with TestClient(app) as c:
         h, course = context(c)
-        v = import_pdf(c, h, course)
+        v = upload(c, h, course, pptx(), "cancel.pptx")
+        materials.drain_jobs()
+        from app.services import preview_runtime
+        monkeypatch.setattr(preview_runtime, "office_executable", lambda: "/fake/office")
+        requested = c.post(f"/api/v1/versions/{v['resource_id']}/preview-jobs", headers=h)
+        assert requested.status_code == 202
         with SessionLocal() as db:
             preview = db.scalar(
                 select(ProcessingJob).where(
-                    ProcessingJob.resource_id == v["id"],
+                    ProcessingJob.resource_id == v["resource_id"],
                     ProcessingJob.type == "PREVIEW",
                 )
             )
@@ -199,19 +206,20 @@ def test_preview_cancel_discards_only_own_output_and_dependencies_keep_budget(
             assert materials.run_once()
         assert not outputs[0].exists()
         assert c.get(
-            f"/api/v1/versions/{v['id']}/original", headers=h
-        ).content.startswith(b"%PDF")
+            f"/api/v1/versions/{v['resource_id']}/original", headers=h
+        ).content.startswith(b"PK")
         assert (
-            c.get(f"/api/v1/versions/{v['id']}", headers=h).json()["preview_status"]
+            c.get(f"/api/v1/versions/{v['resource_id']}", headers=h).json()["preview_status"]
             == "CANCELLED"
         )
-        # Retrying scanned parsing must not replace the cancelled/failed preview job.
+        # Retrying parsing is unnecessary because the native PPTX parser already succeeded;
+        # the cancelled compatibility task remains independently recoverable.
         parse = next(
             j
             for j in c.get(f"/api/v1/courses/{course}/jobs", headers=h).json()
             if j["type"] == "PARSE"
         )
-        assert c.post(f"/api/v1/jobs/{parse['id']}/retry", headers=h).status_code == 202
+        assert c.post(f"/api/v1/jobs/{parse['id']}/retry", headers=h).status_code == 409
         materials.drain_jobs()
         rows = c.get(f"/api/v1/courses/{course}/jobs", headers=h).json()
         assert len([j for j in rows if j["type"] == "PREVIEW"]) == 1
@@ -219,10 +227,15 @@ def test_preview_cancel_discards_only_own_output_and_dependencies_keep_budget(
             c.get(f"/api/v1/jobs/{preview_id}", headers=h).json()["status"]
             == "CANCELLED"
         )
+        def valid_preview(source):
+            output = source.with_name(source.stem + ".preview-" + uuid4().hex + ".pdf")
+            output.write_bytes(blank_pdf(1))
+            return str(output)
+        monkeypatch.setattr(materials, "preview_file", valid_preview)
         assert c.post(f"/api/v1/jobs/{preview_id}/retry", headers=h).status_code == 202
         materials.drain_jobs()
         assert (
-            c.get(f"/api/v1/versions/{v['id']}/preview", headers=h).status_code == 200
+            c.get(f"/api/v1/versions/{v['resource_id']}/preview", headers=h).status_code == 200
         )
 
 

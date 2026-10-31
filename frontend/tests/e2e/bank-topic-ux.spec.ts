@@ -7,7 +7,7 @@ test('标签归类限制展示、批量核验、考点跳转、练习搜索与�
  for(let i=0;i<24;i++)await request.post(`${base}/courses/${course.id}/topics`,{headers,data:{name:`无关标签${i}`}});
  await page.addInitScript(a=>{localStorage.setItem('hustudy_token',a.access_token);localStorage.setItem('hustudy_user',a.user.username);},auth);
  await page.goto(`/exam?course=${course.id}`);
- const first=page.locator('.bank-question-editor').first();await first.locator(':scope > summary').click();
+ const first=page.locator('.bank-question-editor').first();if(await first.getAttribute('open')===null)await first.locator(':scope > summary').click();
  await expect(first.locator('.bank-topic-option')).toHaveCount(1);
  await first.getByLabel('搜索其他知识标签').fill('无关标签23');await expect(first.locator('.bank-topic-option')).toHaveCount(2);
  await page.getByLabel('全选本页').check();await page.getByRole('button',{name:'核验所选（2）',exact:true}).click();await expect(page.getByText('所选题目已核验，题库审核状态已同步',{exact:true})).toBeVisible();
