@@ -1,5 +1,9 @@
 # Hustudy API（Phase 0）
 
+2026-11-01 M2-RELATED-REPORT-08：study-reports/preview在无精确复用时也可返回related_results；沿原GET/POST remote-queries/{id}/related-results/{result_id}（POST加/reuse）查看及明确使用。严格true确认、原AIResult身份保持、不调用模型；仅goal允许本地相近，学习模式、范围、来源/笔记/账户配置/授权及当前报告提示词均保持一致，问答不交叉推荐。完整多批报告可用，部分/失效结果拒绝。[契约与验证](gcx/related_reports_2026_11_01.md)。本条覆盖旧说明中“报告不返回related_results”的范围。
+
+2026-11-01 M2-RELATED-QA-07：QA预览新增related_results，最多3条原问题/摘要候选。GET /remote-queries/{query_id}/related-results/{result_id}查看原结果；POST同路径/reuse严格要求confirm_related_reuse=true。两步均重新验证资格，返回原AIResult，不派发模型。原精确reuse接口不变。[详细契约及限制](gcx/related_answers_2026_11_01.md)。
+
 ## 多模型与笔记助手（2026-10-27）
 
 均需Bearer认证并限定当前账户。原 `/api-connection` 继续独立处理智谱配置；高级配置不回显密钥、不进入课程包或账户备份。

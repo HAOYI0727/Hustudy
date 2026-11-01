@@ -1,0 +1,52 @@
+import {test,expect} from '@playwright/test';
+
+for(const width of [390,1440])test(`相近学习目标查看原报告后确认复用 ${width}px`,async({page,request})=>{
+  await page.setViewportSize({width,height:1000});
+  const base='http://127.0.0.1:8056/api/v1',username='related_report_'+crypto.randomUUID().replaceAll('-','');
+  const auth=await(await request.post(base+'/auth/register',{data:{username,password:'Test-password-2026'}})).json();
+  const headers={Authorization:'Bearer '+auth.access_token};
+  const course=await(await request.post(base+'/courses',{headers,data:{name:'相近报告自制验收'}})).json();
+  const uploaded=await(await request.post(base+`/courses/${course.id}/documents`,{headers,multipart:{file:{name:'苹果加法.md',mimeType:'text/markdown',buffer:Buffer.from('# 苹果\n\n两个苹果加三个苹果等于五个苹果。')}}})).json();
+  const version=uploaded.resource_id;
+  await expect.poll(async()=>(await(await request.get(base+`/versions/${version}`,{headers})).json()).index_status).toBe('SUCCEEDED');
+  const chunk=(await(await request.get(base+`/versions/${version}/chunks`,{headers})).json())[0];
+  const citation={version_id:version,chunk_id:chunk.id,quote:chunk.text,availability:'active',locator:{type:'heading',value:'苹果'}};
+  const oldGoal='整理苹果加法的步骤、例子和自测',newGoal='仅整理苹果加法的步骤、例子和自测';
+  const exercise={question:'两个加三个是多少？',answer:'五个。',citations:[citation]};
+  const report={summary:'原报告概述：苹果加法。',learning_goals:['理解加法'],prerequisites:[],learning_sequence:['阅读原文','练习'],topics:[{topic_id:'apple-addition',name:'苹果加法',explanation:'两个苹果加三个苹果等于五个苹果。',misconceptions:[],labels:[{kind:'key',origin:'ai_suggestion',reason:'原文直接说明'}],citations:[citation]}],examples:[exercise],self_checks:[exercise,exercise,exercise]};
+  const result={id:crypto.randomUUID(),course_id:course.id,query:oldGoal,status:'grounded',model_mode:'real',result:{result_kind:'study_report',study_mode:'systematic',study_report:report,answer:'# 历史原报告\n\n## 苹果加法\n\n两个苹果加三个苹果等于五个苹果。\n\n## 自测\n\n两个加三个是多少？答案：五个。',model:'glm-5.3-flash',citations:[citation]}};
+  const coverage={truncated:false,notice:'已纳入所选版本的可用文本',versions:[{version_id:version,document_name:'苹果加法.md',total_chunks:1,selected_chunks:1,total_chars:chunk.text.length,sent_chars:chunk.text.length,truncated:false}]};
+  const remote={id:crypto.randomUUID(),course_id:course.id,query:newGoal,request_kind:'study_report',report_scope:{goal:newGoal,scope_version_ids:[version],study_mode:'systematic',coverage},model:'glm-5.3-flash',endpoint:'https://open.bigmodel.cn/api/paas/v4/chat/completions',expires_at:new Date(Date.now()+900000).toISOString(),sources:[{source_id:chunk.id,version_id:version,text:chunk.text,document_name:'苹果加法.md',version_no:1,locator:citation.locator}],job:null,result:null,reusable_result:null,related_results:[{id:result.id,query:oldGoal,answer_preview:report.summary,model:'glm-5.3-flash',created_at:'2026-11-01T00:00:00Z'}]};
+  let views=0,adoptions=0,sends=0;
+  await page.route('**/api/v1/ai/provider',route=>route.fulfill({json:{configured:true,model:remote.model}}));
+  await page.route(`**/api/v1/courses/${course.id}/study-reports/preview`,route=>route.fulfill({status:201,json:remote}));
+  await page.route(`**/api/v1/remote-queries/${remote.id}/related-results/${result.id}`,async route=>{views++;await route.fulfill({json:result});});
+  await page.route(`**/api/v1/remote-queries/${remote.id}/related-results/${result.id}/reuse`,async route=>{
+    adoptions++;expect(route.request().postDataJSON()).toEqual({confirm_related_reuse:true});await route.fulfill({json:result});
+  });
+  await page.route(`**/api/v1/remote-queries/${remote.id}/confirm`,async route=>{sends++;await route.fulfill({status:500,json:{}});});
+  await page.addInitScript(({token,username})=>{localStorage.setItem('hustudy_token',token);localStorage.setItem('hustudy_user',username);},{token:auth.access_token,username});
+  await page.goto(`/ai?course=${course.id}`);await page.getByRole('button',{name:'学习报告',exact:true}).click();
+  await page.getByRole('checkbox',{name:/苹果加法/}).check();
+  const goal=page.getByRole('textbox',{name:'本次学习目标',exact:true});await goal.fill(newGoal);
+  await page.getByRole('button',{name:'预览将发送的片段',exact:true}).click();
+  const panel=page.getByRole('region',{name:'相近历史报告',exact:true});
+  await expect(panel).toContainText(oldGoal);await expect(panel).toContainText('可能与本次学习目标要求不同');
+  const adopt=panel.getByRole('button',{name:'确认使用这份历史报告（不调用AI）',exact:true});
+  await expect(adopt).toHaveCount(0);
+  await panel.getByRole('button',{name:'查看原报告',exact:true}).click();
+  await expect(panel).toContainText('答案：五个。');await expect(adopt).toBeDisabled();
+  await panel.getByRole('checkbox',{name:'我已对照原学习目标和原报告，确认适用于本次学习目标',exact:true}).check();
+  // Editing a goal invalidates the previous selection and explicit confirmation.
+  await goal.fill('仅'+newGoal);await expect(panel).toHaveCount(0);
+  await page.getByRole('button',{name:'预览将发送的片段',exact:true}).click();
+  await expect(adopt).toHaveCount(0);await panel.getByRole('button',{name:'查看原报告',exact:true}).click();
+  await expect(adopt).toBeDisabled();
+  await panel.getByRole('checkbox',{name:'我已对照原学习目标和原报告，确认适用于本次学习目标',exact:true}).check();
+  await adopt.click();
+  await expect(page.locator('#ai-result').getByRole('article',{name:'章节学习报告'})).toContainText(report.summary);
+  await expect(page.getByText(`已使用历史原报告，原学习目标：${oldGoal}。本次未调用AI，请继续核对适用性。`,{exact:true})).toBeVisible();
+  expect(views).toBe(2);expect(adoptions).toBe(1);expect(sends).toBe(0);
+  expect((await(await request.get(base+`/courses/${course.id}/jobs`,{headers})).json()).filter((j:{type:string})=>j.type==='AI_ANALYSIS')).toHaveLength(0);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+});

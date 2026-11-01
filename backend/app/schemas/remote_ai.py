@@ -33,6 +33,26 @@ class ReuseRequest(BaseModel):
     result_id: UUID
 
 
+class RelatedReuseRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    confirm_related_reuse: Literal[True]
+
+    @model_validator(mode="before")
+    @classmethod
+    def strict_confirmation(cls, value):
+        if not isinstance(value, dict) or value.get("confirm_related_reuse") is not True:
+            raise ValueError("须明确确认原问题或学习目标及原结果适用于本次需求")
+        return value
+
+
+class RelatedAnswer(BaseModel):
+    id: str
+    query: str
+    answer_preview: str
+    model: str
+    created_at: datetime
+
+
 class Evidence(BaseModel):
     model_config = ConfigDict(extra="forbid")
     source_id: UUID
@@ -75,4 +95,5 @@ class RemoteQueryResponse(BaseModel):
     job: JobResponse | None
     result: AIResultResponse | None
     reusable_result: AIResultResponse | None = None
+    related_results: list[RelatedAnswer] = Field(default_factory=list, max_length=3)
     execution: dict | None = None
