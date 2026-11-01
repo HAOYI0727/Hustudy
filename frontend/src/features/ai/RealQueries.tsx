@@ -9,6 +9,7 @@ import { Icon } from "../../components/Icon";
 import { Status } from "../../components/workspace";
 import { ExecutionSummary } from "./ExecutionSummary";
 import { ReusableResult } from "./ReusableResult";
+import { RelatedAnswers } from "./RelatedAnswers";
 import {ChunkPicker} from "./ChunkPicker";
 import type {StudyTarget} from "../platform/routing";
 import {resolveStudySource} from "./studySource";
@@ -172,6 +173,7 @@ export function RealQueries({readingName,historyVersionId,hidden=false,skipResto
       {(remote.report_scope||remote.candidate_scope) && <div className="ai-privacy-card"><strong>{(remote.report_scope||remote.candidate_scope)!.coverage.truncated ? "所选资料超出预算或仅选择部分片段" : "已纳入所选版本的可用文本"}</strong><p>{(remote.report_scope||remote.candidate_scope)!.coverage.notice}</p>{(remote.report_scope||remote.candidate_scope)!.coverage.warnings?.map((warning,i)=><p role="alert" key={i}>{warning}</p>)}{(remote.report_scope||remote.candidate_scope)!.coverage.versions.map(v=><p key={v.version_id}>{v.document_name}：{v.selected_chunks}/{v.total_chunks}段，{v.sent_chars}/{v.total_chars}字符{v.truncated ? " · 未完整覆盖" : ""}</p>)}</div>}
       {remote.qa_scope&&<div className="ai-privacy-card"><strong>{remote.qa_scope.mode==="retrieved"?"当前使用相关片段检索":"已纳入所选范围的完整可提取正文"}</strong><p>{remote.qa_scope.coverage.notice}</p>{remote.qa_scope.coverage.warnings?.map((warning,i)=><p role="alert" key={i}>{warning}</p>)}{remote.qa_scope.coverage.versions.map(v=><p key={v.version_id}>{v.document_name}：{v.selected_chunks}/{v.total_chunks}段，{v.sent_chars}/{v.total_chars}字符{v.truncated?" · 仅所选范围":""}</p>)}{remote.qa_scope.batched&&<p>先检查{remote.qa_scope.batch_count}批资料，再汇总一次回答；最多{remote.qa_scope.batch_count+1}次原生成调用，另计已授权修复，共用120秒处理窗口。</p>}</div>}
       {remote.candidate_scope&&<div className="ai-privacy-card"><strong>本次出题与参考范围</strong><p>{remote.candidate_scope.request.count}题 · 每题{remote.candidate_scope.request.points}分 · {remote.candidate_scope.request.type} · {remote.candidate_scope.request.difficulty_label} · {remote.candidate_scope.request.mode}</p><p>目标：{remote.candidate_scope.exam_context.topics.map(t=>t.name).join("、")}</p>{remote.candidate_scope.exam_context.references.map(r=><details key={r.id} open><summary>{r.title} · {r.year??"年份未知"}</summary><p>{r.stem}</p></details>)}<p className="hint">上述设置、知识点名称和原题正文也会发送；不包含原题答案。</p></div>}
+      {!remote.job && !remote.reusable_result && !!remote.related_results?.length && <RelatedAnswers key={remote.id} token={token} queryId={remote.id} kind={isReport?"study_report":"qa"} currentQuestion={remote.query} candidates={remote.related_results} disabled={busy||expired} onBusyChange={setBusy} onAdopt={saved=>{resetPreview();onAnswer(saved);onNotice(`已使用历史原${isReport?"报告，原学习目标":"答案，原问题"}：${saved.query}。本次未调用AI，请继续核对适用性。`);}}/>}
       {!remote.job && remote.reusable_result && <ReusableResult answer={remote.reusable_result} disabled={busy||expired} onReuse={async()=>{
         if(busy||expired||!remote.reusable_result)return;
         setBusy(true);setError("");

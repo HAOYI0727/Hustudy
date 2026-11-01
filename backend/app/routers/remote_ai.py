@@ -5,6 +5,7 @@ from ..dependencies import current_user
 from ..models import User
 from ..schemas.remote_ai import PreviewRequest, ConsentRequest, RemoteQueryResponse
 from ..schemas.remote_ai import ReuseRequest
+from ..schemas.remote_ai import RelatedReuseRequest
 from ..services import remote_ai
 from ..schemas.study_reports import (
     ReportPreviewRequest,
@@ -25,6 +26,26 @@ from ..services.exam_ai_context import candidate_context
 from ..ai.providers import PROMPT_VERSION
 
 router = APIRouter(prefix="/api/v1", tags=["ai"])
+
+
+@router.get("/remote-queries/{query_id}/related-results/{result_id}", response_model=AIResultResponse)
+def view_related_answer(
+    query_id: str, result_id: str,
+    user: User = Depends(current_user), db: Session = Depends(get_db),
+):
+    from ..services.related_answers import related_answer
+
+    return related_answer(db, user.id, query_id, result_id)
+
+
+@router.post("/remote-queries/{query_id}/related-results/{result_id}/reuse", response_model=AIResultResponse)
+def use_related_answer(
+    query_id: str, result_id: str, payload: RelatedReuseRequest,
+    user: User = Depends(current_user), db: Session = Depends(get_db),
+):
+    from ..services.related_answers import related_answer
+
+    return related_answer(db, user.id, query_id, result_id)
 
 
 @router.post("/remote-queries/{query_id}/reuse", response_model=AIResultResponse)

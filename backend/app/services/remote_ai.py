@@ -56,6 +56,7 @@ def owned_query(db, user_id, query_id):
 def response(db, row):
     from .report_batches import progress
     from .ai_result_reuse import find_reusable
+    from .related_answers import find_related
     from .m2_execution import information
     from . import qa_batches
 
@@ -72,6 +73,7 @@ def response(db, row):
     validated = validated_result(db, result) if result else None
     report = report_envelope(row.query)
     candidate = candidate_envelope(row.query)
+    reusable = find_reusable(db, row) if not row.job_id else None
     return RemoteQueryResponse(
         id=row.id,
         course_id=row.course_id,
@@ -99,7 +101,8 @@ def response(db, row):
         sources=row.sources,
         job=JobResponse.model_validate(job, from_attributes=True) if job else None,
         result=validated,
-        reusable_result=find_reusable(db, row) if not row.job_id else None,
+        reusable_result=reusable,
+        related_results=find_related(db, row) if not row.job_id and not reusable and not candidate else [],
         execution=information(db, row),
     )
 
