@@ -5,7 +5,15 @@ import {NotesDialog} from '../notes/NotesDialog';
 import './model-connections.css';
 
 function announce(token:string){window.dispatchEvent(new CustomEvent('hustudy:model-changed',{detail:sessionPartition(token)}));}
-function useConnections(token:string,onError:(error:unknown)=>void){
+export type ModelProbe = {
+  partition: string;
+  revision: number;
+  profileId: string;
+  connected: boolean;
+  message: string;
+  testedAt: string;
+};
+export function useConnections(token:string,onError:(error:unknown)=>void){
   const [data,setData]=useState<Connections|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState('');
   const owner=useRef(token),callbacks=useRef(onError),epoch=useRef(0),loadSerial=useRef(0);owner.current=token;callbacks.current=onError;
   useEffect(()=>{let live=true;epoch.current++;setData(null);setError('');setBusy(false);
@@ -55,7 +63,13 @@ export function ModelSettings({token,onError}:{token:string;onError:(error:unkno
       <p className="hint">图片能力需与所填模型一致；未启用时拒绝图片调用。模型可能按量计费，额度以服务商为准。密钥仅在后端按账户加密保存，不回显或导出。</p>
       <div className="model-actions"><button className="primary" type="submit">保存其他模型配置</button>{editing&&<button className="secondary" type="button" onClick={reset}>取消编辑</button>}</div></fieldset>
     </form>
-    <section><h4>测试当前所选模型</h4><p>{active?`${active.name} · ${active.model}`:`原智谱 · ${data?.builtin.model||''}`}</p><label className="model-consent"><input type="checkbox" checked={consent} disabled={busy||probing} onChange={e=>setConsent(e.target.checked)}/>同意发送极短“连接测试”文本，可能消耗少量额度，不发送课程或笔记。</label><button className="secondary" disabled={!data||busy||probing||dirty||!consent} onClick={async()=>{if(!data)return;const current=probeEpoch.current;setProbing(true);setMessage('');try{const result=await api.testModelConnection(token,data.revision,data.active);if(current===probeEpoch.current)setMessage((result.connected?'连接成功：':'连接未通过：')+result.message);}catch(e){if(current===probeEpoch.current){setMessage(e instanceof Error?e.message:'测试未完成');onError(e);}}finally{if(current===probeEpoch.current){setProbing(false);setConsent(false);}}}}>{probing?'正在测试…':'测试所选模型'}</button></section>
+    <section><h4>测试当前所选模型</h4><p>{active?`${active.name} · ${active.model}`:`原智谱 · ${data?.builtin.model||''}`}</p><p className="hint">测试使用当前所选模型已保存的配置。</p><label className="model-consent"><input type="checkbox" checked={consent} disabled={busy||probing} onChange={e=>setConsent(e.target.checked)}/>同意发送极短“连接测试”文本，可能消耗少量额度，不发送课程或笔记。</label><button className="secondary" disabled={!data||busy||probing||!consent} onClick={async()=>{if(!data)return;const current=probeEpoch.current;setProbing(true);setMessage('');try{const result=await api.testModelConnection(token,data.revision,data.active);if(current===probeEpoch.current){
+      setMessage((result.connected?'连接成功：':'连接未通过：')+result.message);
+      if(data.active){
+        const detail:ModelProbe={partition:sessionPartition(token),revision:data.revision,profileId:data.active,connected:result.connected,message:result.message,testedAt:new Date().toISOString()};
+        window.dispatchEvent(new CustomEvent('hustudy:model-probed',{detail}));
+      }
+    }}catch(e){if(current===probeEpoch.current){setMessage(e instanceof Error?e.message:'测试未完成');onError(e);}}finally{if(current===probeEpoch.current){setProbing(false);setConsent(false);}}}}>{probing?'正在测试…':'测试所选模型'}</button></section>
     {message&&<p role="status">{message}</p>}
   </section>;
 }

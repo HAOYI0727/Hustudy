@@ -18,12 +18,12 @@ export function AssetImage({ token, id, alt }: { token: string; id: string; alt:
   return failed ? <span className="missing-asset">图片已删除或无法读取 · {alt}</span> : url ? <img className="knowledge-image" src={url} alt={alt}/> : <span role="status">正在加载图片…</span>;
 }
 
-export function NotePreview({ content, token, notes, onNote }: { content: string; token: string; notes: NoteSummary[]; onNote: (note: NoteSummary) => void }) {
+export function NotePreview({ content, token, notes, onNote, singleTilde = true }: { singleTilde?: boolean; content: string; token: string; notes: NoteSummary[]; onNote: (note: NoteSummary) => void }) {
   const transformed = content.replace(/!\[\[asset:([0-9a-fA-F-]{36})(?:\|([^\]]*))?\]\]/g,
     (_match, id, label) => `![${String(label || "课程图片").replace(/[\[\]\n]/g, " ")}](asset://${id})`)
     .replace(/\[\[note:([0-9a-fA-F-]{36})(?:\|([^\]]*))?\]\]/g,
     (_match, id, label) => `[${String(label || notes.find(n=>n.id===id)?.title || "笔记").replace(/[\[\]\n]/g, " ")}](note://${id})`);
-  return <div className="markdown-preview"><Markdown skipHtml remarkPlugins={[remarkGfm, remarkMath]} urlTransform={url => /^(asset|note):\/\/[0-9a-fA-F-]{36}$/.test(url) ? url : defaultUrlTransform(url)} components={{
+  return <div className="markdown-preview"><Markdown skipHtml remarkPlugins={[[remarkGfm, {singleTilde}], remarkMath]} urlTransform={url => /^(asset|note):\/\/[0-9a-fA-F-]{36}$/.test(url) ? url : defaultUrlTransform(url)} components={{
     code: ({className, children}) => /\bmath-(inline|display)\b/.test(className || '')
       ? <MathFormula source={String(children).replace(/\n$/, '')} display={className?.includes('math-display')}/>
       : <code className={className}>{children}</code>,

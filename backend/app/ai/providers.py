@@ -72,6 +72,14 @@ def safe_http_failure(response, started, vendor="智谱"):
             ),
             "1312": ("SERVICE_BUSY", "当前模型访问量较大，请稍后重新预览并确认"),
         }.get(provider_code, (code, message))
+    if vendor == "模型平台":
+        status = response.status_code
+        code, message = {
+            400: ("HTTP_ERROR", "模型平台拒绝了请求格式（HTTP 400），请检查接口支持的参数"),
+            402: ("QUOTA_EXHAUSTED", "模型平台账户余额不足（HTTP 402），请检查 API 账户余额"),
+            404: ("HTTP_ERROR", "模型平台找不到接口或模型（HTTP 404），请检查接口地址和模型 ID"),
+            422: ("HTTP_ERROR", "模型平台拒绝了请求参数（HTTP 422），请检查模型配置"),
+        }.get(status, (code, f"{message}（HTTP {status}）"))
     retry = response.headers.get("Retry-After", "")
     seconds = (
         min(int(retry), 3600)
@@ -404,7 +412,7 @@ class ZhipuProvider:
                     data.extend(block)
                     if len(data) > 1024 * 1024 or time.monotonic() - started > 120:
                         raise ProviderFailure(
-                            "RESPONSE_BUDGET", "智谱响应超出大小或时间预算"
+                            "RESPONSE_BUDGET", "AI 响应超出大小或时间预算"
                         )
         return data
 

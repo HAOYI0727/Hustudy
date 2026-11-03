@@ -60,6 +60,9 @@ def prepare(row, payload):
     if meta.get("revision", 1) != expected:
         raise HTTPException(409, "题库元数据已变化，请保留输入并刷新后重试")
     previous = dict(meta)
+    title = payload.pop("title").strip() if "title" in payload else row.title
+    if not title:
+        raise HTTPException(422, "题库名称不能为空")
     year = payload.pop("year", row.year)
     requested = payload.pop("exam_identity", None)
     relevant_changed = year != row.year or any(
@@ -103,9 +106,9 @@ def prepare(row, payload):
                 revision=(identity or {}).get("revision", 0) + 1,
                 confirmed_at=utc_now().isoformat() if target["confirmed"] else None,
             )
-    if meta != previous or year != row.year:
+    if meta != previous or year != row.year or title != row.title:
         meta["revision"] = expected + 1
-    return year, meta
+    return title, year, meta
 
 
 def edit_batch(db, user_id, course_id, items):
@@ -147,16 +150,16 @@ def edit_batch(db, user_id, course_id, items):
                 raise HTTPException(422, "重复材料必须指向独立代表卷")
         prepared.append((row, *prepare(row, payload)))
     # Also validate the final graph when several representative decisions change together.
-    resulting = {row.id: meta for row, _, meta in prepared}
-    for row, _, meta in prepared:
+    resulting = {row.id: meta for row, _, _, meta in prepared}
+    for row, _, _, meta in prepared:
         if meta.get("duplicate_of") in resulting and resulting[
             meta["duplicate_of"]
         ].get("duplicate_of"):
             raise HTTPException(422, "批量决定不能形成重复代表链或循环")
-    for row, year, meta in prepared:
-        row.year, row.bank_meta_json = year, bank.encode(meta)
+    for row, title, year, meta in prepared:
+        row.title, row.year, row.bank_meta_json = title, year, bank.encode(meta)
     db.commit()
     return {
         "changed": len(prepared),
-        "revisions": {row.id: meta.get("revision", 1) for row, _, meta in prepared},
+        "revisions": {row.id: meta.get("revision", 1) for row, _, _, meta in prepared},
     }

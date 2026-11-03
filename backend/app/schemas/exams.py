@@ -183,6 +183,7 @@ class ExamIdentityInput(BaseModel):
 
 class BankMetadataEdit(BaseModel):
     model_config = ConfigDict(extra="forbid")
+    title: str = Field(default="", min_length=1, max_length=240)
     expected_revision: int = Field(default=1, ge=1, strict=True)
     year: int | None = Field(default=None, ge=1900, le=2200, strict=True)
     variant: str = Field(default="", max_length=80)
