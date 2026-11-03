@@ -203,6 +203,7 @@ def metadata(
     meta = json.loads(row.bank_meta_json)
     return {
         "id": row.id,
+        "title": row.title,
         "year": row.year,
         "metadata": {
             k: v
