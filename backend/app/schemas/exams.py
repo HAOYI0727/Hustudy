@@ -105,6 +105,7 @@ class AttemptResponse(BaseModel):
 
 
 class ReviewTaskCreate(BaseModel):
+    course_id: str | None = None
     mistake_id: Optional[str] = None
     title: str = Field(min_length=1, max_length=240)
     due_date: date | None = None
@@ -116,6 +117,12 @@ class ReviewTaskResponse(BaseModel):
     title: str
     due_date: str
     status: str
+
+
+class ReviewTaskStatus(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    status: Literal["PENDING", "COMPLETED"]
+    expected_status: Literal["PENDING", "COMPLETED"]
 
 
 class ReviewReschedule(BaseModel):
@@ -282,6 +289,10 @@ class BankWholePaperPractice(BaseModel):
     model_config = ConfigDict(extra="forbid")
     request_id: UUID
     duration_minutes: int = Field(default=90, ge=1, le=180, strict=True)
+
+
+class BankManualPractice(BankDraw):
+    question_ids: list[UUID] = Field(min_length=1, max_length=100)
 
 
 class SelfGrade(BaseModel):

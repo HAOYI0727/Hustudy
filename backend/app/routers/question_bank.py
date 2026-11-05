@@ -1,7 +1,7 @@
 """User bank management and sampling, shared by M4 and the AI-study practice tab."""
 
 import json
-from pydantic import Field
+from pydantic import BaseModel, ConfigDict, Field
 from ..services.topic_tree import active_clause
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form
 from sqlalchemy import select
@@ -12,6 +12,7 @@ from ..schemas.remote_ai import ConsentRequest
 from ..models import (
     PastPaper,
     PastQuestion,
+    ProcessingJob,
     ExamAttempt,
     ExamPaper,
     ExamBlueprint,
@@ -26,6 +27,7 @@ from ..schemas.exams import (
     BankImageImport,
     BankQuestionEdit,
     BankDraw,
+    BankManualPractice,
     BankWholePaperPractice,
     SelfGrade,
     PaperResponse,
@@ -41,6 +43,163 @@ from ..services.courses import owned_course
 from ..services.exam_retirement import check_attempt_course
 
 router = APIRouter(prefix="/api/v1", tags=["question-bank"])
+
+
+@router.post("/past-papers/{paper_id}/answer-imports", status_code=201)
+def answer_preview(paper_id: str, file: UploadFile = File(...), user: User = Depends(current_user), db: Session = Depends(get_db)):
+    from ..services.bank_answer_import import preview
+    try:
+        return preview(db, user.id, paper_id, file)
+    finally:
+        file.file.close()
+
+
+@router.get("/past-papers/{paper_id}/answer-imports")
+def answer_import_history(paper_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    from ..models import BankAnswerImport
+    from ..services.bank_answer_import import target
+    target(db, user.id, paper_id)
+    rows = db.scalars(select(BankAnswerImport).where(
+        BankAnswerImport.paper_id == paper_id, BankAnswerImport.user_id == user.id,
+        BankAnswerImport.status != "DELETED",
+    ).order_by(BankAnswerImport.created_at.desc()).limit(20))
+    return [{"id": row.id, "status": row.status, "filename": json.loads(row.scope_json)["filename"]} for row in rows]
+
+
+@router.get("/answer-imports/{identity}")
+def answer_detail(identity: str, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    from ..services.bank_answer_import import owned, response
+    return response(db, owned(db, user.id, identity))
+
+
+@router.delete("/answer-imports/{identity}", status_code=204)
+def delete_answer_import(identity: str, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    from ..services.bank_answer_import import owned
+    row = owned(db, user.id, identity)
+    if row.job_id:
+        job = db.get(ProcessingJob, row.job_id)
+        if job and job.user_id == user.id:
+            job.status = "CANCELLED"
+            job.lease_token = None
+            job.lease_until = None
+    row.status = "DELETED"
+    db.commit()
+
+
+@router.post("/answer-imports/{identity}/confirm")
+def answer_confirm(identity: str, payload: ConsentRequest, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    from ..services.bank_answer_import import confirm
+    if not payload.confirm_remote_send:
+        raise HTTPException(422, "请确认发送")
+    return confirm(db, user.id, identity)
+
+
+class AnswerApply(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    question_ids: list[str] = Field(min_length=1, max_length=100)
+    overwrite: bool = False
+
+
+class AnswerCrop(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    result_index: int = Field(ge=0)
+    asset_id: str
+    source_asset_id: str | None = None
+    box: list[float] = Field(min_length=4, max_length=4)
+    expected_answer: str = Field(max_length=20000)
+
+
+class AnswerImageDelete(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    result_index: int = Field(ge=0)
+    asset_id: str
+    expected_answer: str = Field(max_length=20000)
+
+
+class AnswerImagesAdd(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    result_index: int = Field(ge=0)
+    expected_answer: str = Field(max_length=20000)
+    images: dict[str, str] = Field(min_length=1, max_length=8)
+
+
+@router.post("/answer-imports/{identity}/add-images")
+def add_answer_images(identity: str, payload: AnswerImagesAdd, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    from ..services.bank_answer_import import add_result_images
+    return add_result_images(db, user.id, identity, payload)
+
+
+@router.post("/answer-imports/{identity}/remove-image")
+def remove_answer_image(identity: str, payload: AnswerImageDelete, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    from ..services.bank_answer_import import remove_result_image
+    return remove_result_image(db, user.id, identity, payload)
+
+
+@router.post("/answer-imports/{identity}/crop")
+def crop_answer_result(identity: str, payload: AnswerCrop, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    from ..services.bank_answer_import import crop_result
+    return crop_result(db, user.id, identity, payload)
+
+
+@router.post("/answer-imports/{identity}/apply")
+def answer_apply(identity: str, payload: AnswerApply, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    from ..services.bank_answer_import import apply
+    return apply(db, user.id, identity, payload.question_ids, payload.overwrite)
+
+
+@router.get("/past-questions/{question_id}/image-group")
+def image_group(question_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    from ..services.bank_edits import owned_question
+    from ..services.question_display import display_group
+
+    question, paper = owned_question(db, user.id, question_id)
+    group = display_group(question.number, paper.id)
+    rows = db.scalars(select(PastQuestion).where(
+        PastQuestion.paper_id == paper.id, PastQuestion.user_id == user.id,
+        PastQuestion.status != "SUPERSEDED",
+    )).all()
+    metadata=json.loads(paper.bank_meta_json)
+    page_ids=list(metadata.get("image_import",{}).get("asset_ids",[]))
+    for row in rows:
+        for source in json.loads(row.bank_data_json).get("source_images",[]):
+            if source["asset_id"] not in page_ids:
+                page_ids.append(source["asset_id"])
+    sources=[{"asset_id":asset_id,"box":[0,0,1,1],"alt":f"原文件第{index+1}页"} for index,asset_id in enumerate(page_ids)]
+    return [
+        {"id": q.id, "revision": q.revision, "images": json.loads(q.bank_data_json).get("illustrations", []),
+         "preferred_asset_id": next((i["asset_id"] for i in json.loads(q.bank_data_json).get("source_images",[])),None),
+         "sources": sources}
+        for q in rows if (group and (display_group(q.number, paper.id) or {}).get("key") == group["key"])
+        or (not group and q.id == question.id)
+    ]
+
+
+class GroupImages(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    revisions: dict[str, int] = Field(min_length=1, max_length=500)
+    images: list[dict] = Field(max_length=8)
+
+
+@router.put("/past-questions/{question_id}/image-group")
+def save_group_images(question_id: str, payload: GroupImages, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    from ..services.bank_edits import owned_question, sync_review_status
+    from ..services.bank_images import check_images
+
+    question, paper = owned_question(db, user.id, question_id)
+    group = image_group(question_id, user, db)
+    if payload.revisions != {q["id"]: q["revision"] for q in group}:
+        raise HTTPException(409, "大题内容已变化，请保留插图并刷新后重试")
+    images = check_images(db, user.id, paper.course_id, payload.images)
+    for item in group:
+        row = db.get(PastQuestion, item["id"])
+        data = json.loads(row.bank_data_json)
+        data["illustrations"], data["images_reviewed"] = images, False
+        row.bank_data_json = bank.encode(data)
+        row.revision += 1
+        row.status = "DRAFT"
+    sync_review_status(db, [paper])
+    db.commit()
+    return {"changed": len(group), "revisions": {item["id"]: item["revision"] + 1 for item in group}}
 
 
 @router.post("/courses/{course_id}/question-bank/files", status_code=202)
@@ -63,7 +222,8 @@ def bank_upload(
             validate_file(file.filename or "", file.file.read(2 * 1024 * 1024 + 1))
             file.file.seek(0)
         _, _, job, _ = save_upload(
-            file, course_id, user.id, db, library_scope="question_bank"
+            file, course_id, user.id, db, library_scope="question_bank",
+            defer_parse=mode == "ai" and (file.filename or "").lower().endswith(".pdf"),
         )
         return JobResponse.model_validate(job, from_attributes=True)
     except ValueError as exc:
@@ -717,6 +877,48 @@ def draw_questions(
     from .exams import _paper_payload
 
     return _paper_payload(paper)
+
+
+@router.get("/courses/{course_id}/question-bank/practice-questions")
+def practice_candidates(
+    course_id: str,
+    query: str = Query(default="", max_length=500),
+    topic_id: str | None = None,
+    offset: int = Query(default=0, ge=0),
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    owned_course(db, user.id, course_id)
+    from ..services.topic_tree import expand
+
+    requested = set()
+    if topic_id:
+        bank.topic_rows(db, user.id, course_id, [topic_id])
+        requested = expand(db, user.id, course_id, [topic_id])
+    matches = [
+        q for q, data in bank.eligible_questions(db, user.id, course_id)
+        if query.strip().casefold() in q.stem.casefold()
+        and (not requested or requested.intersection(data["topic_ids"]))
+    ]
+    return {
+        "total": len(matches),
+        "items": [
+            {"id": q.id, "stem": q.stem, "number": q.number, "points": q.points}
+            for q in matches[offset:offset + 20]
+        ],
+    }
+
+
+@router.post("/courses/{course_id}/question-bank/manual-practice", response_model=PaperResponse, status_code=201)
+def manual_practice(
+    course_id: str,
+    payload: BankManualPractice,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    from .exams import _paper_payload
+
+    return _paper_payload(bank.draw(db, user.id, course_id, payload))
 
 
 @router.get("/courses/{course_id}/question-bank/practice-papers")

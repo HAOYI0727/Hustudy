@@ -418,6 +418,7 @@ def drain_jobs(limit=100):
 
 
 def run_core_once():
+    from ..services.bank_answer_import import run_once as run_answer_once
     from .account_archives import run_archive_once
 
     run_trash_cleanup()
@@ -427,6 +428,7 @@ def run_core_once():
         or run_capture_once()
         or run_bank_ocr_once()
         or run_bank_ai_once()
+        or run_answer_once()
         or run_export_once()
         or run_ai_once()
         or run_archive_once()

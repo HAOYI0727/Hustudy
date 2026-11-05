@@ -68,6 +68,7 @@ def save_upload(
     db: Session,
     document_id: str | None = None,
     library_scope: str = "material",
+    defer_parse: bool = False,
 ):
     if library_scope not in {"material", "question_bank"}:
         raise ValueError("Unknown library scope")
@@ -167,6 +168,10 @@ def save_upload(
         db.add(version)
         db.flush()
         job = ProcessingJob(user_id=user_id, type="PARSE", resource_id=version.id)
+        if defer_parse:
+            job.status = "CANCELLED"
+            version.parse_status = "CANCELLED"
+            version.index_status = "CANCELLED"
         db.add(job)
         db.commit()
         return document, version, job, False

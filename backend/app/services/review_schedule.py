@@ -32,13 +32,20 @@ def page(db, user, state, offset, limit, *, course_id=None, q="", period="all"):
     )
     if course_id is not None:
         accessible = accessible.where(Course.id == course_id)
+    manual_courses = select(Course.id).where(
+        Course.user_id == user.id, Course.deleted_at.is_(None)
+    )
+    if course_id is not None:
+        manual_courses = manual_courses.where(Course.id == course_id)
+    manual = and_(ReviewTask.mistake_id.is_(None), ReviewTask.course_id.in_(manual_courses))
     query = select(ReviewTask).where(
         ReviewTask.user_id == user.id,
         (
-            ReviewTask.mistake_id.in_(accessible)
+            or_(ReviewTask.mistake_id.in_(accessible), manual)
             if course_id is not None
             else or_(
-                ReviewTask.mistake_id.is_(None), ReviewTask.mistake_id.in_(accessible)
+                and_(ReviewTask.mistake_id.is_(None), ReviewTask.course_id.is_(None)),
+                manual, ReviewTask.mistake_id.in_(accessible)
             )
         ),
     )

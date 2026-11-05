@@ -227,6 +227,7 @@ def bank_papers(
 ):
     owned_course(db, user.id, course_id)
     from ..services.bank_deletion import question_rows, snapshot
+    from ..services.question_display import has_major_groups
 
     return [
         {
@@ -248,6 +249,7 @@ def bank_papers(
             },
             "status": p.review_status,
             "question_count": len(question_rows(db, p.id)),
+            "has_major_groups": has_major_groups(question_rows(db, p.id)),
             "question_snapshot": snapshot(question_rows(db, p.id)),
             "recognition": recognition_status(db, p),
         }

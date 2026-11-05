@@ -37,6 +37,7 @@ from ..schemas.exams import (
     PastPaperResponse,
     PastQuestionResponse,
     ReviewTaskCreate,
+    ReviewTaskStatus,
     ReviewTaskResponse,
     ReviewReschedule,
     TopicCreate,
@@ -660,6 +661,12 @@ def create_review_task(
     user: User = Depends(current_user),
     db: Session = Depends(get_db),
 ) -> ReviewTaskResponse:
+    if payload.course_id:
+        owned_course(db, user.id, payload.course_id, lock=True)
+        if payload.mistake_id:
+            raise HTTPException(422, "课程日程请直接填写内容，不同时关联错题")
+    if not payload.title.strip():
+        raise HTTPException(422, "日程内容不能为空")
     if payload.mistake_id:
         check_mistake_course(db, user.id, payload.mistake_id, lock=True)
     if payload.mistake_id and not db.scalar(
@@ -685,6 +692,7 @@ def create_review_task(
         return ReviewTaskResponse.model_validate(existing, from_attributes=True)
     task = ReviewTask(
         user_id=user.id,
+        course_id=payload.course_id,
         mistake_id=payload.mistake_id,
         title=payload.title,
         due_date=(
@@ -695,6 +703,39 @@ def create_review_task(
     db.commit()
     db.refresh(task)
     return ReviewTaskResponse.model_validate(task, from_attributes=True)
+
+
+def owned_agenda_task(db, user_id, task_id):
+    task = db.scalar(select(ReviewTask).where(ReviewTask.id == task_id, ReviewTask.user_id == user_id))
+    if not task:
+        raise HTTPException(404, "日程不存在")
+    if task.course_id:
+        owned_course(db, user_id, task.course_id, lock=True)
+    if task.mistake_id:
+        check_mistake_course(db, user_id, task.mistake_id, lock=True)
+    return task
+
+
+@router.patch("/review-tasks/{task_id}/status", response_model=ReviewTaskResponse)
+def set_agenda_status(task_id: str, payload: ReviewTaskStatus, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    task = owned_agenda_task(db, user.id, task_id)
+    changed = db.execute(update(ReviewTask).where(
+        ReviewTask.id == task.id, ReviewTask.user_id == user.id,
+        ReviewTask.status == payload.expected_status,
+    ).values(status=payload.status))
+    if changed.rowcount != 1:
+        db.rollback()
+        raise HTTPException(409, "日程状态已变化，请刷新后重试")
+    db.commit()
+    db.refresh(task)
+    return ReviewTaskResponse.model_validate(task, from_attributes=True)
+
+
+@router.delete("/review-tasks/{task_id}", status_code=204)
+def delete_agenda_task(task_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    task = owned_agenda_task(db, user.id, task_id)
+    db.delete(task)
+    db.commit()
 
 
 @router.get("/review-tasks/today", response_model=List[ReviewTaskResponse])
@@ -746,6 +787,8 @@ def complete_task(
     )
     if not task:
         raise HTTPException(status_code=404, detail="复习任务不存在")
+    if task.course_id:
+        owned_course(db, user.id, task.course_id, lock=True)
     if task.mistake_id:
         check_mistake_course(db, user.id, task.mistake_id, lock=True)
     task.status = "COMPLETED"
@@ -768,6 +811,8 @@ def reschedule_review(
     )
     if not task:
         raise HTTPException(404, "复习任务不存在")
+    if task.course_id:
+        owned_course(db, user.id, task.course_id, lock=True)
     if task.mistake_id:
         check_mistake_course(db, user.id, task.mistake_id, lock=True)
     changed = db.execute(
