@@ -54,3 +54,15 @@ def order_rows(rows):
             )
         )
     return [row for _, row in sorted(ordered, key=lambda pair: pair[0])]
+
+
+def has_major_groups(rows):
+    seen = set()
+    for row in rows:
+        group = display_group(row.number, row.paper_id)
+        if not group:
+            continue
+        if len(group["order"]) > 1 or group["key"] in seen:
+            return True
+        seen.add(group["key"])
+    return False

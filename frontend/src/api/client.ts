@@ -1,3 +1,4 @@
+export type AnswerImport={id:string;status:string;filename:string;model:string;endpoint:string;progress:number;error:string|null;questions:{id:string;number:string;stem:string;has_answer:boolean;options?:string[];sources?:BankImage[]}[];sources:{asset_id?:string;page?:number;text?:string}[];results:{question_id?:string;answer?:string;reason?:string;page?:number;image_origins?:Record<string,string>;unmatched?:boolean}[]};
 import type {DisplayGroup} from "../features/exams/questionGroups";
 export type NoteAIConfig = {provider: string; model: string; configured: boolean; has_personal_key: boolean; revision: number; source: "personal" | "server" | "none"; reason: string | null; endpoint: string};
 export type ModelProfile={id:string;name:string;vendor:'deepseek'|'compatible';model:string;endpoint:string;vision:boolean;thinking:boolean;json_mode:boolean;configured:boolean};
@@ -92,7 +93,7 @@ export type BankTopicIndex = {selection_reviewed?:boolean;reason?:string;version
 export type BankData = {year?:number|null;content_format?:"markdown";topic_index?:BankTopicIndex;content_profile?:string;import_warnings?:string[];source_images?:BankImage[];illustrations?:BankImage[];images_reviewed?:boolean;options?:string[];blank_answers?:string[];unique_answer?:boolean|null;topic_ids?:string[];explanation?:string;warnings?:string[];citations?:SourceCitation[]};
 export type BankDeleteResult={changed:number;revisions:Record<string,number>;paper_id?:string;paper_revision?:number};
 export type BankFile=DocumentItem&{library_scope:"material"|"question_bank"};
-export type BankPaperMeta = {recognition?:{status:string;error?:string;completed_pages:number;total_pages:number;engine:string}|null;question_count:number;question_snapshot:string;id:string;title:string;year:number|null;status:string;metadata:{parser?:string;revision?:number;exam_identity?:{kind:"exercise"|"past_exam";confirmed:boolean;revision?:number;confirmed_at?:string|null};variant?:string;provenance?:string;duplicate_of?:string|null}};
+export type BankPaperMeta = {recognition?:{status:string;error?:string;completed_pages:number;total_pages:number;engine:string}|null;question_count:number;has_major_groups?:boolean;question_snapshot:string;id:string;title:string;year:number|null;status:string;metadata:{parser?:string;revision?:number;exam_identity?:{kind:"exercise"|"past_exam";confirmed:boolean;revision?:number;confirmed_at?:string|null};variant?:string;provenance?:string;duplicate_of?:string|null}};
 export type PastQuestion = {display_group?:DisplayGroup|null; id: string; number: string; stem: string; question_type: string; points?: number | null; answer?: string | null; answer_source: string; status: string; topic_id?: string | null;revision:number;bank_data:BankData;paper_id?:string };
 export type QuestionDirectoryItem = Pick<PastQuestion,"id"|"paper_id"|"number"|"stem"|"question_type"|"status"|"revision"|"topic_id"> & {fingerprint:string;bank_data:{topic_ids:string[]}};
 export type Blueprint = { id: string; name: string; config: Record<string, unknown>; status: string };
@@ -309,6 +310,9 @@ export const api = {
   preview: (token: string, id: string) => fileRequest(`/versions/${id}/preview`, token),
   citations: (token: string, id: string) => request<SourceCitation[]>(`/notes/${id}/citations`, {}, token),
   removeCitation: (token: string, noteId: string, citationId: string) => request<void>(`/notes/${noteId}/citations/${citationId}`, {method: "DELETE"}, token),
+  addCourseAgenda:(token:string,payload:{course_id:string;title:string;due_date:string})=>request("/review-tasks",{method:"POST",body:JSON.stringify(payload)},token),
+  setAgendaStatus:(token:string,id:string,status:string,expected_status:string)=>request(`/review-tasks/${id}/status`,{method:"PATCH",body:JSON.stringify({status,expected_status})},token),
+  deleteAgenda:(token:string,id:string)=>request(`/review-tasks/${id}`,{method:"DELETE"},token),
   completeReviewTask: (token: string, id: string) => request(`/review-tasks/${id}/complete`, {method: "POST"}, token),
   note: (token: string, id: string, signal?:AbortSignal) => signal?transport<Note>(`/notes/${id}`,{signal},token):request<Note>(`/notes/${id}`, {}, token),
   noteFolders: (token: string, courseId: string) => request<NoteFolder[]>(`/note-folders?course_id=${encodeURIComponent(courseId)}`, {}, token),
@@ -388,6 +392,19 @@ export const api = {
   editBankQuestion: (token:string,id:string,payload:Record<string,unknown>) => request<PastQuestion>(`/past-questions/${id}`,{method:"PATCH",body:JSON.stringify(payload)},token),
   splitBankQuestion: (token:string,id:string,revision:number,parts:string[]) => request<PastQuestion[]>(`/past-questions/${id}/split`,{method:"POST",body:JSON.stringify({revision,parts})},token),
   mergeBankQuestions: (token:string,courseId:string,question_ids:string[],revisions:Record<string,number>,stem:string) => request<PastQuestion>(`/courses/${courseId}/question-bank/merge`,{method:"POST",body:JSON.stringify({question_ids,revisions,stem})},token),
+  manualCandidates:(token:string,courseId:string,params:URLSearchParams)=>request<{items:{id:string;stem:string;number:string;points:number|null}[];total:number}>(`/courses/${courseId}/question-bank/practice-questions?${params}`,{},token),
+  manualPractice:(token:string,courseId:string,payload:{request_id:string;question_ids:string[];title:string;duration_minutes:number})=>request<ExamPaper>(`/courses/${courseId}/question-bank/manual-practice`,{method:"POST",body:JSON.stringify(payload)},token),
+  bankImageGroup:(token:string,id:string)=>request<{id:string;revision:number;preferred_asset_id?:string;images:BankImage[];sources:BankImage[]}[]>(`/past-questions/${id}/image-group`,{},token),
+  saveBankImageGroup:(token:string,id:string,payload:{images:BankImage[];revisions:Record<string,number>})=>request<{changed:number;revisions:Record<string,number>}>(`/past-questions/${id}/image-group`,{method:"PUT",body:JSON.stringify(payload)},token),
+  deleteAnswerImport:(token:string,id:string)=>request(`/answer-imports/${id}`,{method:"DELETE"},token),
+  removeAnswerResultImage:(token:string,id:string,payload:{result_index:number;asset_id:string;expected_answer:string})=>request<AnswerImport>(`/answer-imports/${id}/remove-image`,{method:"POST",body:JSON.stringify(payload)},token),
+  addAnswerResultImages:(token:string,id:string,payload:{result_index:number;images:Record<string,string>;expected_answer:string})=>request<AnswerImport>(`/answer-imports/${id}/add-images`,{method:"POST",body:JSON.stringify(payload)},token),
+  cropAnswerResult:(token:string,id:string,payload:{result_index:number;asset_id:string;source_asset_id?:string;box:number[];expected_answer:string})=>request<AnswerImport>(`/answer-imports/${id}/crop`,{method:"POST",body:JSON.stringify(payload)},token),
+  answerImports:(token:string,paper:string)=>request<{id:string;filename:string;status:string}[]>(`/past-papers/${paper}/answer-imports`,{},token),
+  answerPreview:(token:string,paper:string,file:File)=>{const data=new FormData();data.append("file",file);return request<AnswerImport>(`/past-papers/${paper}/answer-imports`,{method:"POST",body:data},token);},
+  answerImport:(token:string,id:string)=>request<AnswerImport>(`/answer-imports/${id}`,{},token),
+  confirmAnswerImport:(token:string,id:string)=>request<AnswerImport>(`/answer-imports/${id}/confirm`,{method:"POST",body:JSON.stringify({confirm_remote_send:true})},token),
+  applyAnswerImport:(token:string,id:string,question_ids:string[],overwrite:boolean)=>request<AnswerImport>(`/answer-imports/${id}/apply`,{method:"POST",body:JSON.stringify({question_ids,overwrite})},token),
   bankDraw: (token:string,courseId:string,payload:{request_id:string;topic_ids:string[];count:number;question_type?:string;duration_minutes:number;title?:string}) => request<ExamPaper>(`/courses/${courseId}/question-bank/draw`,{method:"POST",body:JSON.stringify(payload)},token),
   examHistory: (token:string,courseId:string) => request<Array<{id:string;title:string;status:string;attempts?:Array<{id:string;status:string}>}>>(`/courses/${courseId}/exam-papers`,{},token),
   practicePapers: (token:string,courseId:string) => request<PracticePaper[]>(`/courses/${courseId}/question-bank/practice-papers`,{},token),

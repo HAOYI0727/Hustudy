@@ -137,6 +137,9 @@ class Mistake(Base, OwnedResourceMixin):
 
 class ReviewTask(Base, OwnedResourceMixin):
     __tablename__ = "review_tasks"
+    course_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("courses.id", ondelete="CASCADE"), nullable=True, index=True
+    )
     mistake_id: Mapped[Optional[str]] = mapped_column(
         String(36), ForeignKey("mistakes.id", ondelete="SET NULL"), nullable=True
     )

@@ -87,8 +87,8 @@ export default function SelectMenuLayer(){
   },[menu?.select]);
   if(!menu)return null;
   return createPortal(<div ref={popover} id={id} popover="manual" className="select-menu" style={{left:menu.position.left,top:menu.position.top,width:menu.position.width,maxHeight:menu.position.maxHeight}}>
-    <div className="select-menu-heading"><span>{menu.label}</span><small>{menu.options.length} 项</small></div>
-    <div className="select-menu-options" role="listbox" aria-label={`${menu.label}的选项`}>{menu.options.map((option,index)=><div key={index}>
+    <div className="select-menu-heading"><span>{menu.label}</span><small>{menu.options.filter(option=>!option.hidden).length} 项</small></div>
+    <div className="select-menu-options" role="listbox" aria-label={`${menu.label}的选项`}>{menu.options.map((option,index)=><div key={index} hidden={option.hidden}>
       {option.group&&(index===0||menu.options[index-1].group!==option.group)&&<div className="select-menu-group">{option.group}</div>}
       <button type="button" tabIndex={-1} id={`${id}-${index}`} data-option-index={index} role="option" aria-selected={menu.select.selectedIndex===index} aria-disabled={option.disabled} disabled={option.disabled} className={menu.active===index?"is-active":""} onPointerDown={event=>event.preventDefault()} onPointerMove={()=>{if(!option.disabled&&current.current?.active!==index)setActive(index);}} onClick={()=>choose(index)}><span>{option.label||"（空选项）"}</span>{menu.select.selectedIndex===index?<Icon name="check" size={15}/>:<span className="select-menu-check-space"/>}</button>
     </div>)}</div><div className="select-menu-help">↑ ↓ 选择 <span>Enter 确认 · Esc 取消</span></div>

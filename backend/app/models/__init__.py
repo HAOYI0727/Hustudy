@@ -1,4 +1,5 @@
 from .base import Base
+from .bank_answer_import import BankAnswerImport
 from .course import Course
 from .user import User
 from .material import (

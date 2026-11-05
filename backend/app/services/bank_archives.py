@@ -144,7 +144,8 @@ def import_archive(db, user_id, course_id, raw, selected_paths=None, *, local=Fa
             bank.no_active_attempt(db, user_id, course_id)
             if kind == "document":
                 _, version, _, _ = save_upload(
-                    file, course_id, user_id, db, library_scope="question_bank"
+                    file, course_id, user_id, db, library_scope="question_bank",
+                    defer_parse=not local and file.filename.lower().endswith(".pdf"),
                 )
                 row |= {"version_id": version.id}
             else:

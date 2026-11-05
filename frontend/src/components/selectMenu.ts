@@ -1,6 +1,6 @@
-export type SelectMenuOption={index:number;value:string;label:string;disabled:boolean;group:string};
+export type SelectMenuOption={index:number;value:string;label:string;disabled:boolean;hidden?:boolean;group:string};
 export function readSelectOptions(select:HTMLSelectElement):SelectMenuOption[]{
-  return Array.from(select.options).map((option,index)=>({index,value:option.value,label:option.label,disabled:option.disabled||option.parentElement instanceof HTMLOptGroupElement&&option.parentElement.disabled,group:option.parentElement instanceof HTMLOptGroupElement?option.parentElement.label:""}));
+  return Array.from(select.options).map((option,index)=>({index,value:option.value,label:option.label,hidden:Boolean(option.hidden),disabled:Boolean(option.hidden)||option.disabled||option.parentElement instanceof HTMLOptGroupElement&&option.parentElement.disabled,group:option.parentElement instanceof HTMLOptGroupElement?option.parentElement.label:""}));
 }
 export function moveSelectOption(options:SelectMenuOption[],current:number,direction:1|-1):number {
   if(!options.some(option=>!option.disabled))return -1;

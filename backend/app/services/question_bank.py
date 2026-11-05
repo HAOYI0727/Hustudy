@@ -487,6 +487,8 @@ def draw(db, user_id, course_id, payload):
         if paper:
             return paper
     topic_rows(db, user_id, course_id, payload.topic_ids)
+    if getattr(payload, "question_ids", None) is not None:
+        no_active_attempt(db, user_id, course_id)
     from .topic_tree import expand
 
     requested = expand(db, user_id, course_id, payload.topic_ids)
@@ -496,7 +498,16 @@ def draw(db, user_id, course_id, payload):
         if (not requested or requested.intersection(data["topic_ids"]))
         and (not payload.question_type or q.question_type == payload.question_type)
     ]
-    if len(pool) < payload.count:
+    selected_ids = getattr(payload, "question_ids", None)
+    if selected_ids is not None:
+        ids = [str(identity) for identity in selected_ids]
+        if len(ids) != len(set(ids)):
+            raise HTTPException(422, "所选题目不能重复")
+        by_id = {q.id: (q, data) for q, data in pool}
+        if any(identity not in by_id for identity in ids):
+            raise HTTPException(422, "所选题目已变化或不可练习，请重新筛选")
+        chosen = [by_id[identity] for identity in ids]
+    elif len(pool) < payload.count:
         raise HTTPException(
             422,
             {
@@ -505,8 +516,11 @@ def draw(db, user_id, course_id, payload):
                 "requested": payload.count,
             },
         )
+    else:
+        chosen = RNG.sample(pool, payload.count)
     questions = [
-        shuffled_question(q, data) for q, data in RNG.sample(pool, payload.count)
+        shuffled_question(q, data, shuffle_options=selected_ids is None)
+        for q, data in chosen
     ]
     from .question_context import attach_context
 

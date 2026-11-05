@@ -344,7 +344,19 @@ def merge_pages(items, recognized):
 def render_pages(path, folder, force):
     import pypdfium2 as pdfium
 
-    pages = examine(path)
+    if force:
+        document_info = pdfium.PdfDocument(str(path))
+        try:
+            if not 1 <= len(document_info) <= 20:
+                raise ValueError("单批PDF最多20页，请先拆分PDF再上传")
+            pages = [
+                {"number": n, "text": "", "needs_ocr": True}
+                for n in range(1, len(document_info) + 1)
+            ]
+        finally:
+            document_info.close()
+    else:
+        pages = examine(path)
     total_bytes = 0
     document = pdfium.PdfDocument(str(path))
     try:

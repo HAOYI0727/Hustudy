@@ -100,3 +100,10 @@
 .bank-illustration-library>.catalogue-pages{margin:20px 0 0;padding-top:16px;border-top:1px solid var(--border);gap:12px;flex-wrap:wrap}
 @media(max-width:900px){.bank-library-toolbar{grid-template-columns:1fr}.bank-library-card-actions>.danger-button{margin-left:0}}
 @media(max-width:600px){.bank-library-grid{grid-template-columns:1fr}.bank-library-toolbar{padding:12px;gap:16px}.bank-library-search{flex-wrap:wrap}.bank-library-search label{flex-basis:100%}.bank-library-card{padding:14px}.bank-library-search>button{width:100%}}
+
+.bank-view-paper {display:grid;gap:7px;max-width:320px;align-self:start;}
+.bank-view-paper>button:disabled {background:var(--surface-muted,#eef0f3);color:var(--muted,#687080);border-color:var(--line,#d6dbe2);box-shadow:none;opacity:1;cursor:not-allowed;}
+.bank-switch-warning {margin:0;padding:8px 10px;border:1px solid #e5c18a;border-radius:8px;background:#fff7e8;color:#7c4b12;font-size:12px;line-height:1.6;overflow-wrap:anywhere;}
+
+.answer-review-question {padding:14px 16px;margin:12px 0 18px;background:var(--accent-soft);border:1px solid var(--accent-border);border-radius:10px;overflow-wrap:anywhere;}
+.answer-review-question h5 {margin:0 0 10px;}

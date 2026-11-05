@@ -1,4 +1,4 @@
-import { FormEvent, lazy, Suspense, useRef, useState } from "react";
+import { FormEvent, lazy, Suspense, useEffect, useRef, useState } from "react";
 import { api, Course } from "../../api/client";
 import { Icon, IconName } from "../../components/Icon";
 import { EmptyInline } from "../../components/workspace";
@@ -9,8 +9,21 @@ import type {PackageIntent} from '../packages/PackageTransfer';
 const PackageTransfer=lazy(()=>import('../packages/PackageTransfer'));
 
 type Destination = "materials" | "notes" | "ai" | "exam" | "review";
-type Props = { onRecords:()=>void; onOpen:OpenWorkspace; onNote: (id: string) => void; token: string; courses: Course[]; courseId: string; onRefresh: () => Promise<void>; onSelect: (id: string) => void; onNavigate: (section: Destination) => void; onNotice: (s: string) => void; onError: (e: unknown) => void };
-export function Overview({ token, courses, courseId, onRefresh, onSelect, onNavigate, onNotice, onError, onNote, onOpen, onRecords }: Props) {
+type Props = { createCourseRequest?:number; onCourseCreateShown?:()=>void; onRecords:()=>void; onOpen:OpenWorkspace; onNote: (id: string) => void; token: string; courses: Course[]; courseId: string; onRefresh: () => Promise<void>; onSelect: (id: string) => void; onNavigate: (section: Destination) => void; onNotice: (s: string) => void; onError: (e: unknown) => void };
+export function Overview({ createCourseRequest=0, onCourseCreateShown, token, courses, courseId, onRefresh, onSelect, onNavigate, onNotice, onError, onNote, onOpen, onRecords }: Props) {
+  const createDetails=useRef<HTMLDetailsElement>(null);
+  useEffect(()=>{
+    if(!createCourseRequest)return;
+    if(createDetails.current)createDetails.current.open=true;
+    let frame=0;
+    frame=requestAnimationFrame(()=>{frame=requestAnimationFrame(()=>{
+      const input=document.getElementById("new-course-name");
+      input?.scrollIntoView({block:"center",behavior:"instant"});
+      input?.focus({preventScroll:true});
+      onCourseCreateShown?.();
+    });});
+    return()=>cancelAnimationFrame(frame);
+  },[createCourseRequest]);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [query, setQuery] = useState("");
@@ -42,7 +55,7 @@ export function Overview({ token, courses, courseId, onRefresh, onSelect, onNavi
   const dateLabel = new Intl.DateTimeFormat("zh-CN", { month: "long", day: "numeric", weekday: "long" }).format(new Date());
   return <div className="page dashboard">
     <section className="dashboard-hero">
-      <div><span className="hero-date">{dateLabel} · 学习由你掌握</span><h2>把零散的资料，<br />连成清晰的知识</h2><p>{course ? `继续学习「${course.name}」，从阅读到练习，每一步都有来处。` : "创建一门课程，开启你的个人学习空间。"}</p><div className="hero-actions"><button className="primary" onClick={() => courseId ? onNavigate("materials") : document.getElementById("new-course-name")?.focus()}>{courseId ? "继续阅读资料" : "创建第一门课程"} <Icon name="arrow" size={17}/></button><button className="hero-secondary" onClick={() => onNavigate("review")}>查看待复习任务 <Icon name="arrow" size={16}/></button></div></div>
+      <div><span className="hero-date">{dateLabel} · 学习由你掌握</span><h2>把零散的资料，<br />连成清晰的知识</h2><p>{course ? `继续学习「${course.name}」，从阅读到练习，每一步都有来处。` : courses.length ? "选择已有课程，继续你的学习。" : "创建一门课程，开启你的个人学习空间。"}</p><div className="hero-actions"><button className="primary" onClick={() => course ? onNavigate("materials") : courses.length ? document.getElementById("active-course")?.focus() : document.getElementById("new-course-name")?.focus()}>{course ? "继续阅读资料" : courses.length ? "选择课程开始学习" : "创建第一门课程"} <Icon name="arrow" size={17}/></button><button className="hero-secondary" onClick={() => onNavigate("review")}>查看待复习任务 <Icon name="arrow" size={16}/></button></div></div>
       <div className="knowledge-orbit" aria-hidden="true"><div className="orbit-ring" /><div className="orbit-core">H<span>KNOWLEDGE</span></div><span className="orbit-note one"><Icon name="file"/>课程资料</span><span className="orbit-note two"><Icon name="notes"/>我的理解</span><span className="orbit-note three"><Icon name="link"/>来源证据</span></div>
     </section>
     <section className="dashboard-metrics" aria-label="学习数据">
@@ -56,7 +69,7 @@ export function Overview({ token, courses, courseId, onRefresh, onSelect, onNavi
       <p className="hint" role="status">显示 {visibleCourses.length} / {courses.length} 门课程 · 分类与标签只整理课程</p>
       <div className="course-grid">{visibleCourses.map(row => <article className={`course-card course-color-${parseInt(row.id.slice(0, 2), 16) % 3} ${row.id === courseId ? "current-course" : ""}`} key={row.id}><div className="course-card-top"><span className="course-icon">{row.name.slice(0, 1)}</span>{row.id === courseId && <span className="course-current">当前课程</span>}</div><strong>{row.name}</strong><p className="course-description" title={row.description || undefined}>{row.description || "在这里积累资料、笔记与练习。"}</p><div className="course-labels"><button aria-label={`按分类筛选：${row.category}`} aria-pressed={category === row.category} onClick={() => setCategory(category === row.category ? "" : row.category)}>{row.category}</button>{row.tags.map(item => <button key={item} aria-label={`按标签筛选：${item}`} aria-pressed={tag === item} onClick={() => setTag(tag === item ? "" : item)}>#{item}</button>)}</div><div className="course-card-actions"><button className="link-button" onClick={() => onSelect(row.id)}>打开课程 <Icon name="arrow" size={16}/></button><button className="secondary" aria-label={`导出课程包：${row.name}`} onClick={()=>showPackage({mode:"export",kind:"course",courseId:row.id})}>导出课程包</button><button className="secondary" aria-label={`整理课程：${row.name}`} onClick={() => setEditing(row)}><Icon name="edit" size={15}/>整理</button></div></article>)}</div>
       {!visibleCourses.length && <EmptyInline text={courses.length ? "没有符合筛选的课程，请调整关键词或重置筛选" : "还没有课程，在下方创建你的第一门课程"} />}
-      <details className="course-create-details" open={courses.length===0?true:undefined}><summary><Icon name="plus" size={17}/>新增课程空间</summary><form className="course-create-inline panel" onSubmit={create}><div><h3>＋ 开启一门新课程</h3><p className="hint">为每门课保留独立的学习空间。</p></div><label>课程名称<input id="new-course-name" maxLength={200} disabled={busy} value={name} onChange={(e) => setName(e.target.value)} placeholder="例如：操作系统" required /></label><label>课程描述<input maxLength={5000} disabled={busy} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="本学期的学习目标（可选）" /></label><div className="course-new-organization"><label>课程分类<input maxLength={64} disabled={busy} value={newCategory} onChange={e => setNewCategory(e.target.value)} placeholder="专业必修（可选）"/></label><label>课程标签<input maxLength={1000} disabled={busy} value={newTags} onChange={e => setNewTags(e.target.value)} placeholder="大二、期末复习（可选）"/></label></div><button className="primary" disabled={busy || !name.trim()}>{busy ? "创建中…" : "创建课程"}</button></form></details>
+      <details ref={createDetails} className="course-create-details" open={courses.length===0?true:undefined}><summary><Icon name="plus" size={17}/>新增课程空间</summary><form className="course-create-inline panel" onSubmit={create}><div><h3>＋ 开启一门新课程</h3><p className="hint">为每门课保留独立的学习空间。</p></div><label>课程名称<input id="new-course-name" maxLength={200} disabled={busy} value={name} onChange={(e) => setName(e.target.value)} placeholder="例如：操作系统" required /></label><label>课程描述<input maxLength={5000} disabled={busy} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="本学期的学习目标（可选）" /></label><div className="course-new-organization"><label>课程分类<input maxLength={64} disabled={busy} value={newCategory} onChange={e => setNewCategory(e.target.value)} placeholder="专业必修（可选）"/></label><label>课程标签<input maxLength={1000} disabled={busy} value={newTags} onChange={e => setNewTags(e.target.value)} placeholder="大二、期末复习（可选）"/></label></div><button className="primary" disabled={busy || !name.trim()}>{busy ? "创建中…" : "创建课程"}</button></form></details>
       {editing && <CourseEditor key={editing.id} course={editing} token={token} onClose={() => setEditing(null)} onRefresh={onRefresh} onDeleted={async () => {await onRefresh(); onNotice("课程已删除，关联来源已撤销访问");}} onError={onError} onSaved={async () => {await onRefresh(); onNotice("课程整理已保存，资料和笔记链接保持有效");}}/>}
     </section><aside className="dashboard-aside">
       <section className="panel"><div className="panel-title"><h3>最近保存的笔记</h3><Icon className="aside-icon" name="notes"/></div>{loading ? <p className="hint" role="status">正在读取笔记…</p> : failed ? <p className="hint">暂时无法读取</p> : notes.length ? [...notes].sort((a, b) => b.updated_at.localeCompare(a.updated_at)).slice(0, 3).map((note) => <button className="dashboard-note" key={note.id} onClick={() => onNote(note.id)}><strong>{note.title}</strong><p>{new Date(note.updated_at).toLocaleDateString("zh-CN")} · 已保存</p><small>继续编辑这篇笔记 →</small></button>) : <EmptyInline text="还没有笔记，试试概念学习模板" />}<button className="secondary full" onClick={() => onNavigate("notes")}>打开笔记工作台</button></section>
