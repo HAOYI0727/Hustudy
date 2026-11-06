@@ -1,9 +1,9 @@
-export type Section = "api-connect" | "feedback" | "backup" | "search" | "help" | "overview" | "materials" | "notes" | "ai" | "exam" | "review" | "topics";
+export type Section = "api-connect" | "feedback" | "backup" | "search" | "help" | "overview" | "materials" | "notes" | "ai" | "exam" | "review";
 export type SourceTarget = {documentId:string;versionId:string;chunkId:string;previewPage?:number};
 export type StudyTarget = SourceTarget & {mode: "qa" | "report"};
 export type ExamTab = "bank" | "analysis" | "practice";
 export type WorkspaceExtra = {topicId?:string;noteId?:string;mistakeId?:string;reviewMode?:"plan";material?:SourceTarget;study?:StudyTarget;aiResultId?:string;aiMode?:"qa"|"report";examTab?:ExamTab;attemptId?:string};
-const sections: Section[] = ["api-connect","feedback","backup","search","help","overview","materials","notes","ai","exam","review","topics"];
+const sections: Section[] = ["api-connect","feedback","backup","search","help","overview","materials","notes","ai","exam","review"];
 const uuid = (value: string | null) => value && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value) ? value.toLowerCase() : "";
 
 export function parseWorkspace(pathname: string, search: string) {
@@ -23,7 +23,7 @@ export function parseWorkspace(pathname: string, search: string) {
   const aiMode = section === "ai" && ["qa", "report"].includes(params.get("mode") || "") ? params.get("mode") as "qa" | "report" : undefined;
   const examTab = section === "exam" && ["bank", "analysis", "practice"].includes(params.get("tab") || "") ? params.get("tab") as ExamTab : undefined;
   const attemptId = section === "exam" ? uuid(params.get("attempt")) : "";
-  const topicId = (section === "topics" || section === "exam" && examTab === "practice") ? uuid(params.get("topic")) : "";
+  const topicId = (section === "exam" && examTab === "practice") ? uuid(params.get("topic")) : "";
   const invalid = name!==section || ["course","note","document","version","chunk","mistake"].some(key => params.has(key) && !uuid(params.get(key)))
     || (["document","version","chunk","page"].some(key => params.has(key)) && !(documentId && versionId))
     || (params.has("page") && !(Number.isInteger(page) && page > 0 && page <= 100000))
@@ -51,6 +51,6 @@ export function workspaceHref(section:Section, courseId:string, extra?:Workspace
   if(section === "ai" && extra?.aiMode) params.set("mode",extra.aiMode);
   if(section === "exam" && extra?.examTab) params.set("tab",extra.examTab);
   if(section === "exam" && extra?.attemptId) {params.set("tab","practice"); params.set("attempt",extra.attemptId);}
-  if(extra?.topicId && uuid(extra.topicId) && (section === "topics" || section === "exam" && params.get("tab") === "practice")) params.set("topic",extra.topicId);
+  if(extra?.topicId && uuid(extra.topicId) && (section === "exam" && params.get("tab") === "practice")) params.set("topic",extra.topicId);
   return "/"+section+(params.size?"?"+params.toString():"");
 }

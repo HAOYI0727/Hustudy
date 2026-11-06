@@ -54,9 +54,6 @@ export type ReferenceNotePage={course_id:string;document_id:string;version_id:st
 export type SearchHit = { source_kind?: string; transcript_id?: string | null; chunk_id: string; version_id: string; version_no: number; document_id: string; document_name: string; category: string; tags: string[]; locator_type: string; locator_value: string; text: string; score: number };
 export type TextExcerpt = {text:string; start_offset:number; truncated_after:boolean; highlights:{start:number;end:number}[]};
 export type PageResult<T> = {items:T[];total:number;offset:number;limit:number};
-export type LearningTopic = {id:string;name:string;aliases:string[];parent_id:string|null;revision:number;confirmed:number;pending:number;needs_review:number};
-export type TopicSource = {version_id:string;chunk_id:string;availability:"active"|"unavailable";document_id?:string;title?:string;version_no?:number;locator?:string;quote?:string};
-export type TopicLearning = {course_id:string;topic:Omit<LearningTopic,"confirmed"|"pending"|"needs_review">;counts:Pick<LearningTopic,"confirmed"|"pending"|"needs_review">;sources:TopicSource[];candidates:Required<Omit<TopicSource,"availability">>[];notes:{id:string;title:string;updated_at:string;relation:"shared_source"|"same_tag_candidate"}[];mistakes:{id:string;updated_at:string}[];reviews:{id:string;title:string;due_date:string;mistake_id:string}[];review_total:number;today:string;timezone:string;checked_at:string};
 export type SearchPage = PageResult<Omit<SearchHit,"text"> & {excerpt:TextExcerpt}>;
 export type NoteSearchPage = PageResult<{id:string;title:string;excerpt:TextExcerpt;updated_at:string}>;
 export type MaterialFilters = { category?: string; tag?: string; latestOnly?: boolean };
@@ -218,8 +215,6 @@ export const api = {
   importPackage:(token:string,payload:PackageImportRequest,signal?:AbortSignal)=>request<PackageImportResult>("/packages/import",{method:"POST",body:JSON.stringify(payload),signal},token),
   packageImportResult:(token:string,id:string,signal?:AbortSignal)=>transport<PackageImportResult>(`/packages/imports/${id}`,{signal,cache:"no-store"},token),
   processingStatus:(token:string,signal?:AbortSignal)=>transport<ProcessingServiceStatus>("/processing/status",{signal},token),
-  learningTopics:(token:string,courseId:string,q="",state="all",offset=0)=>request<PageResult<LearningTopic>>(`/courses/${courseId}/learning-topics?${new URLSearchParams({q,state,offset:String(offset),limit:"12"})}`,{},token),
-  topicLearning:(token:string,courseId:string,id:string)=>request<TopicLearning>(`/courses/${courseId}/learning-topics/${id}`,{},token),
   questionDirectory:(token:string,courseId:string,offset=0)=>request<PageResult<QuestionDirectoryItem>>(`/courses/${courseId}/question-directory?offset=${offset}&limit=200`,{},token),
   bankQuestion:(token:string,id:string)=>request<PastQuestion>(`/past-questions/${id}`,{},token),
 

@@ -57,7 +57,6 @@
 .app-shell .course-card>strong,.app-shell .course-card .course-description {color:var(--card-ink);}
 .app-shell .course-card-actions {border-color:var(--card-line);}
 .app-shell .course-card-actions .link-button {color:var(--card-ink);}
-.app-shell .hub-overview-link {background:linear-gradient(110deg,var(--accent-soft),var(--ai-wash));border-color:var(--accent-border);box-shadow:0 4px 12px #25334c05;}
 .app-shell .next-actions {background:linear-gradient(100deg,var(--exam-wash),var(--exam-tint));border-color:var(--exam-line);}
 .app-shell .next-actions .eyebrow {color:var(--exam-ink);}
 .app-shell .next-action-icon {padding:8px;border-radius:9px;background:var(--exam-wash);color:var(--exam-ink);}
@@ -79,16 +78,8 @@
 .app-shell .mode-card {background:linear-gradient(110deg,var(--ai-wash),var(--ai-tint));border-color:var(--ai-line);color:var(--ai-ink);}
 .app-shell .material-upload {border-color:var(--material-line);background:linear-gradient(150deg,var(--material-tint),var(--material-wash));}
 .app-shell .reader-directory>summary {color:var(--material-ink);background:var(--material-tint);}
-.app-shell .hub-introduction {background:linear-gradient(105deg,var(--ai-wash),var(--material-tint) 60%,var(--notes-wash));border-color:var(--ai-line);}
-.app-shell .hub-source-card {border-color:var(--material-line);background:var(--material-tint);border-left:3px solid var(--material-color);}
-.app-shell .hub-note-card {border-color:var(--notes-line);background:var(--notes-tint);color:var(--notes-ink);}
-.app-shell .hub-detail>.panel[aria-label="知识点错题与复习"] {background:linear-gradient(160deg,var(--review-tint),var(--surface));border-color:var(--review-line);}
 .app-shell .review-page .daily-redo {border-color:var(--review-line);background:linear-gradient(110deg,var(--review-wash),var(--review-tint));}
 .app-shell .review-page .daily-redo h3 {color:var(--review-ink);}
-.app-shell .hub-topic-list>button.is-selected {border-color:var(--accent-border);background:var(--accent-soft);box-shadow:inset 3px 0 var(--accent);}
-.app-shell .hub-topic-list>button:hover {border-color:var(--accent-border);}
-.app-shell .hub-metrics strong,.app-shell .hub-section-heading>span,.app-shell .hub-mini-path {color:var(--accent-ink);}
-.app-shell .hub-mini-path span {border-color:var(--accent-border);background:var(--material-tint);}
 .app-shell .course-current,.app-shell .course-card .course-labels button {color:var(--accent-ink)!important;}
 .app-shell .evidence-tip {background:var(--material-tint);border:1px solid var(--material-line);color:var(--material-ink);}
 .app-shell .activity-icon {background:var(--material-wash);color:var(--material-ink);}

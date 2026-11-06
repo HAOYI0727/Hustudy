@@ -15,7 +15,7 @@ async function setup(page:Page,request:APIRequestContext){
  await page.addInitScript(auth=>{if(window===window.top){localStorage.setItem("hustudy_token",auth.access_token);localStorage.setItem("hustudy_user",auth.user.username);}},auth);
  return {headers,course,version,chunks,name};
 }
-test("现有PPT长资料的阅读与知识点排版核对",async({page,request})=>{
+test("现有PPT长资料的阅读排版核对",async({page,request})=>{
  const pageErrors:string[]=[];page.on("pageerror",error=>pageErrors.push(error.message));
  test.setTimeout(240000);await page.setViewportSize({width:1440,height:1000});const s=await setup(page,request);expect(s.chunks.length).toBeGreaterThan(50);
  const url=`/materials?course=${s.course.id}&document=${s.version.document_id}&version=${s.version.id}`;await page.goto(url);
@@ -27,15 +27,11 @@ test("现有PPT长资料的阅读与知识点排版核对",async({page,request})
  expect(metrics.height).toBeLessThan(4200);expect(metrics.readerHeight).toBeLessThan(1500);
  await page.getByRole("button",{name:"文本与引用",exact:true}).click();await expect(page.locator(".reading-paper .chunk")).toHaveCount(1);await expect(page.getByRole("navigation",{name:"原文分页"})).toContainText(String(s.chunks.length));await page.getByLabel("跳到原文页",{exact:true}).selectOption(String(s.chunks.length-1));await expect(page.locator(".reading-paper .chunk")).toHaveAttribute("id","chunk-"+s.chunks.at(-1).id);
  await page.goto(url+`&chunk=${s.chunks.at(-1).id}`);await expect(page.locator(".chunk-highlight")).toHaveAttribute("id","chunk-"+s.chunks.at(-1).id);await expect(page.locator(".reading-paper .chunk")).toHaveCount(1);
- let topic=await(await request.post(base+`/courses/${s.course.id}/topics`,{headers:s.headers,data:{name:"排版核对知识点"}})).json();
- for(const chunk of s.chunks.slice(0,8)){const citation={version_id:s.version.id,chunk_id:chunk.id,quote:Array.from(chunk.text as string).slice(0,450).join("")};topic=await(await request.put(base+`/topics/${topic.id}/sources`,{headers:s.headers,data:{revision:topic.revision,...citation}})).json();await request.post(base+"/notes",{headers:s.headers,data:{course_id:s.course.id,title:`已有理解笔记 ${chunk.ordinal}`,content:"隔离样例理解正文。",citations:[citation]}});}
- await page.goto(`/topics?course=${s.course.id}&topic=${topic.id}`);const detail=page.getByRole("region",{name:"知识点学习详情",exact:true});await expect(detail.locator(".hub-topic-heading h2")).toHaveText("排版核对知识点");await expect(page.getByRole("region",{name:"知识点原文依据",exact:true})).toBeVisible();await expect(page.getByRole("region",{name:"知识点关联笔记",exact:true})).not.toBeVisible();expect(await detail.evaluate(e=>e.getBoundingClientRect().height)).toBeLessThan(1000);
- await detail.getByRole("button",{name:/^关联笔记/}).click();await expect(page.getByRole("region",{name:"知识点关联笔记",exact:true})).toBeVisible();await expect(page.locator(".hub-note-card")).toHaveCount(6);await expect(page.getByRole("region",{name:"知识点原文依据",exact:true})).not.toBeVisible();await detail.getByRole("button",{name:/^练习与复习/}).click();await expect(page.getByRole("region",{name:"知识点错题与复习",exact:true})).toBeVisible();
- await page.screenshot({animations:"disabled",path:output+`hub-after-${test.info().project.name}.png`});
+ for(const chunk of s.chunks.slice(0,8)){const citation={version_id:s.version.id,chunk_id:chunk.id,quote:Array.from(chunk.text as string).slice(0,450).join("")};await request.post(base+"/notes",{headers:s.headers,data:{course_id:s.course.id,title:`已有理解笔记 ${chunk.ordinal}`,content:"隔离样例理解正文。",citations:[citation]}});}
  await page.setViewportSize({width:390,height:900});await page.goto(url);await expect(page.getByLabel("PPT幻灯片序号",{exact:true})).toBeEnabled({timeout:45000});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2)).toBe(true);await page.screenshot({animations:"disabled",path:output+`after-mobile-${test.info().project.name}.png`});
  await page.getByRole("button",{name:"文本与引用",exact:true}).click();await expect(page.locator(".reading-paper .chunk")).toHaveCount(1);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2)).toBe(true);await page.screenshot({animations:"disabled",path:output+`text-after-mobile-${test.info().project.name}.png`});
+ expect(pageErrors).toEqual([]);
  const sourceCard=page.locator(".source-note-card").first();await expect(sourceCard).toHaveCSS("display","block");expect(await sourceCard.evaluate(e=>e.querySelector("p")!.getBoundingClientRect().width/e.getBoundingClientRect().width)).toBeGreaterThan(.75);
- await page.goto(`/topics?course=${s.course.id}&topic=${topic.id}`);await expect(detail.locator(".hub-topic-heading h2")).toHaveText("排版核对知识点");await expect(page.getByRole("button",{name:"展开知识点列表",exact:true})).toBeVisible();await detail.getByRole("button",{name:/^关联笔记/}).click();await expect(page.getByRole("region",{name:"知识点关联笔记",exact:true})).toBeVisible();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2)).toBe(true);await page.screenshot({animations:"disabled",path:output+`hub-after-mobile-${test.info().project.name}.png`});expect(pageErrors).toEqual([]);
 });
 
 test("长文本目录/末页/全版本查找保持引用身份与阅读笔记草稿",async({page,request})=>{

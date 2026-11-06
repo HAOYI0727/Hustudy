@@ -7,11 +7,11 @@
 :where(.app-shell,.auth-page,.notes-dialog,.navigation-drawer) :where(button,input,select,textarea,summary) {font-family:var(--font-ui);}
 .app-shell :where(.dashboard-hero,.page-title,.learning-stage)>p,
 .app-shell .dashboard-hero>div>p,.app-shell .module-title-copy>p:not(.eyebrow),
-.app-shell .course-description,.app-shell .hub-introduction>div>p,
+.app-shell .course-description,
 .app-shell .reading-paper .chunk>p,.app-shell .citation-card>p,
 .app-shell .markdown-preview :where(p,li,blockquote,td,th) {font-family:var(--font-reading);}
 /* Kaiti is a quiet accent for a few reflective passages, never for controls or source content. */
-.app-shell .evidence-tip :where(strong,p),.app-shell .workspace-footnote,.app-shell .hub-welcome>p {font-family:var(--font-reflection);}
+.app-shell .evidence-tip :where(strong,p),.app-shell .workspace-footnote {font-family:var(--font-reflection);}
 .app-shell .workspace-footnote {font-size:12px;line-height:1.85;}
 .app-shell .dashboard-hero h2 {letter-spacing:-.025em;}
 .app-shell .page-title h2,.app-shell .notes-workspace-heading h1 {letter-spacing:-.015em;}

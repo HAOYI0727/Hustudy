@@ -75,7 +75,7 @@ export function CourseWorkspace({parts,retry,onOpen,onRecords}: {parts:Parts;ret
   const kinds:Record<WorkspaceItem["kind"],{text:string;icon:IconName}>={material:{text:"课程资料",icon:"file"},note:{text:"知识笔记",icon:"notes"},report:{text:"学习报告",icon:"ai"},qa:{text:"资料问答",icon:"ai"},attempt:{text:"练习作答",icon:"exam"},mistake:{text:"错题复盘",icon:"review"}};
   return <section className="course-workspace" aria-label="当前课程学习工作台">
     <div className="section-heading"><div><p className="eyebrow">ONE COURSE · ONE LEARNING LOOP</p><h2>让学习，连成一条线</h2></div><span className="workspace-live"><span/>当前课程 · 实际记录</span></div>
-    <button className="hub-overview-link" onClick={()=>onOpen("topics")}><span><Icon name="link"/><strong>知识点学习中心</strong><small>把同一个概念的原文、理解和错题放在一起</small></span><Icon name="arrow"/></button><div className="course-learning-grid">{steps.map((step,index)=>{
+    <div className="course-learning-grid">{steps.map((step,index)=>{
       const part=parts[step.domain];
       const item=!part.loading&&!part.error?continuationItem(step.domain,part.data?.recent||[]):undefined;
       return <article key={step.domain} className={`learning-stage stage-${step.domain}`} aria-label={step.title}>

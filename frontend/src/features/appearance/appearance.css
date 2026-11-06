@@ -75,12 +75,6 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 .course-card.current-course {border-color:var(--accent-border);}
 .next-actions,.course-filters {background:var(--surface-muted);border-color:var(--line);}
 .workspace-activity-list>button,.note-manager-row,.material-reference-grid>button {padding-block:var(--row-space);}
-.app-shell .hub-overview-link {background:var(--accent-soft);border-color:var(--accent-border);color:var(--accent-ink);border-radius:12px;}
-.hub-introduction {background:linear-gradient(120deg,var(--accent-soft),var(--surface));border-color:var(--line);border-radius:18px;box-shadow:var(--shadow-card);}
-.hub-introduction .hub-symbol {background:var(--surface);color:var(--accent-ink);}
-.hub-directory .hub-topic-row[aria-pressed=true] {background:var(--accent-soft);border-color:var(--accent-border);}
-.hub-topic-row[aria-pressed=true] strong {color:var(--accent-ink);}
-.hub-metrics>div,.hub-source-card,.hub-note-card,.hub-welcome,.hub-directory {background:var(--surface);border-color:var(--line);}
 .notes-workspace .notes-view-tabs button[aria-pressed=true] {color:var(--accent-ink);border-bottom-color:var(--accent);}
 .notes-workspace .knowledge-item.selected,.notes-workspace .note-manager-row.is-selected {background:var(--accent-soft);border-color:var(--accent-border);}
 .app-shell .reading-paper {background:var(--surface);border:1px solid var(--line);border-radius:12px;line-height:2;}
@@ -88,8 +82,6 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 .app-shell .material-document.selected-document,.app-shell .material-selectable-row.is-checked {background:var(--accent-soft);border-color:var(--accent-border);box-shadow:none;}
 .app-shell .locator,.app-shell .markdown-preview a,.app-shell .note-title-link:hover {color:var(--accent-ink);}
 .app-shell .button-selected,.app-shell .secondary.button-selected {background:var(--accent-soft);border-color:var(--accent-border);color:var(--accent-ink);}
-.app-shell .hub-introduction {background:linear-gradient(120deg,var(--accent-soft),var(--surface));border-color:var(--line);}
-.app-shell .hub-orbit {color:var(--accent-ink);border-color:var(--accent-border);}
 .app-shell .material-study-actions,.app-shell .study-source-context {background:linear-gradient(110deg,var(--accent-soft),var(--surface));border-color:var(--accent-border);}
 .app-shell .ai-scope-options input[type=checkbox] {accent-color:var(--accent);}
 .app-shell .bank-topic-index .bank-topic-match {background:var(--accent-soft);border-color:var(--accent);color:var(--accent-ink);}

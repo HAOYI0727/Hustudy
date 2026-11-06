@@ -35,7 +35,7 @@ export function BankPractice({token,courseId,onNotice,onError,initialAttemptId,i
     if(!alive)return;
     if(initialTopicId){
       if(tree.some(t=>t.id===initialTopicId)){if(!prefilled.current){setSelected([initialTopicId]);setCount(1);prefilled.current=true;}setScopeReady(true);}
-      else{setScopeReady(false);setError("指定知识点已失效、合并或不在当前课程，请从知识点学习中心重新选择。不会退回全课程抽题。");}
+      else{setScopeReady(false);setError("指定知识点已失效、合并或不在当前课程，请从原文关联重新选择，或返回题库练习重新设置。不会退回全课程抽题。");}
     }
     const previous=initialAttemptId||bankStorage.getItem(storageKey),previousPaper=bankStorage.getItem(stateKey);
     if(previous){const a=await api.restoreAttempt(token,previous,courseId);const p=await api.examPaper(token,a.paper_id);if(!alive)return;bankStorage.setItem(storageKey,a.id);setAttempt(a);setPaper(a.status==="IN_PROGRESS"?{...p,questions:a.questions||p.questions}:await api.attemptResult(token,a.id));}

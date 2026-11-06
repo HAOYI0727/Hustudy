@@ -16,7 +16,7 @@ async function fit(page:Page,width:number){
 }
 for(const width of [1440,390])test(`所有分界面与子模式、共享记录和字体排布 ${width}px`,async({page,request})=>{
  test.setTimeout(150000);await page.setViewportSize({width,height:1000});await setup(page,request);await page.goto("/overview");let modelCalls=0;page.on("request",r=>{if(r.method()==="POST"&&/remote-queries|study-reports|\/draw/.test(r.url()))modelCalls++;});
- for(const [route,label] of [["materials","资料阅读"],["notes","知识笔记"],["ai","AI 学习"],["exam","真题与模拟卷"],["review","错题复习"],["topics","知识点学习"],["search","课程查找"],["backup","备份与恢复"],["api-connect","API接入"],["help","使用指南"],["feedback","使用反馈"]]){
+ for(const [route,label] of [["materials","资料阅读"],["notes","知识笔记"],["ai","AI 学习"],["exam","真题与模拟卷"],["review","错题复习"],["search","课程查找"],["backup","备份与恢复"],["api-connect","API接入"],["help","使用指南"],["feedback","使用反馈"]]){
   await navigate(page,label);await expect(page.locator(".app-shell")).toHaveAttribute("data-workspace",route);const before=page.url();const entry=page.getByRole("button",{name:"学习记录",exact:true});await expect(entry).toBeVisible();await entry.click();const dialog=page.getByRole("dialog",{name:"课程学习记录",exact:true});await expect(dialog.locator(".record-card")).toHaveCount(2);await page.keyboard.press("Escape");await expect(dialog).not.toBeVisible();await expect(entry).toBeFocused();expect(page.url()).toBe(before);
   if(route==="materials"){const toggle=page.getByRole("button",{name:/资料库与上传/});if(await toggle.isVisible())await toggle.click();await page.locator(".material-document").click();await expect(page.locator(".reading-paper")).toBeVisible();}
   if(route==="ai"){for(const name of ["资料原文检索","资料问答","学习报告"]){await page.getByRole("button",{name,exact:true}).click();await fit(page,width);}}

@@ -21,8 +21,6 @@
 .source-link-copy :is(time,.status) {font-size:10px;}
 .source-link-copy time {color:var(--muted);}
 .source-link-badge {font-size:10px;padding:3px 6px;border-radius:6px;background:var(--accent-soft);color:var(--accent-ink);}
-.source-link-card>footer {display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:0 14px 13px;}
-.source-link-card>footer small {font-size:10px;color:var(--muted);}
 .source-links-empty {display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;min-height:160px;padding:18px;color:var(--muted);text-align:center;font-size:13px;line-height:1.8;}
 .source-links-pages {display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px;margin-top:20px;font-size:12px;}
 .source-links-footer {display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-top:18px;padding-top:14px;border-top:1px solid var(--line);}

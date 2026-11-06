@@ -109,15 +109,6 @@ GET `/api/v1/versions/{version_id}/learning-links`兼容15，kind新增mistake�
 
 M1-READING-TOOLS-05（2026-10-22）：阅读书签在浏览器按auth/me.id与课程隔离；版本对照复用GET documents/{id}/versions与versions/{id}/chunks，无新增API、数据库或迁移。回跳重验document.course_id、版本归属及chunk.version_id/UUID，缺失不得静默回退。书签不属于Note/Citation或账户备份。[契约](contracts.md#m1-reading-tools-05)。
 
-## LEARNING-HUB-04：知识点只读聚合（2026-10-22）
-
-| 接口 | 行为 |
-|---|---|
-| `GET /courses/{id}/learning-topics?q=&state=all&offset=0&limit=12` | state=all/needs_review/without_questions；limit≤50，q≤200。items为Topic元数据、含子标签的confirmed/pending题目记录数及当前needs_review错题数，返回total/offset/limit/checked_at/course_id；无题干/答案/笔记正文 |
-| `GET /courses/{id}/learning-topics/{topic_id}` | 本考点元数据/计数、固定版本人工确认sources（失效不返回原文/资料名）、关键词candidates、M3同源/同标签候选notes、当前mistakes与PENDING reviews；含账户today/timezone。关系类别独立，不自动创建任务或修改统计 |
-
-Pydantic输出白名单；有效本人课程、只读快照，错配/删除404，合并409且details.target_id仅本人同课程目标，超出2000 Topic/20000题目/20000错题预算422。不改变原抽题/答案隔离。确认原文复用`PUT /topics/{id}/sources`与revision；练习仅通过URL预填Topic，最终仍经原抽题校验。本机资料视图无服务端写入。[契约](contracts.md#learning-hub-04)与[实现/验证](zhy/integration/learning_hub_acceptance.md)。
-
 ## 学习连续性与按需目录（2026-10-22）
 
 以下均为已登录用户的只读接口，无新迁移；旧接口保持兼容。
