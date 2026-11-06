@@ -11,7 +11,6 @@ from ..schemas.course import (
     CourseDeletionPreview,
 )
 from ..schemas.workspace import WorkspaceSection, LearningRecordPage, RecordKind
-from ..schemas.learning_hub import LearningDirectory, LearningDetail
 from ..services.courses import course_directory, organize_course, owned_course
 from ..services.course_retirement import deletion_preview, retire_course
 
@@ -27,24 +26,6 @@ def learning_records(
 ):
     from ..services.workspace import records
     return records(db, user, course_id, kind, q, offset, limit)
-
-
-@router.get("/{course_id}/learning-topics", response_model=LearningDirectory)
-def learning_topics(
-    course_id: str, q: str = Query(default="", max_length=200),
-    state: Literal["all", "needs_review", "without_questions"] = "all",
-    offset: int = Query(default=0, ge=0), limit: int = Query(default=12, ge=1, le=50),
-    user: User = Depends(current_user), db: Session = Depends(get_db),
-):
-    from ..services.learning_hub import directory
-    return directory(db, user, course_id, q, state, offset, limit)
-
-
-@router.get("/{course_id}/learning-topics/{topic_id}", response_model=LearningDetail)
-def learning_topic(course_id: str, topic_id: str,
-                   user: User = Depends(current_user), db: Session = Depends(get_db)):
-    from ..services.learning_hub import detail
-    return detail(db, user, course_id, topic_id)
 
 
 @router.get("/{course_id}/workspace/{domain}", response_model=WorkspaceSection)

@@ -4,7 +4,6 @@ import type { Section } from "../features/platform/routing";
 
 export const navigationItems: { id: Section; label: string; icon: IconName }[] = [
   { id: "overview", label: "课程总览", icon: "home" },
-  { id: "topics", label: "知识点学习", icon: "link" },
   { id: "materials", label: "资料阅读", icon: "file" },
   { id: "notes", label: "知识笔记", icon: "notes" },
   { id: "ai", label: "AI 学习", icon: "ai" },
@@ -21,7 +20,7 @@ function Contents({ section, username, onNavigate, onSignOut }: Pick<Props, "sec
   return <>
     <div className="brand"><span className="brand-mark">H</span><span>Hustudy</span></div>
     <p className="sidebar-caption">课程学习工作台</p>
-    <nav aria-label="主导航">{[{title:"学习空间",ids:["overview","topics","materials","ai","notes","exam","review","search"]},{title:"管理与支持",ids:["backup","api-connect","feedback"]}].map(group=><section className="navigation-group" key={group.title}><p>{group.title}</p>{group.ids.map(id=>navigationItems.find(item=>item.id===id)!).map(item=><button key={item.id} data-workspace-link={item.id} aria-current={section===item.id?"page":undefined} className={`nav-item ${section===item.id?"active":""}`} onClick={()=>onNavigate(item.id)}><Icon name={item.icon}/><span>{item.label}</span>{section===item.id&&<span className="navigation-active-dot"/>}</button>)}</section>)}</nav>
+    <nav aria-label="主导航">{[{title:"学习空间",ids:["overview","materials","ai","notes","exam","review","search"]},{title:"管理与支持",ids:["backup","api-connect","feedback"]}].map(group=><section className="navigation-group" key={group.title}><p>{group.title}</p>{group.ids.map(id=>navigationItems.find(item=>item.id===id)!).map(item=><button key={item.id} data-workspace-link={item.id} aria-current={section===item.id?"page":undefined} className={`nav-item ${section===item.id?"active":""}`} onClick={()=>onNavigate(item.id)}><Icon name={item.icon}/><span>{item.label}</span>{section===item.id&&<span className="navigation-active-dot"/>}</button>)}</section>)}</nav>
     <div className="sidebar-bottom">
       <button className={`nav-item ${section === "help" ? "active" : ""}`} aria-current={section === "help" ? "page" : undefined} onClick={() => onNavigate("help")}><Icon name="help"/>使用指南</button>
       <div className="model-badge"><span className="dot"/>AI · 按次选择</div>

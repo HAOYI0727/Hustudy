@@ -37,9 +37,9 @@ export function SourceConnections({open,token,courseId,documentId,versionId,vers
   }).finally(()=>{if(live)setLoading(false);});});
   return()=>{live=false;controller.abort();};
  },[open,token,courseId,documentId,versionId,chunkId,kind,q,offset,reload]);
- const navigate=(item:LearningLinkItem,practice=false)=>{
+ const navigate=(item:LearningLinkItem)=>{
   onClose();
-  if(item.kind==="topic")onOpen(practice?"exam":"topics",practice?{examTab:"practice",topicId:item.id}:{topicId:item.id});
+  if(item.kind==="topic")onOpen("exam",{examTab:"practice",topicId:item.id});
   else if(item.kind==="mistake")onOpen("review",{mistakeId:item.id,reviewMode:"plan"});
   else openWorkspaceItem({...item,kind:item.kind},onOpen);
  };
@@ -56,8 +56,7 @@ export function SourceConnections({open,token,courseId,documentId,versionId,vers
    {loading?<p role="status" className="source-links-empty"><Icon name="refresh" className="is-spinning"/>正在读取这份原文的学习关联…</p>:error?<div role="alert" className="source-links-empty"><p>学习关联暂时无法读取：{error}</p><button className="secondary" onClick={()=>setReload(value=>value+1)}>重新读取学习关联</button></div>:result?<>
     <p className="hint" role="status">匹配 {result.total} 条{q?` · 标题包含「${q}」`:""}</p>
     <div className="source-links-grid">{result.items.map(item=>{const type=kinds.find(row=>row.id===item.kind)!;return <article key={`${item.kind}:${item.id}`} className="source-link-card">
-     <button className="source-link-open" aria-label={`打开${type.label}：${item.title}`} onClick={()=>navigate(item)}><span className="source-link-symbol"><Icon name={type.icon} size={20}/></span><span className="source-link-copy"><small>{type.label}</small><strong>{item.title}</strong><span>{item.kind==="topic"?<span className="source-link-badge">有原文依据</span>:<Status value={item.status}/>}<time dateTime={item.updated_at}>{new Date(item.updated_at).toLocaleDateString("zh-CN")}</time></span></span><Icon name="arrow" size={15}/></button>
-     {item.kind==="topic"&&<footer><button className="secondary" aria-label={`按知识点设置练习：${item.title}`} onClick={()=>navigate(item,true)}><Icon name="exam" size={15}/>设置练习</button><small>仅带入知识点，不自动抽题</small></footer>}
+     <button className="source-link-open" aria-label={item.kind==="topic"?`按知识点设置练习：${item.title}`:`打开${type.label}：${item.title}`} onClick={()=>navigate(item)}><span className="source-link-symbol"><Icon name={type.icon} size={20}/></span><span className="source-link-copy"><small>{type.label}</small><strong>{item.title}</strong><span>{item.kind==="topic"?<span className="source-link-badge">有原文依据 · 设置练习</span>:<Status value={item.status}/>}<time dateTime={item.updated_at}>{new Date(item.updated_at).toLocaleDateString("zh-CN")}</time></span></span><Icon name="arrow" size={15}/></button>
      {item.kind==="mistake"&&item.review&&<section className="source-review-summary" aria-label="关联错题复习摘要">
       <div><span className={"source-review-mastery "+(item.review.mastered===true?"is-mastered":"")}>{item.review.mastered===null?"掌握状态需核对":item.review.mastered?"已掌握 · 保留复习":"待掌握"}</span><small>{item.source_relation==="version"?"题库版本来源 · 未定位片段":"有逐字原文依据"}</small></div>
       <p>{item.review.pending_count?<>待复习 {item.review.pending_count} 项{item.review.due_count>0&&<strong> · 今日或逾期 {item.review.due_count} 项</strong>}<br/>最早日期 <time dateTime={item.review.next_due_date||undefined}>{item.review.next_due_date}</time></>:"尚无待复习计划，可进入错题页安排日期。"}</p>
@@ -68,6 +67,6 @@ export function SourceConnections({open,token,courseId,documentId,versionId,vers
     <nav className="source-links-pages" aria-label="原文关联分页"><button className="secondary" disabled={!offset} onClick={()=>change({offset:Math.max(0,offset-12)})}>上一页关联</button><span>{expiredPage?"当前页已变化":`${Math.floor(offset/12)+1} / ${Math.max(1,Math.ceil(result.total/12))} 页`}</span><button className="secondary" disabled={offset+12>=result.total} onClick={()=>change({offset:offset+12})}>下一页关联</button><button className="text-button" onClick={()=>setReload(value=>value+1)}>刷新关联</button></nav>
    </>:null}
   </div>
-  <div className="source-links-footer"><p>仅显示当前范围的有效来源关联，其他依据仍需在详情核对。{result&&`复习到期按 ${result.timezone} 的 ${result.today} 核对。`}完成计划与掌握状态分别记录，关联数量不表示掌握度。</p><button className="secondary" onClick={()=>{onClose();onOpen("topics");}}>进入知识点学习中心 <Icon name="arrow" size={14}/></button></div>
+  <div className="source-links-footer"><p>仅显示当前范围的有效来源关联，其他依据仍需在详情核对。{result&&`复习到期按 ${result.timezone} 的 ${result.today} 核对。`}完成计划与掌握状态分别记录，关联数量不表示掌握度。</p></div>
  </WorkspaceDialog>;
 }

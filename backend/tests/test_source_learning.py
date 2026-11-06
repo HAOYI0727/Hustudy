@@ -11,9 +11,18 @@ from app.core.database import SessionLocal, engine
 from app.models import AIResult, Note, Topic, Document
 from app.workers.materials import drain_jobs
 from test_material_organization import setup_course, import_document
-from test_learning_hub import topic
 from test_preview_assets import import_pdf
 from test_manual_transcripts import draft, confirm
+
+
+def topic(client, headers, course, name="进程", parent=None):
+    r = client.post(
+        f"/api/v1/courses/{course}/topics",
+        headers=headers,
+        json=dict(name=name, parent_id=parent),
+    )
+    assert r.status_code == 201, r.text
+    return r.json()
 
 
 def endpoint(version):

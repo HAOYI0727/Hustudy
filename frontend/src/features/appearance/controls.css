@@ -20,7 +20,7 @@ button>.ui-icon:last-child:not(:first-child) {opacity:.8;}
 .app-shell .dashboard-hero h2 {font-size:clamp(25px,2.15vw,31px);line-height:1.5;letter-spacing:-.045em;margin:12px 0;}
 .app-shell .dashboard-hero p {font-size:13px;line-height:1.85;}
 .app-shell .notes-workspace-heading h1 {font-size:24px;}
-.app-shell .hub-topic-heading h2 {font-size:24px;}
+
 .app-shell .metric-card strong {font-size:26px;}
 .app-shell .stage-count strong {font-size:24px;}
 .app-shell .module-stats strong {font-size:22px;}
@@ -42,10 +42,10 @@ button>.ui-icon:last-child:not(:first-child) {opacity:.8;}
 select[data-select-open=true] {border-color:var(--accent)!important;box-shadow:0 0 0 3px var(--accent-soft)!important;background-color:var(--accent-soft)!important;}
 :where(.app-shell,.notes-dialog) details>summary {cursor:pointer;border-radius:8px;transition:background .16s,color .16s;}
 :where(.app-shell,.notes-dialog) details>summary::marker {color:var(--accent);font-size:.8em;}
-:where(.material-jobs,.material-export-panel,.reader-directory,.citation-target-search,.ai-scope-picker,.course-create-details,.hub-candidates,.material-saved-views>details)>summary {list-style:none;display:flex;align-items:center;gap:9px;min-height:38px;padding:11px 12px;font-size:12px;font-weight:550;}
-:where(.material-jobs,.material-export-panel,.reader-directory,.citation-target-search,.ai-scope-picker,.course-create-details,.hub-candidates,.material-saved-views>details)>summary::-webkit-details-marker {display:none;}
-:where(.material-jobs,.material-export-panel,.reader-directory,.citation-target-search,.ai-scope-picker,.course-create-details,.hub-candidates,.material-saved-views>details)>summary::after {content:"";width:7px;height:7px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg);margin:0 3px 4px auto;flex-shrink:0;opacity:.6;transition:transform .18s;}
-:where(.material-jobs,.material-export-panel,.reader-directory,.citation-target-search,.ai-scope-picker,.course-create-details,.hub-candidates,.material-saved-views>details)[open]>summary::after {transform:rotate(225deg);margin-bottom:0;}
+:where(.material-jobs,.material-export-panel,.reader-directory,.citation-target-search,.ai-scope-picker,.course-create-details,.material-saved-views>details)>summary {list-style:none;display:flex;align-items:center;gap:9px;min-height:38px;padding:11px 12px;font-size:12px;font-weight:550;}
+:where(.material-jobs,.material-export-panel,.reader-directory,.citation-target-search,.ai-scope-picker,.course-create-details,.material-saved-views>details)>summary::-webkit-details-marker {display:none;}
+:where(.material-jobs,.material-export-panel,.reader-directory,.citation-target-search,.ai-scope-picker,.course-create-details,.material-saved-views>details)>summary::after {content:"";width:7px;height:7px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg);margin:0 3px 4px auto;flex-shrink:0;opacity:.6;transition:transform .18s;}
+:where(.material-jobs,.material-export-panel,.reader-directory,.citation-target-search,.ai-scope-picker,.course-create-details,.material-saved-views>details)[open]>summary::after {transform:rotate(225deg);margin-bottom:0;}
 .jobs-summary .hint>.ui-icon:last-child {display:none;}
 .app-shell .reader-directory[open],.app-shell .citation-target-search[open],.app-shell .ai-scope-picker[open] {border-color:var(--accent-border);box-shadow:0 2px 8px #25334c03;}
 .app-shell .reader-directory[open]>summary,.app-shell .citation-target-search[open]>summary,.app-shell .ai-scope-picker[open]>summary {color:var(--accent-ink);background:var(--accent-soft);}
@@ -70,7 +70,7 @@ select[data-select-open=true] {border-color:var(--accent)!important;box-shadow:0
  .app-shell .secondary:hover:not(:disabled),.notes-dialog .secondary:hover:not(:disabled) {box-shadow:0 3px 9px #25334c08;}
  :where(.app-shell,.notes-dialog) :where(button:not(:disabled)):active {transform:translateY(1px);}
  .content .panel:hover {box-shadow:var(--elevation-hover);}
- .content .course-card:hover,.content .learning-stage:hover,.content .metric-card:hover,.app-shell .source-note-card:hover,.app-shell .hub-note-card:hover {transform:translateY(-3px);box-shadow:var(--elevation-hover);border-color:var(--accent-border);}
+ .content .course-card:hover,.content .learning-stage:hover,.content .metric-card:hover,.app-shell .source-note-card:hover {transform:translateY(-3px);box-shadow:var(--elevation-hover);border-color:var(--accent-border);}
  :where(.app-shell,.notes-dialog) details>summary:hover {background:var(--surface-muted);color:var(--accent-ink);}
  .app-shell select:hover:not(:disabled),.notes-dialog select:hover:not(:disabled) {border-color:var(--accent-border);box-shadow:0 2px 6px #25334c06;}
 }
@@ -85,10 +85,10 @@ select[data-select-open=true] {border-color:var(--accent)!important;box-shadow:0
  .app-shell .topbar h1 {font-size:20px;}.app-shell .page-title h2 {font-size:20px;}
  .app-shell .dashboard-hero {padding:22px;}.app-shell .dashboard-hero h2 {font-size:26px;}
  .app-shell .page-title {padding:18px;}.app-shell .module-stats strong {font-size:20px;}
- .app-shell .notes-workspace-heading h1 {font-size:22px;}.app-shell .hub-topic-heading h2 {font-size:22px;}
+ .app-shell .notes-workspace-heading h1 {font-size:22px;}
  .app-shell .bank-tabs>button,.app-shell .ai-mode-tabs>button {flex-basis:130px;}
 }
 @media(prefers-reduced-motion:reduce){
- .content .course-card:hover,.content .learning-stage:hover,.content .metric-card:hover,.app-shell .source-note-card:hover,.app-shell .hub-note-card:hover,:where(.app-shell,.notes-dialog) button:active {transform:none;}
+ .content .course-card:hover,.content .learning-stage:hover,.content .metric-card:hover,.app-shell .source-note-card:hover,:where(.app-shell,.notes-dialog) button:active {transform:none;}
  .select-menu {animation:none;transition:none;}
 }
