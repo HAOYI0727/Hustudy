@@ -4,7 +4,7 @@ export function AIResultStatus({status, errorCode}: {status: string; errorCode?:
   if(errorCode==="QA_PROCESSING")return <span className="status status-running">正在检查资料</span>;
   if(errorCode==="PARTIAL_REPORT")return <span className="status status-running">部分报告</span>;
   if (status === "provider_error") {
-    const labels:Record<string,string>={TASK_BUDGET_EXCEEDED:"处理预算已用尽",REPAIR_LIMIT:"修复次数已用尽",TASK_STOPPED:"任务已停止",CONFIG_CHANGED:"模型配置已变化",TIMEOUT:"请求超时",INVALID_ANSWER:"题目答案不符",INVALID_TOPICS:"知识点关联不符",INVALID_COUNT:"题目数量不符",INVALID_RUBRIC:"评分细则不符",INVALID_REFERENCE:"参考范围不符",DUPLICATE_QUESTION:"题目重复",SOURCE_UNAVAILABLE:"来源已失效",SERVICE_BUSY:"服务繁忙",RATE_LIMITED:"请求过于频繁",USAGE_LIMIT:"账户额度受限",INCOMPLETE_OUTPUT:"输出未完整结束",RESPONSE_BUDGET:"响应超出预算"};
+    const labels:Record<string,string>={REPORT_WINDOW_TOO_SHORT:"本窗口剩余时间不足",TASK_BUDGET_EXCEEDED:"处理预算已用尽",REPAIR_LIMIT:"修复次数已用尽",TASK_STOPPED:"任务已停止",CONFIG_CHANGED:"模型配置已变化",TIMEOUT:"请求超时",INVALID_ANSWER:"题目答案不符",INVALID_TOPICS:"知识点关联不符",INVALID_COUNT:"题目数量不符",INVALID_RUBRIC:"评分细则不符",INVALID_REFERENCE:"参考范围不符",DUPLICATE_QUESTION:"题目重复",SOURCE_UNAVAILABLE:"来源已失效",SERVICE_BUSY:"服务繁忙",RATE_LIMITED:"请求过于频繁",USAGE_LIMIT:"账户额度受限",INCOMPLETE_OUTPUT:"输出未完整结束",RESPONSE_BUDGET:"响应超出预算"};
     if(errorCode&&labels[errorCode]) return <span className="status status-failed">{labels[errorCode]}</span>;
     if (errorCode === "INVALID_CITATION") return <span className="status status-failed">引用校验失败</span>;
     if (errorCode === "INVALID_OUTPUT" || errorCode === "INVALID_JSON") return <span className="status status-failed">输出格式不符</span>;

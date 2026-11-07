@@ -28,3 +28,12 @@ local/
 # Generated isolated Office preview runtime
 frontend/public/native-office/
 frontend/public/math-notices.txt
+
+# Unified generated screenshots, local experiments and private sample selectors
+.artifacts/
+frontend/local_only/
+
+# Temporary lock files from open Office/WPS documents
+.~*.docx
+.~*.pptx
+~$*

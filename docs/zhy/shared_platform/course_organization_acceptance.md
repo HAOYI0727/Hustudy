@@ -14,7 +14,7 @@
 
 | 命令/证据 | 实际结果 | 验证内容 |
 |---|---|---|
-| `PYTHONPATH=backend .venv/bin/python -m pytest -q backend/tests/test_course_organization.py backend/tests/test_migrations.py` | 初次 5 passed | 整理/保留字段/冲突/归属/查询/旧库；此后补迁移故障用例 |
+| `PYTHONPATH=backend .venv/bin/python -m pytest -q backend/tests/shared/test_course_organization.py backend/tests/shared/test_migrations.py` | 初次 5 passed | 整理/保留字段/冲突/归属/查询/旧库；此后补迁移故障用例 |
 | `bash scripts/check.sh`，日志 `/tmp/hustudy-course-check.log` | 43 passed，10.25秒；Ruff、迁移漂移、Markdown 安全、PDF.js 双页实际渲染、TypeScript/Vite 全通过 | 全量回归；含新增2项课程业务风险测试及1项迁移中断测试 |
 | 最终前端调整后 `npm run build --prefix frontend`，日志 `/tmp/hustudy-course-build-final.log` | 类型检查与构建通过 | 对话框内错误、冲突后卡片刷新、标签按钮、提交期间输入禁用、固定卡片颜色 |
 | 运行数据库只读检查 | head=0009_course_organization；新列存在 | 浏览器实际验收数据持久保存；未打印令牌/密钥/原资料 |

@@ -3,7 +3,7 @@ import {fileURLToPath} from 'node:url';
 const python=fileURLToPath(new URL(process.platform==='win32'?'../.venv/Scripts/python.exe':'../.venv/bin/python',import.meta.url));
 process.env.PLAYWRIGHT_BROWSERS_PATH ||= fileURLToPath(new URL('../.tools/playwright',import.meta.url));
 export default defineConfig({
-  testDir:'./tests/e2e', fullyParallel:false, workers:1, retries:0, timeout:45_000,
+  testDir:'./tests/e2e', outputDir:fileURLToPath(new URL('../.artifacts/playwright/test-results',import.meta.url)), fullyParallel:false, workers:1, retries:0, timeout:45_000,
   reporter:'list', use:{baseURL:'http://127.0.0.1:5178',trace:'retain-on-failure',screenshot:'only-on-failure'},
   projects:[{name:'chromium',use:{...devices['Desktop Chrome'],...(process.env.HUSTUDY_E2E_CHROME_CHANNEL === 'chrome' ? {channel:'chrome'} : {})}},{name:'webkit',use:{...devices['Desktop Safari']}}],
   webServer:[

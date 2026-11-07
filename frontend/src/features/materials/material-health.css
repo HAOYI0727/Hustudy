@@ -31,3 +31,9 @@
 .material-health-notice {padding:11px 14px;border-radius:9px;background:var(--accent-soft);font-size:12px;line-height:1.8;}
 .material-health-footnote {border-top:1px solid var(--line);padding-top:12px;line-height:1.8;}
 @media(max-width:650px){.material-health-grid {grid-template-columns:minmax(0,1fr);}.material-health-filters {grid-template-columns:minmax(0,1fr);}.material-health-launch {align-items:flex-start;}.material-health-intro {align-items:flex-start;padding:14px;}}
+
+@media (max-width: 767px) {
+  .app-shell .notes-dialog.material-health-dialog button {
+    min-height: 44px;
+  }
+}

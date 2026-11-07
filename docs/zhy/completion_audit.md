@@ -54,9 +54,9 @@
 | 能力 | 当前实现和证据 | 仍需补齐/验收 |
 |---|---|---|
 | monorepo、配置与本地运行 | README、前后端锁文件、.env.example、setup/dev/worker/check脚本；[检查入口](../../scripts/check.sh) | 3.11与3.12全量各116项通过；同机新源码/新venv/npm ci重建115项及共享检查通过。正式评审/其他机器另列 |
-| FastAPI公共入口 | [main.py](../../backend/app/main.py)的app factory、日志、CORS、统一错误与request_id；[platform测试](../../backend/tests/test_platform.py) | 现有异常路径有测试；不能据此认定全部部署/运行场景已验证 |
+| FastAPI公共入口 | [main.py](../../backend/app/main.py)的app factory、日志、CORS、统一错误与request_id；[platform测试](../../backend/tests/shared/test_platform.py) | 现有异常路径有测试；不能据此认定全部部署/运行场景已验证 |
 | 用户、课程与隔离 | 注册/登录/退出、PBKDF2密码、课程CRUD/分类/标签、revision冲突、删除影响预览/同事务撤权；[课程验收](shared_platform/course_organization_acceptance.md)、[删除验收](shared_platform/basic_acceptance.md) | [security.py](../../backend/app/core/security.py)现已使用PyJWT标准HS256，替换历史两段HMAC令牌，并通过风险回归，迁移后重新登录，Chrome/WebKit的401重登保留草稿已补，正式评审待补；Chrome/WebKit课程名称确认删除及撤权已补，本机Safari最终删除未复验 |
-| SQLite、迁移与领域字段 | 外键/WAL/忙等待、OwnedResourceMixin/UUID/UTC、0012之前完整迁移链、旧库/中断回滚/漂移测试；[迁移测试](../../backend/tests/test_migrations.py) | 升级前SQLite备份只保护迁移，不包含完整文件/用户学习对象恢复；完整账户恢复现已实现，见下方后续验收 |
+| SQLite、迁移与领域字段 | 外键/WAL/忙等待、OwnedResourceMixin/UUID/UTC、0012之前完整迁移链、旧库/中断回滚/漂移测试；[迁移测试](../../backend/tests/shared/test_migrations.py) | 升级前SQLite备份只保护迁移，不包含完整文件/用户学习对象恢复；完整账户恢复现已实现，见下方后续验收 |
 | 本地文件与持久任务 | 归属检查、存储根路径约束、文件hash、PARSE/INDEX/PREVIEW/MATERIAL_EXPORT租约、重试/取消/恢复/迟到保护 | 现已接入FileStorage/LocalFileStorage原子写入、回滚清理、实际磁盘预检与507；基线10课程/200资料/1000笔记与4并发读已实测通过；多worker长压/极限大文件另列，预检不是硬配额 |
 | 前端共享框架 | 公共布局/图标/控件、API client、加载/失败/空状态、离开保护、跨模块来源跳转；[main.tsx](../../frontend/src/main.tsx) | 已接入React Router、TanStack Query、Ant Design主题/告警/重登；URL定位/前后退、会话隔离和草稿保留自动验证通过，详见[前端验收](shared_platform/web_base_acceptance.md)；完整模块交互矩阵仍待补 |
 | 检查和交付 | Ruff/pytest、迁移漂移、Markdown SSR、PDF.js实际渲染、TypeScript/Vite本地入口 | 已配置14项Vitest与42项Chrome/WebKit隔离E2E，统一accept_captain及隔离容量/干净环境入口；未见仓库CI配置，A09的Gitee/CI/协作交付仍待完成 |
@@ -66,14 +66,14 @@
 
 | 能力/需求 | 已实现行为及主要证据 | 验收与剩余边界 |
 |---|---|---|
-| 四格式上传 FR-03 | ≤20MiB、文件结构/UTF-8/Office展开预算、同课程hash去重、用户归属、不可变新版本；[documents服务](../../backend/app/services/documents.py)、[MaterialHub测试](../../backend/tests/test_materialhub.py) | 四格式路径自动验证；低磁盘保护已实现；本机容量与权限矩阵已补验，复杂真实样本仍需逐份核对。兼容TXT不代表新增格式需求已正式评审 |
+| 四格式上传 FR-03 | ≤20MiB、文件结构/UTF-8/Office展开预算、同课程hash去重、用户归属、不可变新版本；[documents服务](../../backend/app/services/documents.py)、[MaterialHub测试](../../backend/tests/m1/test_materialhub.py) | 四格式路径自动验证；低磁盘保护已实现；本机容量与权限矩阵已补验，复杂真实样本仍需逐份核对。兼容TXT不代表新增格式需求已正式评审 |
 | 解析与定位 FR-04/36 | PPTX幻灯片/表格/嵌套组合、PDF页、DOCX段落与表格block顺序、Markdown标题及Unicode偏移；原文与检索token分离 | 扫描无正文/加密/损坏明确处理；不是OCR或Office原生排版器，更广真实样本完整性待核对 |
 | 状态与任务 FR-05 | parse/preview/index独立状态；失败原因、租约恢复、上限、取消/恢复、UUID幂等索引重建；[任务验收](materialhub/acceptance_2026_10_14.md) | 确定性交错/失败回滚通过；完整Safari取消→恢复→重建与真实并发压力待测 |
-| 阅读与预览 FR-06/36 | PPTX/Word直接原格式阅读，PDF.js按页/缩放；转换PDF作为兼容路径、失败文本降级；[预览测试](../../backend/tests/test_preview_assets.py)、[实际渲染检查](../../scripts/verify_pdf.mjs) | LibreOffice26.8.1真实转换、PDF/PPTX/DOCX双引擎截图回源/隐藏页和Safari兼容修复已验证；[预览恢复验收](materialhub/preview_recovery_acceptance.md)；复杂版式/完整样本仍待验收 |
+| 阅读与预览 FR-06/36 | PPTX/Word直接原格式阅读，PDF.js按页/缩放；转换PDF作为兼容路径、失败文本降级；[预览测试](../../backend/tests/m1/test_preview_assets.py)、[实际渲染检查](../../scripts/verify_pdf.mjs) | LibreOffice26.8.1真实转换、PDF/PPTX/DOCX双引擎截图回源/隐藏页和Safari兼容修复已验证；[预览恢复验收](materialhub/preview_recovery_acceptance.md)；复杂版式/完整样本仍待验收 |
 | 来源及删除 FR-07/08/13依赖 | 版本/Chunk/Citation原文hash、引用回源、原文反链；旧版本不重定向；删除撤销文件/检索/新模型资格 | 跨用户、旧引用及课程删除风险测试已有；M1的19类读取/10种越权修改及课程删除撤权矩阵已通过；全站跨模块E2E仍受其他模块待办影响 |
 | 整理与关键词 FR-09 | 资料改名/分类/标签、最新/历史范围、FTS5/BM25；tokenizer为zh-bigram-v1；图片元数据筛选/分页 | 不是jieba或语义搜索。资料/全部任务及新知识搜索均已分页，资料/笔记独立总数/摘要/回源与容量p95通过；旧search数组仍50条是兼容契约。笔记标签仍归M3 |
-| 图片与截图 FR-37的M1部分 | PNG/JPEG/WebP真实解码/尺寸预算、≤10MiB、说明/标签/改名/revision、来源版本/页号、截图、删除失效、分页与M3反链 | [图片风险测试](../../backend/tests/test_asset_organization.py)通过；Safari上传→截图→回页完整链路待验收。M3独立笔记附件ZIP待补；整账户恢复已实现并验证图片往返 |
-| 人工PDF来源 | 页面对照、草稿revision、确认/修订/撤回、独立Chunk与source_kind、历史引用保留；[补录测试](../../backend/tests/test_manual_transcripts.py) | 不是OCR；Chrome/WebKit补录草稿→确认→引用→撤回通过；M4正式拆题消费与本机Safari完整复验仍待办 |
+| 图片与截图 FR-37的M1部分 | PNG/JPEG/WebP真实解码/尺寸预算、≤10MiB、说明/标签/改名/revision、来源版本/页号、截图、删除失效、分页与M3反链 | [图片风险测试](../../backend/tests/m3/test_asset_organization.py)通过；Safari上传→截图→回页完整链路待验收。M3独立笔记附件ZIP待补；整账户恢复已实现并验证图片往返 |
+| 人工PDF来源 | 页面对照、草稿revision、确认/修订/撤回、独立Chunk与source_kind、历史引用保留；[补录测试](../../backend/tests/m1/test_manual_transcripts.py) | 不是OCR；Chrome/WebKit补录草稿→确认→引用→撤回通过；M4正式拆题消费与本机Safari完整复验仍待办 |
 | M1课程资料ZIP | 原件/版本/预览/正文/确认补录/图片/manifest、后台任务/hash/来源撤权/预算/离线验证；[资料包验收](materialhub/material_export_acceptance.md) | 实际Safari下载包374片段/377内容文件校验通过；M1资料包本身不含笔记/AI/试卷/作答；另有完整账户备份/恢复接口已补实现，不等同M3独立知识库ZIP |
 
 ## 队长集成工作与其他模块边界

@@ -17,23 +17,23 @@ M1-BATCH-STUDY-01的批量导入、历史版本/片段继续学习、当前帮�
 
 ## 2026-10-20 M4-PDF-ZIP-03 / AI-EXTRACT-04（Review）
 
-用户实际PDF17题自动展示、ZIP导入及免费模型结构化识别接口已有实现与隔离证据；本机缺Key，真实调用待用户本机配置，参考答案与成员签收待人工核实。未提交/推送。[验收](../docs/m4/pdf_zip_ai_acceptance.md)。
+用户实际PDF17题自动展示、ZIP导入及免费模型结构化识别接口已有实现与隔离证据；本机缺Key，真实调用待用户本机配置，参考答案与成员签收待人工核实。未提交/推送。[验收](../docs/xtc/implementation/pdf_zip_ai_acceptance.md)。
 ## 2026-10-20 M4-IMPORT-IMAGE-02（Review）
 
-本轮内容判断、可选本地OCR/批量切分、插图/审核删除与界面改进已有代码和隔离验证；真实试卷/公式/实机/成员接收待执行，不冒记其他成员贡献。[验收](../docs/m4/import_images_acceptance.md)。保留此前未提交工作，未推送。
+本轮内容判断、可选本地OCR/批量切分、插图/审核删除与界面改进已有代码和隔离验证；真实试卷/公式/实机/成员接收待执行，不冒记其他成员贡献。[验收](../docs/xtc/implementation/import_images_acceptance.md)。保留此前未提交工作，未推送。
 
 ## 2026-10-19 M4用户题库增量（待接收）
 
-CR-M4-BANK-01覆盖旧AI练习生成/主观AI评分：当前用户题库上传/识别/校正/确认→标签随机练习→分类批改/自评/解答提交闭环进入Review，0019迁移/备份兼容与桌面/手机Chrome验收已执行。D01/D02/D05–D09仅本轮切片有证据，不把历史D任务整体标Done；完整历史统计/STALE、Topic合并/别名、资料笔记图片候选、拆合/人工去重和复习改期亦已补齐并自动验证；D10真人试用/正式汇报及签收仍待实际执行。详情见[验收](../docs/m4/question_bank_acceptance.md)，本轮实现为Codex辅助会话用户，尚未确认个人署名或队长接收，没有提交推送。
+CR-M4-BANK-01覆盖旧AI练习生成/主观AI评分：当前用户题库上传/识别/校正/确认→标签随机练习→分类批改/自评/解答提交闭环进入Review，0019迁移/备份兼容与桌面/手机Chrome验收已执行。D01/D02/D05–D09仅本轮切片有证据，不把历史D任务整体标Done；完整历史统计/STALE、Topic合并/别名、资料笔记图片候选、拆合/人工去重和复习改期亦已补齐并自动验证；D10真人试用/正式汇报及签收仍待实际执行。详情见[验收](../docs/xtc/implementation/question_bank_acceptance.md)，本轮实现为Codex辅助会话用户，尚未确认个人署名或队长接收，没有提交推送。
 
 ## 2026-10-16 M2-CANDIDATES-01 / gcx
 
-M2按依赖持续推进，不等待原时段。真实候选、固定演示/完整固定报告、精确片段、问答历史与安全错误细分进入Review；B01–B10当前能力与真实依赖见[M2状态](../docs/gcx/m2_plan.md)，不是所有任务Done。关联89项通过，全量中间版167通过/3个既有Windows失败；[验收](../docs/gcx/candidate_acceptance.md)、[交接002](handoff.md#h-20261016-gcx-002)。
+M2按依赖持续推进，不等待原时段。真实候选、固定演示/完整固定报告、精确片段、问答历史与安全错误细分进入Review；B01–B10当前能力与真实依赖见[M2状态](../docs/gcx/design/m2_plan.md)，不是所有任务Done。关联89项通过，全量中间版167通过/3个既有Windows失败；[验收](../docs/gcx/acceptance/candidate_acceptance.md)、[交接002](handoff.md#h-20261016-gcx-002)。
 
 
 ## 2026-10-16 gcx / M2 当前增量
 
-当前B=gcx/M2、D=xtc/M4，姓名时段同步互换；zhy/fzk不变。M2-STUDY-REPORT-01代码与确定性验证进入Review；B02/03/05/06/07/08/09/10为本轮覆盖切片，不把所有任务组标Done。报告真实质量、M4候选、Windows全站权限测试和最终集成仍待办。[验收](../docs/gcx/study_report_acceptance.md)、[计划](../docs/gcx/m2_plan.md)、[交接001](handoff.md#h-20261016-gcx-001)。
+当前B=gcx/M2、D=xtc/M4，姓名时段同步互换；zhy/fzk不变。M2-STUDY-REPORT-01代码与确定性验证进入Review；B02/03/05/06/07/08/09/10为本轮覆盖切片，不把所有任务组标Done。报告真实质量、M4候选、Windows全站权限测试和最终集成仍待办。[验收](../docs/gcx/acceptance/study_report_acceptance.md)、[计划](../docs/gcx/design/m2_plan.md)、[交接001](handoff.md#h-20261016-gcx-001)。
 
 
 ## 当前状态入口（2026-10-16）
@@ -42,7 +42,7 @@ M2按依赖持续推进，不等待原时段。真实候选、固定演示/完�
 
 - [zhy正式十任务](zhy/task_status.md) / [技术核查](../docs/zhy/completion_audit.md)：当前调度与实现边界。
 - [测试报告](../docs/test_report.md)：10-15后端116项；10-16前端14Vitest、42项双引擎/类型构建通过；不同日期不累加。
-- [交付路线](roadmap.md) / [GitHub同步](github_sync.md)：后续模块工作与提交步骤。
+- [交付路线](../docs/zhy/history/collaboration/roadmap.md) / [GitHub同步](../docs/zhy/history/collaboration/github_sync.md)：后续模块工作与提交步骤。
 
 本文件下表是早期骨架的**聚合任务历史**，A01–A05与正式十任务的编号/语义不同。例如旧A04是“解析与检索”，正式A04是“文件存储/Job”。不能据此把正式A01/A02或全部队长任务标Done。B/C/D原历史条目与增量保留，不冒记成员贡献；GLM问答后续集成见文末。
 
@@ -82,7 +82,7 @@ C01/C02：`features/notes/index.tsx` 已提供搜索、模板、自动保存、�
 
 ### 2026-10-13 共享工作台连接增量
 
-I01：新增课程内查找、指定资料片段/笔记直达与使用指南；补齐浏览器 viewport/标题/键盘入口。FR-06/09、FR-10–12、FR-16、NFR-09/10，仍为 Doing。前端构建通过，pytest 8 passed；Safari 业务验收等待登录。后续优先级与具体风险见 [experience_roadmap.md](experience_roadmap.md)。
+I01：新增课程内查找、指定资料片段/笔记直达与使用指南；补齐浏览器 viewport/标题/键盘入口。FR-06/09、FR-10–12、FR-16、NFR-09/10，仍为 Doing。前端构建通过，pytest 8 passed；Safari 业务验收等待登录。后续优先级与具体风险见 [experience_roadmap.md](../docs/zhy/history/collaboration/experience_roadmap.md)。
 
 ### 2026-10-13 A/M1 主责切片
 
@@ -158,3 +158,8 @@ Codex辅助zhy，工作区未提交/合并；先更新公共契约，再补资�
 最终26项Chrome/WebKit（各13项）2.1分钟、14Vitest与类型/构建通过，共享check116项19.60秒及迁移/安全显示/PDF实渲染通过。首轮坏文件注入受StrictMode重复读取影响，修正测试；随后WebKit发现后台切回文本的真实问题，修复并固定时序测试后全量通过。未新跑容量/3.12全量/干净依赖安装，不冒记历史证据为本轮结果。未访问现有账户或新发起真实模型请求，其他成员个人目录未改。
 
 证据docs/zhy/materialhub/native_preview_acceptance.md；统一交接H-20261015-ZHY-015，zhy及成员本人审阅/接收待填写。复杂字体/动画/图表和本机Safari全矩阵仍按真实边界，不将26项通过等同全站P0或发布完成。
+
+
+## 2026-11-07 课程报告接续（不改变A01–D10正式状态）
+
+第一、二章由队长统稿完成待审；第三至六章已建立四人框架，按原模块职责补充设计、实现测试、真实用户反馈和本人独立体会。报告位于reference/项目报告.docx，接续要求及边界见[H-20261107-ZHY-003](handoff.md#h-20261107-zhy-003补充清理与课程项目报告)。未将文档编写或两项路径复验视为全部任务Done。

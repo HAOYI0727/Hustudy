@@ -20,3 +20,11 @@
 .native-office-reader,.reader-stage {scroll-margin-top:64px;}
 @media(min-width:1101px){.reading-layout>.material-library {max-height:calc(100dvh - 150px);overflow:auto;overscroll-behavior:contain;}.reading-layout .material-document-list {max-height:400px;}}
 @media(max-width:760px){.reader-stage .reading-paper {max-height:56dvh;}.reader-text-pagination {justify-content:flex-start;}.reader-text-pagination>span {flex:1 1 100%;text-align:center;order:4;}.reader-text-pagination>button {flex:1;}.reader-text-pagination label {flex:1;}.reader-text-pagination select {min-width:0;width:100%;}.material-image-tools>summary {flex-wrap:wrap;}.material-image-tools>summary>span {width:100%;margin-left:25px;}}
+
+/* Focus mode removes the library column, including later global page styling. */
+.app-shell .materials-page.reading-focused .reading-layout {
+  grid-template-columns: minmax(0, 1fr);
+  width: 100%;
+  max-width: 1400px;
+  margin-inline: auto;
+}

@@ -34,7 +34,7 @@
 
 普通pytest通过不存在的转换器配置维持确定性，不依赖本机安装或真实模型；浏览器测试另启动8056 API+worker、5178 Vite、一次性账号/数据库/文件，使用已安装Office真实转换。无远程模型调用，不把用户课程加入自动样例。首次新增测试因多个“下一页”同名定位失败，改为PDF region内定位后通过；14项最终证据包含后来legacy和隐藏页修复，不能沿用早期modern构建的通过结果冒记。
 
-日志：`/tmp/hustudy-preview-recovery-final.log`、`/tmp/hustudy-preview-compat-e2e.log`、`/tmp/hustudy-preview-python312-final.log`。源码：[后端风险测试](../../../backend/tests/test_preview_recovery.py)、[浏览器预览测试](../../../frontend/tests/e2e/material-preview.spec.ts)、[自制样例生成](../../../scripts/create_preview_fixtures.py)。产物主包485.98KB、按需PDF阅读器492.59KB，无500KB构建提示；不是加载时间或容量性能达标证明。
+日志：`/tmp/hustudy-preview-recovery-final.log`、`/tmp/hustudy-preview-compat-e2e.log`、`/tmp/hustudy-preview-python312-final.log`。源码：[后端风险测试](../../../backend/tests/m1/test_preview_recovery.py)、[浏览器预览测试](../../../frontend/tests/e2e/m1/material-preview.spec.ts)、[自制样例生成](../../../scripts/create_preview_fixtures.py)。产物主包485.98KB、按需PDF阅读器492.59KB，无500KB构建提示；不是加载时间或容量性能达标证明。
 
 ## 尚未完成的关口
 

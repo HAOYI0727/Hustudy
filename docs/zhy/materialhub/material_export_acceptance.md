@@ -14,7 +14,7 @@
 
 最终预检/终态保持补验：正文装载前SQL计算UTF-8预算、70000成员上限；移除导出记录只取消活跃任务，保留已成功生成的任务历史。修改后5项导出风险测试再次通过（1条依赖警告），全量Ruff通过；不将移除记录误记为成功生成被取消。
 
-证据：[test_material_exports.py](../../../backend/tests/test_material_exports.py)、[迁移测试](../../../backend/tests/test_migrations.py)、[离线校验器](../../../scripts/verify_material_package.py)。0008新表/外键，旧资料/引用保持；运行库已只读确认head=0008，本会话旧worker已停止重启加载新逻辑，未终止用户其他进程。
+证据：[test_material_exports.py](../../../backend/tests/m1/test_material_exports.py)、[迁移测试](../../../backend/tests/shared/test_migrations.py)、[离线校验器](../../../scripts/verify_material_package.py)。0008新表/外键，旧资料/引用保持；运行库已只读确认head=0008，本会话旧worker已停止重启加载新逻辑，未终止用户其他进程。
 
 ## Safari实际流程
 

@@ -76,6 +76,9 @@ def new_state(db, row, previous=None):
     from .m2_supplements import note_chars
 
     supplement_chars = note_chars(row.sources)
+    observed = (previous or {}).get("successful_report_call_seconds", 0)
+    if type(observed) not in (int, float) or not 0 <= observed <= WINDOW_SECONDS:
+        observed = 0
     return {
         "version": VERSION,
         "repair_prompt_version": REPAIR_PROMPT_VERSION,
@@ -100,6 +103,7 @@ def new_state(db, row, previous=None):
         "output_tokens_limit": calls * (6000 if report else 2048),
         "phase": "awaiting_dispatch",
         "usage": (previous or {}).get("usage", {}),
+        "successful_report_call_seconds": observed,
     }
 
 
@@ -212,6 +216,7 @@ class Execution:
             json.loads(self.record.result_json) if self.record else new_state(db, row)
         )
         self.monotonic_deadline = None
+        self.call_started_at = None
 
     def remaining(self):
         if not self.state["deadline_at"]:
@@ -301,6 +306,19 @@ class Execution:
                 start + timedelta(seconds=WINDOW_SECONDS)
             ).isoformat()
         self.check_deadline()
+        report = report_envelope(self.row.query)
+        observed = self.state.get("successful_report_call_seconds", 0)
+        if (
+            report and report.batched and repair_content is None
+            and self.state["window_calls"] > 0
+            and type(observed) in (int, float) and 1 <= observed <= WINDOW_SECONDS
+            and self.remaining() < observed + 2
+        ):
+            raise ProviderFailure(
+                "REPORT_WINDOW_TOO_SHORT",
+                f"本窗口剩余约{int(self.remaining())}秒，已完成批次单次耗时约{int(observed)}秒；"
+                "为避免下一批在窗口内被中止，本次未发送下一批。已完成部分保留，请确认继续未完成批次",
+            )
         size = (
             len(query)
             + sum(len(s["text"]) for s in sources)
@@ -332,6 +350,7 @@ class Execution:
             "repairing" if repair_content is not None else "generating"
         )
         self.save()  # Release SQLite locks before waiting for the model.
+        self.call_started_at = time.monotonic()
 
     def can_repair(self, failure):
         content = getattr(failure, "repair_content", None)
@@ -352,13 +371,20 @@ class Execution:
             )
         for key, value in usage.items():
             self.state["usage"][key] = self.state["usage"].get(key, 0) + value
+        report = report_envelope(self.row.query)
+        if report and report.batched and self.call_started_at is not None:
+            elapsed = max(0, min(WINDOW_SECONDS, time.monotonic() - self.call_started_at))
+            self.state["successful_report_call_seconds"] = round(
+                max(elapsed, self.state.get("successful_report_call_seconds", 0)), 2
+            )
         self.state["phase"] = "generated"
         self.save()
 
     def failure(self, code):
         self.guard()
         self.state["phase"] = (
-            "budget_exhausted" if code == "TASK_BUDGET_EXCEEDED" else "failed"
+            "needs_continue" if code == "REPORT_WINDOW_TOO_SHORT"
+            else "budget_exhausted" if code == "TASK_BUDGET_EXCEEDED" else "failed"
         )
         self.state["last_error_code"] = code
         self.save()

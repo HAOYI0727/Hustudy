@@ -32,7 +32,7 @@
 ## 命令与临时日志
 
 ```bash
-PYTHONPATH=backend .venv/bin/python -m pytest backend/tests/test_reference_notes.py backend/tests/test_source_learning.py -q
+PYTHONPATH=backend .venv/bin/python -m pytest backend/tests/integration/test_reference_notes.py backend/tests/integration/test_source_learning.py -q
 PYTHONPATH=backend .venv/bin/python -m pytest -q
 .venv/bin/ruff check backend/app backend/tests backend/migrations
 PYTHONPATH=backend .venv/bin/python scripts/verify_migrations.py

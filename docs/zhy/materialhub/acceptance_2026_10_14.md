@@ -8,7 +8,7 @@
 
 命令 `bash scripts/check.sh`：Ruff通过；pytest **35 passed, 1 warning in 16.87s**；临时SQLite迁移升级/ORM漂移通过；Markdown安全渲染通过；PDF.js双页实际渲染/文本/图像预算/页越界通过；TypeScript/Vite构建通过。警告来自Starlette使用anyio弃用别名，无测试失败。
 
-此后任务列表追加Document/Version归属及M1任务类型过滤：Ruff与`pytest -q backend/tests/test_material_job_controls.py` **5 passed**。最终Safari下拉框样式和重复请求状态文案修改后再次前端构建通过；这些前端构建不是浏览器E2E。运行库只读确认0007，本轮无迁移新增；已停止并重启此前本会话启动的worker加载新逻辑，没有停止用户其他进程。
+此后任务列表追加Document/Version归属及M1任务类型过滤：Ruff与`pytest -q backend/tests/m1/test_material_job_controls.py` **5 passed**。最终Safari下拉框样式和重复请求状态文案修改后再次前端构建通过；这些前端构建不是浏览器E2E。运行库只读确认0007，本轮无迁移新增；已停止并重启此前本会话启动的worker加载新逻辑，没有停止用户其他进程。
 
 ## 本切片判定
 
@@ -22,7 +22,7 @@
 | 扫描件人工来源重建 | 自动检查通过 | 无文本409；已确认人工文字可重建/检索，原解析仍FAILED；删除来源后控制接口404 |
 | 所有者边界 | 自动检查通过 | 非所有者取消/重建404，任务列表完整归属过滤；全资源授权矩阵仍需独立补验 |
 
-主要测试：[test_material_job_controls.py](../../../backend/tests/test_material_job_controls.py)、既有[test_materialhub.py](../../../backend/tests/test_materialhub.py)、[test_manual_transcripts.py](../../../backend/tests/test_manual_transcripts.py)。输入输出见[契约](../../contracts.md)与[API](../../api.md)。
+主要测试：[test_material_job_controls.py](../../../backend/tests/m1/test_material_job_controls.py)、既有[test_materialhub.py](../../../backend/tests/m1/test_materialhub.py)、[test_manual_transcripts.py](../../../backend/tests/m1/test_manual_transcripts.py)。输入输出见[契约](../../contracts.md)与[API](../../api.md)。
 
 ## Safari局部检查与未通过项
 

@@ -1,5 +1,9 @@
 # Hustudy 共享契约（Phase 0）
 
+## M1-PARSER-RELIABILITY-20261104
+
+上传仍限定标准PPTX/DOCX及100MiB解压预算，不自动调用系统转换器。OLE旧格式伪装扩展名与超预算分别提供可操作的错误，校验失败不保存。解析子进程固定绝对输入路径、后端工作目录及模块路径；启动失败、超时、非零退出不得把命令/存储路径/原始stderr写入业务错误。开发worker仅在已运行任务结束后检查源码变化，等待预览执行道退出，释放运行锁后原进程重新加载；生产不启用源码监视，不重放模型或重置任务次数。恢复原任务仍需网页明确点击。回归使用隔离临时数据；本轮SQL原件上传与Safari验证单独记录。
+
 ## M2-RELATED-REPORT-08（2026-11-01，报告相近目标推荐）
 
 本条覆盖07中“报告保持/拒绝”的边界。报告预览沿用related_results及既有GET/POST related-results接口和严格true确认；无精确命中时可推荐最多3条本地文字相近的原学习目标/报告摘要。只对ReportEnvelope.goal计算相似度，其余envelope字段（学习模式、范围、覆盖、分批等）及sources快照必须一致；按当前报告提示词过滤历史，同账户/课程、完整成功报告、来源/笔记/配置/引用仍有效。问答和报告不交叉匹配，停用出题与私有/部分报告不纳入。查看和采用逐次重新校验并返回原AIResult和原目标，不产生模型调用、任务或新的生成结果。前端以“原学习目标/查看原报告/确认使用这份历史报告”呈现，查看完整正文后勾选适用确认；不认定语义等价，可继续生成新报告。原精确匹配优先，100条元数据/12条复核/3条返回和异步隔离边界保持；无依赖、迁移及长报告统一整理。验收仅隔离模拟，不操作真实密钥或资料。
@@ -43,7 +47,7 @@ GET /remote-queries/{query_id}/related-results/{result_id}只读返回原AIResul
 
 ## M2-HANDOFF-06：上游待接通提醒（2026-10-24）
 
-**教师强调与已确认真题尚未端到端完成。** M1缺阅读标记写入/持久化/查询及API、worker的install_reader注册；M4缺明确真题身份写入入口。M2既有严格消费契约保持，不新增手动标签请求字段，不把普通题库或AI推测当事实。责任、ReadingTeacherMark字段、exam_identity约定及联合验收见[交接接口清单](gcx/handoff_2026_10_24.md)。此项是现有契约状态澄清，没有新增已实现API。
+**教师强调与已确认真题尚未端到端完成。** M1缺阅读标记写入/持久化/查询及API、worker的install_reader注册；M4缺明确真题身份写入入口。M2既有严格消费契约保持，不新增手动标签请求字段，不把普通题库或AI推测当事实。责任、ReadingTeacherMark字段、exam_identity约定及联合验收见[交接接口清单](gcx/history/handoff_2026_10_24.md)。此项是现有契约状态澄清，没有新增已实现API。
 
 ## M2-QA-LONG-CONTEXT-05（2026-10-24）
 
@@ -433,7 +437,7 @@ POST /note-captures/{id}/organize先鉴权与归属校验后返回410；capabili
 <a id="m3-trash-01"></a>
 ## M3-TRASH-01：笔记回收站与到期清理（2026-10-18）
 
-先提案后本地实现，0016_note_trash待zhy评审整合；[实现与实际验证](fzk/note_trash_acceptance.md)。复用Note.deleted；新增UTC deleted_at、purge_after可空时间。新增note_trash_policies（OwnedResourceMixin、user_id唯一、retention_days可空/1–365、revision≥1），无策略记录等价30天/revision0；null关闭自动清理。旧删除记录从迁移/旧备份升级时起计30天，活动笔记时间为空。策略变更按原deleted_at重算所有已有回收站期限，缩短时可能下次worker立即清除，UI先确认。
+先提案后本地实现，0016_note_trash待zhy评审整合；[实现与实际验证](fzk/acceptance/note_trash_acceptance.md)。复用Note.deleted；新增UTC deleted_at、purge_after可空时间。新增note_trash_policies（OwnedResourceMixin、user_id唯一、retention_days可空/1–365、revision≥1），无策略记录等价30天/revision0；null关闭自动清理。旧删除记录从迁移/旧备份升级时起计30天，活动笔记时间为空。策略变更按原deleted_at重算所有已有回收站期限，缩短时可能下次worker立即清除，UI先确认。
 
 保留DELETE /notes/{id}的204兼容语义，新增时间戳；POST /notes/trash/batch支持trash/restore/purge及1–200个{id,revision}，全部归属、状态、版本先校验，原子提交。GET /notes/trash分页返回账户全部课程的回收站摘要（无正文）、总数与由全部id/revision生成的snapshot；POST /notes/trash/empty仅在snapshot一致时清空账户回收站，变化返回409；GET/PUT /notes/trash/policy用revision防覆盖。静态路由在/notes/{id}前注册。GET无删除副作用。
 
@@ -537,7 +541,7 @@ CitationResponse追加可空document_id/document_name/version_no，仅经M1 acti
 - 模型只输出严格结构：status/ reason/ report；grounded须有summary、learning_goals、prerequisites、learning_sequence、topics（解释、misconceptions、labels、evidence）、examples和3–5个self_checks。每个知识点/例题/自测均有实际发送原文evidence；模型不能指定持久ID/审阅状态/来源版本。服务器转换为Citation并分配topic UUID；标签仅ai_suggestion，本轮未接教师/真题证据。
 - Citation来源失效时，顶层及报告内引用同步unavailable；报告保持历史文本，不再允许失效来源保存新笔记。候选结构与事实正确性分别验收，schema通过不代表学科事实通过。
 
-M4候选接口本轮仅在docs/gcx/m2_plan.md记录后续对接计划，不宣称已实现；正式QuestionDraft应遵循需求附录，并先统一M4判断题/模式枚举。
+M4候选接口本轮仅在docs/gcx/design/m2_plan.md记录后续对接计划，不宣称已实现；正式QuestionDraft应遵循需求附录，并先统一M4判断题/模式枚举。
 
 根目录是唯一工程根。四个业务模块通过 `backend/app/schemas`、服务接口和 API 交互，不能直接读写其他模块的表。成员 A 统一维护数据库迁移。
 
@@ -796,7 +800,7 @@ PPTX分页仍对应原幻灯片序号，包含隐藏页；DOCX浏览器排版页
 
 POST `/courses/{id}/study-reports/demo`接受ReportPreviewRequest，固定自制资料返回完整StudyReport；未知输入/不含目标片段返回insufficient_evidence，不写成功报告、不创建AI任务。旧版本演示端点转用此实现，报告历史同时包括zhipu-study-report-v1/demo-study-report-v1；query.history排除它们。
 
-`schemas.question_drafts.QuestionDraft`为服务端持久/交接结构，生成前的ModelQuestion与它分离；规范化题干hash放结果顶层stem_hashes。JSON schema发布于docs/gcx/question_draft_schema.json。Chapter临时版本身份、真实目标依赖和正式试卷边界仍按本节定义，不凭可导出就声称已接通M4。所有样例均为自制资料，不含用户密钥。
+`schemas.question_drafts.QuestionDraft`为服务端持久/交接结构，生成前的ModelQuestion与它分离；规范化题干hash放结果顶层stem_hashes。JSON schema发布于docs/gcx/design/question_draft_schema.json。Chapter临时版本身份、真实目标依赖和正式试卷边界仍按本节定义，不凭可导出就声称已接通M4。所有样例均为自制资料，不含用户密钥。
 
 ## 2026-10-16 M2结构化输出诊断补充
 
@@ -1115,3 +1119,20 @@ xtc/Codex辅助，未提交。用户明确要求分析页未归类题点击后�
 ## M4-SELF-SCORE-37（2026-10-29）
 
 有明确分值的非自动判分题，自评输入0至本题满分的整数得分，替代对错按钮；重复同值幂等、不同值拒绝覆盖，部分得分记录错题。未知分值题保留对错自评。新练习快照保存points_known，内部未知分值占位不冒充真实分数；旧题库快照未记录标志按未知处理，不查询现题回写历史。汇总仅明确分值题得分，全题有分值才显示满分，含未知不显示总分；待自评明确标注，全部完成显示最终得分。无迁移/模型调用。此前GitHub上传失败于创建tree，未创建分支/PR或合并；本轮评分完成后再提交合并。
+
+本轮布局回归补充：专注阅读隐藏资料库时，外层网格必须只保留一个有效列，内部原文与助手按原断点分栏，禁止全局美化样式把阅读区挤回资料库宽度。资料检查手机按钮保持至少44px触控高度，沿现有浏览器实测覆盖，不以视觉截图代替业务校验。
+
+
+## 2026-11-06 M1-PREVIEW-RELIABILITY-02（实施前约定）
+
+用户要求现有PPT均可PDF预览。本轮保持原格式与显式兼容PDF入口，修复大课件转换预算：Office单次转换上限600秒，PREVIEW领取租约660秒（其他资料任务仍180秒），避免转换尚在进行便被另一执行道判作过期、重复消耗次数。独立临时目录/profile、绝对原件路径及工作目录、无shell执行；失败仍明确报告，不把超时称为成功，不自动重发。100MiB输出、2000页、隐藏页和原幻灯片总数一致、既有截图保护、取消/撤权/租约丢失后不挂载保持。
+
+真实核对范围仅test账户本人有效PPTX，现有成功缓存先检查PDF可读及页数，不无故重建；有剩余预算的任务经既有API显式提交。已经耗尽的《第十章》不清零或增加原任务次数：由本轮明确授权的本机维护核验独立生成的PDF与原件SHA、幻灯片总数及无既有截图后，仅修复缺失的预览缓存；保留原失败任务及次数作为历史，记录人工维护过程，不作为自动重试机制。若来源变化、已有截图或正在转换则停止维护。无schema/依赖/模型调用，不修改原件、切片UUID、笔记及引用。
+
+
+## 2026-11-06 M2真实可用性测试与输出诊断（实施前）
+
+用户明确授权检查AI并真实测试资料问答/学习报告，失败查因改进；仅test账户数据库课程《第十章》。真实连接成功、问答成功；整课件报告首批因INVALID_JSON被拒绝。只增加固定词汇的JSON语法诊断（不显示或记录失败原文、思考内容/密钥）、报告v11提示词明确转义与完整短句输出，旧v10历史继续可读但不作新提示词精确复用。共享provider_error改为中性“AI处理异常”，不再将结构/引用/超时统一误称模型不可用。120秒确认窗口、6000token/批及逐字来源校验保持；真实复测新预览可明确授权最多1次结构修复，无后台无限重试/放宽引用/自动保存笔记。先隔离模拟校验，再明确确认真实复测，保留首轮失败事实，成员/教学质量签收不代填。不提交推送。
+
+
+M2实测追加：v11首批成功约85秒，第二批仅剩约35秒仍派发后触及120秒绝对预算。新增仅分批报告的派发前保守检查：在同一窗口已有调用时，若剩余秒数小于本请求已观察成功调用耗时的最大值+2秒，则以REPORT_WINDOW_TOO_SHORT停止下一批派发（不是供应商不可用），保留检查点，仍须显式续跑新窗口；估计不保证下一批耗时，不减少原文范围、不增加实际预算。仅保存0–120秒的数值时长，不保存失败原文；QA与其他Provider业务不启用此估计，修复仍受原总窗口和授权次数限制。通过原resume验证成功批次不重发。

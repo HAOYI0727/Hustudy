@@ -34,7 +34,7 @@ Chrome/WebKit扩大回归56项首轮53通过/3失败（5.3分钟），失败均�
 ## 命令与临时日志
 
 ```bash
-PYTHONPATH=backend .venv/bin/python -m pytest backend/tests/test_course_agenda.py backend/tests/test_review_schedule.py -q
+PYTHONPATH=backend .venv/bin/python -m pytest backend/tests/shared/test_course_agenda.py backend/tests/m4/test_review_schedule.py -q
 PYTHONPATH=backend .venv/bin/python -m pytest -q
 .venv/bin/ruff check backend/app backend/tests backend/migrations
 PYTHONPATH=backend .venv/bin/python scripts/verify_migrations.py

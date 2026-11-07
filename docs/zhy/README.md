@@ -41,4 +41,4 @@
 
 - [原格式直接预览与兼容PDF](materialhub/native_preview_acceptance.md)
 
-最新界面证据见[多端布局](shared_platform/responsive_layout_acceptance.md)与[统一视觉/截图](shared_platform/visual_polish_acceptance.md)；GitHub操作见[公共指南](../../collaboration/github_sync.md)，本轮文档同步未执行提交/推送。
+最新界面证据见[多端布局](shared_platform/responsive_layout_acceptance.md)与[统一视觉/截图](shared_platform/visual_polish_acceptance.md)；GitHub操作见[公共指南](history/collaboration/github_sync.md)，本轮文档同步未执行提交/推送。

@@ -7,6 +7,11 @@ import shutil
 from ..core.config import get_settings
 
 INSTALL_URL = "https://www.libreoffice.org/download/"
+# Large lecture decks can legitimately take several minutes to export. Keep
+# the preview lease longer than conversion + validation/publication; the core
+# lane also recovers expired jobs while the preview lane is still converting.
+CONVERSION_TIMEOUT_SECONDS = 600
+PREVIEW_LEASE_SECONDS = CONVERSION_TIMEOUT_SECONDS + 60
 
 
 def office_executable() -> str | None:

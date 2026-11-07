@@ -40,6 +40,7 @@ from .note_capture import NoteCapture
 from .note_ai_config import NoteAIConfig
 
 __all__ = [
+    "BankAnswerImport",
     "ExamAnalysisReport",
     "NoteAIConfig",
     "NoteCapture",

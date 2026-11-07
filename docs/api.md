@@ -1,8 +1,8 @@
 # Hustudy API（Phase 0）
 
-2026-11-01 M2-RELATED-REPORT-08：study-reports/preview在无精确复用时也可返回related_results；沿原GET/POST remote-queries/{id}/related-results/{result_id}（POST加/reuse）查看及明确使用。严格true确认、原AIResult身份保持、不调用模型；仅goal允许本地相近，学习模式、范围、来源/笔记/账户配置/授权及当前报告提示词均保持一致，问答不交叉推荐。完整多批报告可用，部分/失效结果拒绝。[契约与验证](gcx/related_reports_2026_11_01.md)。本条覆盖旧说明中“报告不返回related_results”的范围。
+2026-11-01 M2-RELATED-REPORT-08：study-reports/preview在无精确复用时也可返回related_results；沿原GET/POST remote-queries/{id}/related-results/{result_id}（POST加/reuse）查看及明确使用。严格true确认、原AIResult身份保持、不调用模型；仅goal允许本地相近，学习模式、范围、来源/笔记/账户配置/授权及当前报告提示词均保持一致，问答不交叉推荐。完整多批报告可用，部分/失效结果拒绝。[契约与验证](gcx/history/related_reports_2026_11_01.md)。本条覆盖旧说明中“报告不返回related_results”的范围。
 
-2026-11-01 M2-RELATED-QA-07：QA预览新增related_results，最多3条原问题/摘要候选。GET /remote-queries/{query_id}/related-results/{result_id}查看原结果；POST同路径/reuse严格要求confirm_related_reuse=true。两步均重新验证资格，返回原AIResult，不派发模型。原精确reuse接口不变。[详细契约及限制](gcx/related_answers_2026_11_01.md)。
+2026-11-01 M2-RELATED-QA-07：QA预览新增related_results，最多3条原问题/摘要候选。GET /remote-queries/{query_id}/related-results/{result_id}查看原结果；POST同路径/reuse严格要求confirm_related_reuse=true。两步均重新验证资格，返回原AIResult，不派发模型。原精确reuse接口不变。[详细契约及限制](gcx/history/related_answers_2026_11_01.md)。
 
 ## 多模型与笔记助手（2026-10-27）
 
@@ -18,7 +18,7 @@
 | `POST /api/v1/note-assistant/preview` | course_id、可选note_id/revision、task=summary/explain/organize/review/custom、scope=full/selection、text、instruction；核对归属/revision后返回完整发送文本、模型/端点及10分钟preview_token，不调用模型 |
 | `POST /api/v1/note-assistant/generate` | input为上述原始请求，加preview_token、confirm=true；返回request_id/markdown/model/task/usage/notice，不写笔记 |
 
-正文最多24000字符、instruction最多2000、结果最多12000；预览绑定用户/正文摘要/来源revision/配置。无配置或已变化409、权限404、输入/内部令牌变化422、频率上限429、模型失败502。单账户同时一请求，10分钟最多20次；同一成功请求返回缓存结果，处理中/失败未知请求不重复调用。生成结果采纳只改前端草稿，仍经原笔记保存接口；输出和预览no-store。部署可用 `HUSTUDY_ADDITIONAL_AI_HOSTS` 扩展HTTPS主机白名单。详细[契约](contracts.md)与[使用及验证](fzk/note_assistant_acceptance.md)。
+正文最多24000字符、instruction最多2000、结果最多12000；预览绑定用户/正文摘要/来源revision/配置。无配置或已变化409、权限404、输入/内部令牌变化422、频率上限429、模型失败502。单账户同时一请求，10分钟最多20次；同一成功请求返回缓存结果，处理中/失败未知请求不重复调用。生成结果采纳只改前端草稿，仍经原笔记保存接口；输出和预览no-store。部署可用 `HUSTUDY_ADDITIONAL_AI_HOSTS` 扩展HTTPS主机白名单。详细[契约](contracts.md)与[使用及验证](fzk/acceptance/note_assistant_acceptance.md)。
 
 ## 标准数据包与课程合并（2026-10-27）
 
@@ -37,23 +37,23 @@
 
 course包不传target_course_id时新建课程，可用title指定名称；传入本人有效目标课程时追加合并，禁止同时传title或parent_folder_id，不覆盖目标课程信息。folder包必须指定目标课程，可选父文件夹，保留层级和未归档笔记。成功响应含import_id、course_id、folder_id、note_count、folder_count、counts及warnings；counts按实际新建业务对象统计。相同request_id及相同参数返回原结果，不同参数409。
 
-网页确认强制带预览selection_sha256作为expected_sha256；脚本客户端可省略。指纹覆盖所选正文、元数据、关系及文件哈希，文件区临时标识变化不影响稳定性。来源变化返回409及`PACKAGE_SELECTION_CHANGED`，必须重新预览。网络未知、401及普通409不自动重发。预览24小时到期410，每账户最多10份，可主动移除；成功幂等凭据独立保留。格式/预算/关系失败422，越权404，磁盘不足沿全站507。详细预算和迁移见[说明](fzk/portable_packages_acceptance.md)。
+网页确认强制带预览selection_sha256作为expected_sha256；脚本客户端可省略。指纹覆盖所选正文、元数据、关系及文件哈希，文件区临时标识变化不影响稳定性。来源变化返回409及`PACKAGE_SELECTION_CHANGED`，必须重新预览。网络未知、401及普通409不自动重发。预览24小时到期410，每账户最多10份，可主动移除；成功幂等凭据独立保留。格式/预算/关系失败422，越权404，磁盘不足沿全站507。详细预算和迁移见[说明](fzk/acceptance/portable_packages_acceptance.md)。
 
 ## 课程笔记关系图谱（2026-10-26，M3-NOTE-GRAPH-02）
 
 `GET /api/v1/courses/{course_id}/note-graph`：认证只读，q≤200字的标题字面子串，link_state=all/linked/isolated，limit=1..200（默认120），可选focus_note_id定位一跳邻域。聚焦与非空标题/非all状态互斥422，不可访问课程或焦点404。响应为course_id、focus_note_id、nodes（NoteSummary + incoming_count/outgoing_count）、edges（source_id/target_id）、total_nodes/total_edges、node_limit/edge_limit、nodes_truncated/edges_truncated。度数按完整当前课程去重关系计算，totals按筛选/聚焦作用域计算；边最多400条，只含实际返回节点。排除他人/跨课程/回收笔记、自身链接；不读取或返回正文，无写入。完整规则见[契约](contracts.md#m3-note-graph-02)。
 
-> 2026-10-24接手提醒：M2教师强调只读reader是代码集成点，不是现成的标记写入HTTP接口；M1阅读标记入口及M4真题身份确认入口仍待各自成员补齐。M2消费分支完成不等于两标签端到端已完成。[缺失接口、责任与验收](gcx/handoff_2026_10_24.md)。
+> 2026-10-24接手提醒：M2教师强调只读reader是代码集成点，不是现成的标记写入HTTP接口；M1阅读标记入口及M4真题身份确认入口仍待各自成员补齐。M2消费分支完成不等于两标签端到端已完成。[缺失接口、责任与验收](gcx/history/handoff_2026_10_24.md)。
 
-2026-10-24 QA preview chunk_ids扩为400，显式范围使用完整正文，qa_scope返回mode/coverage/batched/batch_count；batch_progress.kind=qa时total含最终汇总步骤，resume入口兼容QA。逐批原文依据不是最终答案，空批继续、汇总才形成结果；原权限/账户配置/引用/预算保持。[契约](contracts.md)与[验证](gcx/qa_batches_2026_10_24.md)。
+2026-10-24 QA preview chunk_ids扩为400，显式范围使用完整正文，qa_scope返回mode/coverage/batched/batch_count；batch_progress.kind=qa时total含最终汇总步骤，resume入口兼容QA。逐批原文依据不是最终答案，空批继续、汇总才形成结果；原权限/账户配置/引用/预算保持。[契约](contracts.md)与[验证](gcx/history/qa_batches_2026_10_24.md)。
 
-2026-10-24 PLATFORM-ACCOUNT-AI-04：`/api-connection`仅当前账户，scope=account；GET返回Cache-Control:no-store，PUT/DELETE按本人revision校验；POST-test严格confirm/revision，不在网络期间持锁。密钥分账户加密不回显，M2/M4后台按owner读取，无共享回退。[契约](contracts.md)与[验证](gcx/account_api_2026_10_24.md)。
+2026-10-24 PLATFORM-ACCOUNT-AI-04：`/api-connection`仅当前账户，scope=account；GET返回Cache-Control:no-store，PUT/DELETE按本人revision校验；POST-test严格confirm/revision，不在网络期间持锁。密钥分账户加密不回显，M2/M4后台按owner读取，无共享回退。[契约](contracts.md)与[验证](gcx/history/account_api_2026_10_24.md)。
 
-2026-10-24 M2-AUTO-LABEL-SOURCES-03：新report preview删除teacher_marks/exam_paper_ids/exam_sources_confirmed（提交返回422），仅保留笔记选项。自动读取阅读标记/确认真题依据，冻结m2_supplement.version=2并复核变化；旧v1手动来源预览409，历史保留。[当前契约](contracts.md)与[验收](gcx/supplements_labels_2026_10_24.md)。
+2026-10-24 M2-AUTO-LABEL-SOURCES-03：新report preview删除teacher_marks/exam_paper_ids/exam_sources_confirmed（提交返回422），仅保留笔记选项。自动读取阅读标记/确认真题依据，冻结m2_supplement.version=2并复核变化；旧v1手动来源预览409，历史保留。[当前契约](contracts.md)与[验收](gcx/history/supplements_labels_2026_10_24.md)。
 
-2026-10-24 M2-SUPPLEMENT-LABELS-02：问答/报告preview追加note_ids/notes_confirmed；报告另支持teacher_marks及exam_paper_ids/exam_sources_confirmed。严格确认、5篇/12000字符笔记、20条教师记录/20卷真题上限；冻结m2_supplement，复核修改/撤回，服务端生成事实标签，旧请求缺省空输入兼容。详情见[契约](contracts.md)及[验收](gcx/supplements_labels_2026_10_24.md)。
+2026-10-24 M2-SUPPLEMENT-LABELS-02：问答/报告preview追加note_ids/notes_confirmed；报告另支持teacher_marks及exam_paper_ids/exam_sources_confirmed。严格确认、5篇/12000字符笔记、20条教师记录/20卷真题上限；冻结m2_supplement，复核修改/撤回，服务端生成事实标签，旧请求缺省空输入兼容。详情见[契约](contracts.md)及[验收](gcx/history/supplements_labels_2026_10_24.md)。
 
-2026-10-24 M2-EXECUTION-01：问答/报告preview新增max_structure_repairs（严格0–2，默认0），RemoteQueryResponse增加execution执行预算/窗口/调用/修复计数；结果附执行快照。原resume明确同意后开启新窗口、跳过成功批次，修复额度全请求不重置。TASK_BUDGET_EXCEEDED表示本次确认的执行预算已用尽，不当平台不可用。内部状态不是学习历史。[契约](contracts.md)、[说明](gcx/execution_budget_2026_10_24.md)。
+2026-10-24 M2-EXECUTION-01：问答/报告preview新增max_structure_repairs（严格0–2，默认0），RemoteQueryResponse增加execution执行预算/窗口/调用/修复计数；结果附执行快照。原resume明确同意后开启新窗口、跳过成功批次，修复额度全请求不重置。TASK_BUDGET_EXCEEDED表示本次确认的执行预算已用尽，不当平台不可用。内部状态不是学习历史。[契约](contracts.md)、[说明](gcx/history/execution_budget_2026_10_24.md)。
 
 ## 原文关联笔记分页（2026-10-24，M1-REFERENCE-NOTES-28）
 
@@ -193,13 +193,13 @@ M1-READING-TOOLS-05（2026-10-22）：阅读书签在浏览器按auth/me.id与�
 | POST /notes/batch | `{notes:[{id,revision}], add_tags?:[], remove_tags?:[], folder_id?:null或UUID}`；1–200个不重复笔记；成功返回更新后的NoteResponse数组。先移除再添加标签、去重且总数≤12；先校验全部条目再原子更新，409/404/422均不部分写入。 |
 | POST /notes/import-markdown | multipart `file,course_id,request_id,tags(JSON字符串),folder_id(可省略)`；201 NoteResponse。仅.md/.markdown，UTF-8/BOM、≤2MiB；NUL/非UTF-8/非法标题或标签422，过大413。标题为文件名去扩展名；相同UUID/内容复用原笔记，已变化409，不覆写。 |
 
-选择ZIP自动按文件夹树分配安全路径，根images保留给图片，未归档笔记根目录导出；跨目录图片与双链转换为相对路径。不增加外部AI接口，分类建议在浏览器本地计算。0015 NoteFolder/Note.folder_id与账户备份兼容见[契约](contracts.md#m3-organize-import-editor-01)、[验证与操作](fzk/note_organization_acceptance.md)。
+选择ZIP自动按文件夹树分配安全路径，根images保留给图片，未归档笔记根目录导出；跨目录图片与双链转换为相对路径。不增加外部AI接口，分类建议在浏览器本地计算。0015 NoteFolder/Note.folder_id与账户备份兼容见[契约](contracts.md#m3-organize-import-editor-01)、[验证与操作](fzk/acceptance/note_organization_acceptance.md)。
 
 ## M3-CITATION-LIFECYCLE-01（2026-10-18）
 
 GET `/api/v1/notes/{note_id}/citations`追加可空`document_id`、`document_name`、`version_no`，来源经M1授权重查；失效来源保留原摘录/定位及不可用状态，不补造名称。POST同路径仍201，同笔记相同version_id/chunk_id/quote返回既有引用，最多50条，超限422；创建笔记中的citations也去重。重复提交在笔记写锁内判断，引用不改变正文revision。
 
-新增DELETE `/api/v1/notes/{note_id}/citations/{citation_id}`，本人有效笔记+本笔记引用才允许移除，成功204，不存在/越权404。只移除该关联，原资料/笔记正文/其他引用保留；来源反查更新，旧导出包引用该ID时下载404要求重建。失效引用仍可移除，无新迁移。[契约](contracts.md#m3-citation-lifecycle-01)、[M3审计及验证](fzk/m3_completion_audit.md)。
+新增DELETE `/api/v1/notes/{note_id}/citations/{citation_id}`，本人有效笔记+本笔记引用才允许移除，成功204，不存在/越权404。只移除该关联，原资料/笔记正文/其他引用保留；来源反查更新，旧导出包引用该ID时下载404要求重建。失效引用仍可移除，无新迁移。[契约](contracts.md#m3-citation-lifecycle-01)、[M3审计及验证](fzk/acceptance/m3_completion_audit.md)。
 
 ## M3-BATCH-IMAGES-01（2026-10-18，当前行为）
 
@@ -207,13 +207,13 @@ POST `/api/v1/note-exports`：`{request_id: UUID, note_ids?: UUID[], include_ima
 
 响应在既有字段上新增`layout: simple | legacy`。新包根目录为所选标题命名Markdown，无sources/manifest/README；仅这些笔记实际引用的有效图片进入images，按Asset ID去重，不递归加入链接笔记或其他图库图片。没有图片时不创建空目录。相对链接URL编码，完整解压后阅读。旧记录/旧排队任务保留原参数与字节。请求参数存既有sources_json.request，不需要新迁移；下载内部hash/权限和撤权校验保持。GET `/notes/{id}/export`的Content-Disposition改为UTF-8标题文件名，页面保持一致。
 
-图片管理复用原M1分页/元数据PATCH/DELETE/引用查询；两处批量上传入口每批1–20张、单张非空≤10MiB，逐张顺序调用既有POST `/courses/{id}/assets`。部分失败保留成功，网络/认证/限流/服务错误停止队列，无自动重放；未完成项显式重试。未新增M1后端行为。[契约](contracts.md#m3-batch-images-01)、[证据](fzk/note_batch_images_acceptance.md)。下面复杂包布局仅用于历史说明；新创建请求以上述规则为准。
+图片管理复用原M1分页/元数据PATCH/DELETE/引用查询；两处批量上传入口每批1–20张、单张非空≤10MiB，逐张顺序调用既有POST `/courses/{id}/assets`。部分失败保留成功，网络/认证/限流/服务错误停止队列，无自动重放；未完成项显式重试。未新增M1后端行为。[契约](contracts.md#m3-batch-images-01)、[证据](fzk/acceptance/note_batch_images_acceptance.md)。下面复杂包布局仅用于历史说明；新创建请求以上述规则为准。
 
 ## M3-IMAGE-NAMING-01（2026-10-17，验收反馈修复）
 
 NoteExport响应新增`filename`，由创建时间和账户时区生成`Hustudy-笔记知识库-YYYY-MM-DD_HH-mm-ss-SSS.zip`；下载接口的Content-Disposition与此一致。新包按课程/标题命名，原路径字段和hash语义保持，以manifest为准；旧包内布局须重新导出才更新。无新迁移或新接口。
 
-笔记编辑器直接上传复用`POST /api/v1/courses/{id}/assets`，PNG/JPEG/WebP、最大10MiB；服务端仍验证实际图片内容与归属。上传成功才插入asset引用。规则见[公共契约](contracts.md#m3-image-naming-01)，本轮证据见[验收反馈修复](fzk/note_batch_images_acceptance.md)。
+笔记编辑器直接上传复用`POST /api/v1/courses/{id}/assets`，PNG/JPEG/WebP、最大10MiB；服务端仍验证实际图片内容与归属。上传成功才插入asset引用。规则见[公共契约](contracts.md#m3-image-naming-01)，本轮证据见[验收反馈修复](fzk/acceptance/note_batch_images_acceptance.md)。
 
 ## M3-PORTABLE-NOTES-01（2026-10-17，本地待集成）
 
@@ -232,7 +232,7 @@ NoteExport响应为`{id,created_at,snapshot_at,filename,sha256,size_bytes,counts
 
 DELETE `/notes/{id}?revision=N`：当前UI发送保存版本；并发变化409.details包含server_revision/server_title/server_content/server_tags，原数据保留。旧无revision调用兼容；删除不存在/越权404。POST `/notes`新增可选request_id UUID以防网络重试重复创建；同账户、未变化且初始内容/标签/来源完全相同时返回原笔记，已变化409含server_id，删除/越权404，旧调用可省略。更新跨课程关联笔记时客户端不发送页面course_id。
 
-新账户备份schema_revision为0014_note_exports，显式兼容0012/0013；NOTE_EXPORT控制任务/派生表不进入完整业务备份。其余版本拒绝；0012仍由M3适配器补空tags。本轮验证见[fzk验收](fzk/m3_completion_audit.md)。下面0013说明保留为上一切片历史。
+新账户备份schema_revision为0014_note_exports，显式兼容0012/0013；NOTE_EXPORT控制任务/派生表不进入完整业务备份。其余版本拒绝；0012仍由M3适配器补空tags。本轮验证见[fzk验收](fzk/acceptance/m3_completion_audit.md)。下面0013说明保留为上一切片历史。
 
 ## M3-NOTE-TAGS-01（2026-10-17，功能分支待集成）
 
@@ -240,9 +240,9 @@ DELETE `/notes/{id}?revision=N`：当前UI发送保存版本；并发变化409.d
 - 规范：最多12项，每项trim后1–32字符，拒绝控制字符，精确去重并保序。冲突409的details新增 `server_tags`，原 `server_title/server_content/server_revision` 保留。
 - GET `/notes?course_id=…&q=…&tag=…`：q最多200字符，匹配标题/正文/标签的字面子串；tag最多32字符，精确匹配一个标签。参数可组合；本人归属/课程有效性/删除过滤不变。GET `/courses/{id}/note-search?q=…` 也匹配标签，返回结构与分页不变。
 - 例：`PATCH /notes/{id}` 请求 `{"revision":1,"tags":[" 期末 ","期末","重点"]}`，成功标签为 `["期末","重点"]`，revision递增。非法更新不修改正文或标签。
-- 完整账户备份schema_revision为0013_note_tags；旧0012由M3适配补空标签后继续严格校验。参见[公共契约](contracts.md)、[fzk验收](fzk/note_tags_acceptance.md)。
+- 完整账户备份schema_revision为0013_note_tags；旧0012由M3适配补空标签后继续严格校验。参见[公共契约](contracts.md)、[fzk验收](fzk/acceptance/note_tags_acceptance.md)。
 
-2026-10-17 M2-TOPICS-REUSE：RemoteQueryResponse增加可空reusable_result；POST /remote-queries/{id}/reuse请求{result_id: UUID}，返回已有AIResultResponse，不创建任务或模型调用，失配409/预览归属404。三种任务预览均提供命中信息；新候选信封per_question_topics=true、提示词v5，逐题topic_ids仅允许本次所选非空不重复子集。QA在首个sources元素保存request_scope（version_ids/chunk_ids）区分检索相同但选择范围不同；此元数据不发送给模型。旧v4历史仍可读。[契约](contracts.md)、[实现](gcx/topics_reuse_2026_10_17.md)。
+2026-10-17 M2-TOPICS-REUSE：RemoteQueryResponse增加可空reusable_result；POST /remote-queries/{id}/reuse请求{result_id: UUID}，返回已有AIResultResponse，不创建任务或模型调用，失配409/预览归属404。三种任务预览均提供命中信息；新候选信封per_question_topics=true、提示词v5，逐题topic_ids仅允许本次所选非空不重复子集。QA在首个sources元素保存request_scope（version_ids/chunk_ids）区分检索相同但选择范围不同；此元数据不发送给模型。旧v4历史仍可读。[契约](contracts.md)、[实现](gcx/history/topics_reuse_2026_10_17.md)。
 
 ## 2026-10-17 M2真实资料增量（优先于旧6段说明）
 
@@ -250,7 +250,7 @@ DELETE `/notes/{id}?revision=N`：当前UI发送保存版本；并发变化409.d
 
 新增`POST /api/v1/remote-queries/{id}/resume`，Bearer与严格`{confirm_remote_send:true}`，202；仅停止的分批报告，重验来源/模型，跳过成功批。无确认422、跨账户404、配置变化/已有任务/任务不允许恢复409。取消/丢失租约不自动重发。内部checkpoint与中间草稿不进入普通历史；中间草稿通过RemoteQuery.result可见，partial=true/error_code=PARTIAL_REPORT，不是完整成功。
 
-最终result.study_report_sections=[{title,report}]，每节独立报告/证据；仅一批仍兼容study_report。部分失败保留已完成sections，status仍失败并明确partial。候选preview最多128段/32000字符，不再截去每段2000字符后的正文；超限422。来源子段带chunk_start，Citation偏移仍相对原chunk。输出/引用格式与旧历史兼容，细节见[本轮契约与验证](gcx/real_materials_2026_10_17.md)。
+最终result.study_report_sections=[{title,report}]，每节独立报告/证据；仅一批仍兼容study_report。部分失败保留已完成sections，status仍失败并明确partial。候选preview最多128段/32000字符，不再截去每段2000字符后的正文；超限422。来源子段带chunk_start，Citation偏移仍相对原chunk。输出/引用格式与旧历史兼容，细节见[本轮契约与验证](gcx/history/real_materials_2026_10_17.md)。
 
 ## 2026-10-16 M2候选/演示/精确范围
 
@@ -260,7 +260,7 @@ DELETE `/notes/{id}?revision=N`：当前UI发送保存版本；并发变化409.d
 - POST `/api/v1/courses/{id}/study-reports/demo`：ReportPreviewRequest，完整固定教学演示；旧`/versions/{id}/study-reports`演示入口转用同一实现，未知材料不再返回通用成功模板。
 - 报告preview/demo新增可选chunk_ids（最多6）；普通问答原有chunk_ids现可从前端选择。GET `/api/v1/courses/{id}/ai-results`最近20条普通问答，排除报告和候选。
 
-参数、枚举兼容、章节范围映射与失败语义见[公共契约](contracts.md)，[公开QuestionDraft schema](gcx/question_draft_schema.json)及[验收](gcx/candidate_acceptance.md)。
+参数、枚举兼容、章节范围映射与失败语义见[公共契约](contracts.md)，[公开QuestionDraft schema](gcx/design/question_draft_schema.json)及[验收](gcx/acceptance/candidate_acceptance.md)。
 
 
 ## 2026-10-16 教学报告（M2-STUDY-REPORT-01）
@@ -270,7 +270,7 @@ DELETE `/notes/{id}?revision=N`：当前UI发送保存版本；并发变化409.d
 - GET `/api/v1/courses/{id}/study-reports`：最近20条报告结果；GET `/api/v1/study-reports/{result_id}`：单份持久结果。均校验本人/有效课程；响应AIResultResponse，成功含result.study_report、answer Markdown、citations、coverage、prompt_version，失败含原因。
 - 旧POST `/versions/{id}/study-reports`保留演示兼容，real模式返回409引导新预览流程。
 
-覆盖预算/字段/不可变信封定义见[contracts](contracts.md)，手工示例及限制见[gcx验收](gcx/study_report_acceptance.md)。
+覆盖预算/字段/不可变信封定义见[contracts](contracts.md)，手工示例及限制见[gcx验收](gcx/acceptance/study_report_acceptance.md)。
 
 
 服务默认运行在 `http://127.0.0.1:8000`，OpenAPI 地址为 `/docs`。
@@ -340,7 +340,7 @@ PUT /attempts/{id}/answers/{question_id} 验证试卷题目、选项与服务端
 - `GET /api/v1/versions/{id}/references?chunk_id=<uuid>`：返回 citation_id/note_id/note_title/chunk_id/quote/locator_type/locator_value。仅当前用户未删除笔记和有效引用；改名读取最新笔记标题；指定片段不属该版本或非所有者均 404。前端按引用展示卡片，统计不同笔记数。
 - `GET /api/v1/courses/{id}/jobs`：补充 document_id/document_name/version_no，使任务记录可读；VersionResponse 补充 UTC created_at/updated_at。上传返回结构及状态不变。
 
-迁移 0004 加 category、tags 和分类索引，启动前执行升级，JSON1 可用性在迁移时验证。M1 原文→笔记查询消费 M3 只读 `services/note_references.py` 接口；无笔记/试卷表变更。测试见 `backend/tests/test_material_organization.py`，交接 [003](../collaboration/handoff.md#h-20261013-zhy-003)。
+迁移 0004 加 category、tags 和分类索引，启动前执行升级，JSON1 可用性在迁移时验证。M1 原文→笔记查询消费 M3 只读 `services/note_references.py` 接口；无笔记/试卷表变更。测试见 `backend/tests/m1/test_material_organization.py`，交接 [003](../collaboration/handoff.md#h-20261013-zhy-003)。
 
 ### M1 页级预览与截图来源（2026-10-14）
 
@@ -479,7 +479,7 @@ PPTX/DOCX直接预览使用现有授权GET `/versions/{id}/original`，不新增
 
 POST /api/v1/note-captures/{id}/organize在登录/归属检查后返回410；capabilities.ai恒false，model为空，ai_unavailable_reason明确停用。worker取消QUEUED/RUNNING NOTE_ORGANIZE并清除租约，旧结果不删。PUT /api/v1/note-ai/config返回410；GET仍脱敏返回旧凭据元数据、configured:false和停用原因，DELETE仍按revision清除。无有效M3凭据解析/Provider派发或服务器密钥回退，不改M2接口。请求结构不合法仍由原schema返回422。
 
-[共享契约](contracts.md#m3-capture-text-01)、[验收](fzk/capture_text_acceptance.md)。
+[共享契约](contracts.md#m3-capture-text-01)、[验收](fzk/acceptance/capture_text_acceptance.md)。
 
 ## M4-IMPORT-IMAGE-02
 
@@ -497,7 +497,7 @@ POST /courses/{id}/question-bank/archives：multipart ZIP，201返回entries（p
 
 题库上传不再进行短语推荐/自动分类。`POST /past-papers/{id}/topic-ai-preview` 接收 `question_ids`（1–32个），返回 `preview_id`、`input.questions[{question_id,revision,stem,options}]`、`input.topics[{id,name,aliases,revision}]`、模型/端点/过期时间；不会发模型请求。`GET`同路径读取持久预览或任务状态，来源撤销时不返回输入。`POST /past-papers/{id}/topic-ai-confirm` 需要 `confirm_remote_send:true` 和 `preview_id`，返回202，创建BANK_EXTRACT；相同预览重复确认返回既有任务，跨窗口更换预览返回409。
 
-完成后每题 `bank_data.topic_index` 版本为 `bank-topic-ai-v2`，包含 `existing[{topic_id,name,method:"ai",reason}]`、`candidates` 和 `reason`。不自动选用/创建标签。结果增加题目revision，题库回到草稿；修改题干/选项清除建议，人工标签选择沿用既有PATCH乐观锁。详细边界见 docs/m4/topic_ai_acceptance.md。
+完成后每题 `bank_data.topic_index` 版本为 `bank-topic-ai-v2`，包含 `existing[{topic_id,name,method:"ai",reason}]`、`candidates` 和 `reason`。不自动选用/创建标签。结果增加题目revision，题库回到草稿；修改题干/选项清除建议，人工标签选择沿用既有PATCH乐观锁。详细边界见 docs/xtc/implementation/topic_ai_acceptance.md。
 # M4-PDF-OCR-04
 
 `GET /courses/{course_id}/question-bank/pdf/{version_id}`：只读授权版本，返回页数、疑似扫描/空白页号 `ocr_pages` 及本地组件状态 `ocr_available`；不OCR、不建题。PDF检测在30秒子进程中进行。
@@ -509,7 +509,7 @@ POST /courses/{id}/question-bank/archives：multipart ZIP，201返回entries（p
 
 专用文件库：`POST /courses/{id}/question-bank/files` 上传原件，返回202的原解析Job；`GET`同路径返回题库文件和关联旧来源（附library_scope）；`POST .../files/{document_id}/move`显式将旧来源划入question_bank，不改变UUID/版本。原件下载继续使用同一授权版本接口，资料阅读列表/分页/搜索/导出排除question_bank。
 
-单题DELETE及原batch接口增加响应revisions映射；`POST /courses/{id}/question-bank/restore`接收revisions，整库撤销另带paper_id/paper_revision。仅允许撤销人为删除、revision完全匹配的题目，恢复草稿。`POST /past-papers/{id}/delete`要求revision与question_snapshot（当前题目id/revision集合SHA-256），原子软删除整份题库并取消识别任务，响应changed/revisions/paper_id/paper_revision供撤销。题库列表新增question_count/question_snapshot；旧试卷/作答快照不变。0021迁移与旧备份兼容见docs/m4/library_delete_acceptance.md。
+单题DELETE及原batch接口增加响应revisions映射；`POST /courses/{id}/question-bank/restore`接收revisions，整库撤销另带paper_id/paper_revision。仅允许撤销人为删除、revision完全匹配的题目，恢复草稿。`POST /past-papers/{id}/delete`要求revision与question_snapshot（当前题目id/revision集合SHA-256），原子软删除整份题库并取消识别任务，响应changed/revisions/paper_id/paper_revision供撤销。题库列表新增question_count/question_snapshot；旧试卷/作答快照不变。0021迁移与旧备份兼容见docs/xtc/implementation/library_delete_acceptance.md。
 
 
 ### M4 视觉与ZIP选择增量（2026-10-20）
@@ -604,13 +604,19 @@ M4-BANK-UX-DEDUPE-24：BankImport新增可选request_id（UUID），同请求同
 M4-AUTO-CLASSIFY-26：POST /courses/{course_id}/past-questions/{question_id}/auto-classify，JSON {revision:int>=1,confirm_remote_send:true}，202返回原BankTopicJob结构；auto_apply标识自动采用任务。只接受本人当前未归类题，陈旧revision/已归类409，越权或异课程404，未同意422。沿原任务查询/取消及配置校验，成功自动关联/创建标签且不改正文或答案，失败保留原数据；AI关联selection_reviewed=false。
 
 
-M4-27：POST /courses/{course_id}/past-papers/{paper_id}/auto-classify，{revisions:{题目UUID:revision},confirm_remote_send:true}，202后台任务，单库自动分批/事务采用。PATCH /past-questions/{id}新增year（省略保持，null未知，1900–2200整数）；年份仅本题，统计按此值优先。详见docs/xtc/m4_analysis_bulk_edit_2026_10_28.md。
+M4-27：POST /courses/{course_id}/past-papers/{paper_id}/auto-classify，{revisions:{题目UUID:revision},confirm_remote_send:true}，202后台任务，单库自动分批/事务采用。PATCH /past-questions/{id}新增year（省略保持，null未知，1900–2200整数）；年份仅本题，统计按此值优先。详见docs/xtc/history/m4_analysis_bulk_edit_2026_10_28.md。
 
 
 M4-BULK-VALUES-29（2026-10-28）：上传与校正批量工具新增年份/分值，各字段支持不修改、统一设置、设为未知。勾选题目或全选本页后应用，分值是每题值，年份仅所选题；原草稿/修订/归属检查，冲突整批拒绝，改变回草稿，旧作答保留。POST /courses/{course_id}/question-bank/batch-values，question_ids/revisions及可选year/points，省略保持、null未知；最多100题，事务提交，无AI调用或迁移。
 
 
-M4-IMPORT-VALUES-30（2026-10-29）：题目年份/分值移到源码折叠区上方；严格Markdown可用三级年份/分值字段自动设置，AI扫描和文本元数据沿原文读取保存。ans6两稿更新演示2023年与5/10/15分（17题总170分），明确虚构字段，仅local。78后端通过/2跳过、6Chrome、TypeScript/构建/Ruff通过，无真实模型或日常写入，人工待接收；详见docs/xtc/m4_import_values_2026_10_29.md。
+M4-IMPORT-VALUES-30（2026-10-29）：题目年份/分值移到源码折叠区上方；严格Markdown可用三级年份/分值字段自动设置，AI扫描和文本元数据沿原文读取保存。ans6两稿更新演示2023年与5/10/15分（17题总170分），明确虚构字段，仅local。78后端通过/2跳过、6Chrome、TypeScript/构建/Ruff通过，无真实模型或日常写入，人工待接收；详见docs/xtc/history/m4_import_values_2026_10_29.md。
 
 
 M4-SELF-SCORE-37（2026-10-29）：明确分值的自评题改为输入0至满分整数得分，替代对错按钮；未知分值题仍按对错自评。交卷后展示已评得分，全部题目分值明确才显示总分，待自评明确提示；部分得分视为未完全答对，错题与统计一致。新快照冻结points_known，未知分值内部占位不计分，旧题库快照缺标志不猜分值。POST self-grades支持score或correct互斥模式，原评分同值重试幂等/不同值拒绝。Chrome两种汇总流程通过，相关后端得分范围与幂等通过。无迁移/模型或日常题目写入。先前发布在GitHub树上传阶段网络中断，没有合并；本轮评分验证后续提交，网络恢复再合并。
+
+
+2026-11-06 M1兼容PDF可靠性：接口字段/返回码保持，POST /versions/{id}/preview-jobs仍须显式发起、复用活动/未耗尽原任务。Office单次600秒、PREVIEW租约660秒，其他资料任务180秒；包含隐藏页、总页数匹配、100MiB/2000页输出及已有截图保护不变。已有成功缓存无需重新转换；失败历史/次数不清零。生产需LibreOffice、显式开启兼容转换并运行worker。见docs/zhy/materialhub/pdf_preview_validation_2026_11_06.md。
+
+
+2026-11-06 M2可用性修复：报告提示词v11，GET报告历史/单结果保留v10；现有RemoteQuery.execution字典可带successful_report_call_seconds（0–120数值）。仅分批报告的同窗口后续批次，剩余时间不足已观察成功调用耗时+2秒时返回原provider_error状态及REPORT_WINDOW_TOO_SHORT/phase=needs_continue，未发送下一批，保留部分报告。沿POST /remote-queries/{id}/resume严格confirm_remote_send=true开启新120秒窗口，成功批次不重发、修复额度不重置。INVALID_JSON只增加固定类别与行列号诊断，不回显失败原文。不改变API鉴权、引用、6000token/批及其他模块预算。

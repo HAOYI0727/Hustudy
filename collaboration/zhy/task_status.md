@@ -102,4 +102,4 @@
 
 2026-10-16 PLATFORM-VISUAL-02：共享视觉/状态/图标与可见标签细化，42项双引擎3.6分钟、14Vitest/类型构建通过；[验收](../../docs/zhy/shared_platform/visual_polish_acceptance.md)。H-20261016-ZHY-001待本人审阅/成员接收，任务状态未因视觉切片改为Done。
 
-2026-10-16 DOC-PROGRESS-SYNC-01仅校正当前文档/索引与[GitHub指南](../github_sync.md)，未重跑业务测试或执行提交推送；A09/A10仍Doing，实际commit/PR及成员接收待补，H-20261016-ZHY-002。
+2026-10-16 DOC-PROGRESS-SYNC-01仅校正当前文档/索引与[GitHub指南](../../docs/zhy/history/collaboration/github_sync.md)，未重跑业务测试或执行提交推送；A09/A10仍Doing，实际commit/PR及成员接收待补，H-20261016-ZHY-002。

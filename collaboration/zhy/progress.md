@@ -68,7 +68,7 @@
 | 2026-10-14 | M1-PREVIEW-ASSET-01；FR-06/07/08/37，NFR-06/09/10 | PDF.js 按页与截图来源/回页，0005 迁移保留反链/故障回滚；22 pytest、迁移/Ruff/安全与 PDF 渲染/构建通过 | 工作区未提交 | fzk 接收来源字段；Safari 完整闭环、LibreOffice 成功转换/转录/导出待补 | [H-20261014-ZHY-001](../handoff.md#h-20261014-zhy-001) |
 | 2026-10-14 | M1-TRANSCRIPT-01；FR-04/07/08/09/13 与扫描来源依赖，NFR-06/10 | 人工草稿/确认/修订/撤回，检索与 Citation 标记，解析恢复保留；26 pytest/迁移/Ruff/安全/PDF 渲染/构建通过 | 工作区未提交 | M2/M3/M4 接收来源契约；Safari 完整补录闭环、任务/资产检索/导出待补 | [H-20261014-ZHY-002](../handoff.md#h-20261014-zhy-002) |
 
-功能详情见 [features](../../docs/zhy/features.md)，优化见 [optimizations](../../docs/zhy/optimizations.md)。既有跨模块历史仍在 [公共进度](../../docs/progress.md) 和 [集成记录](../integration_2026_10_13.md)，不擅自改写历史贡献归属。M2–M4 的辅助改动是队长集成范围，不等于 xtc/fzk/gcx 本人完成对应工作。
+功能详情见 [features](../../docs/zhy/features.md)，优化见 [optimizations](../../docs/zhy/optimizations.md)。既有跨模块历史仍在 [公共进度](../../docs/progress.md) 和 [集成记录](../../docs/zhy/history/collaboration/integration_2026_10_13.md)，不擅自改写历史贡献归属。M2–M4 的辅助改动是队长集成范围，不等于 xtc/fzk/gcx 本人完成对应工作。
 
 | 日期 | 切片 / 需求 | 实际进展与证据 | 提交状态 | 待验收 | 交接 |
 |---|---|---|---|---|---|
@@ -171,3 +171,50 @@ Codex辅助zhy，允许范围README/collaboration/docs。校正旧首页/任务�
 ## 2026-10-22 M1-BATCH-STUDY-01
 
 Codex辅助zhy，先契约后完成M1批量上传/逐项反馈/暂停与显式重试、历史版本和片段进入问答/报告、来源错配/撤权拒绝及当前指南同步。419后端通过/2跳过、84前端单元与48个不同双引擎场景最终通过（含旧步骤修正后的定向收尾）、类型/构建/Ruff/迁移/安全显示/PDF通过。见[验收](../../docs/zhy/integration/material_study_acceptance.md)、[40任务核查与优化路线](../../docs/zhy/integration/project_review_2026_10_22.md)、[交接](../handoff.md#h-20261022-zhy-001)。无用户数据变更/真实模型调用/新迁移，工作区未提交，正式评审与成员接收待填。
+
+
+## 2026-11-04：SQL真实课件与M1处理可靠性
+
+用户授权修正SQL/PPT原格式并在test账户数据库系统设计课程上传测试。11份PPTX原件与入库SHA-256逐份一致，1,314文本片段及解析/索引状态核对成功。恢复原任务完成11份解析，没有改写任务成功状态或次数。补Office错误提示、子进程运行目录/安全错误、开发worker安全边界重载，以及专注阅读网格和手机检查按钮。真实Safari学习路径和隔离回归分别记录，AI只到发送预览，未代签正式121项/成员接收。详见docs/zhy/materialhub/sql_real_validation_2026_11_04.md。PPT的M1案例改用SQL课件，未提交推送。
+
+
+2026-11-06 M1-PREVIEW-RELIABILITY-02：完成600秒转换/660秒预览租约及隔离cwd修复；51后端、3隔离WebKit、真实test账户28份2711页及双引擎各83页通过，Chrome一条按钮稳定超时单独复测通过并保留原记录。Safari实测部分页，完整实机/版式质量待人工。原件与引用保持，历史预算不重置，第十章仅授权缓存维护；未提交推送。[详细验证](../../docs/zhy/materialhub/pdf_preview_validation_2026_11_06.md)。
+
+补充：《第十章》真实PDF在WebKit逐页1–91全部通过。原生Safari第15页仍等待绘制，CUA返回noWindowsAvailable/cgWindowNotFound，已请求用户将窗口置于前台继续复测，未记通过；不能将双引擎结果代称原生Safari全量通过。
+
+
+2026-11-06 AI可用性实测：仅test账户，真实连接1.27秒；问答8.07秒4引用；完整91片段报告分3部分成功，29知识点/4例题/15自测/78引用。修复INVALID_JSON诊断/提示词v11、旧v10读取及长批次剩余不足仍派发；保持120秒确认窗口，新错误REPORT_WINDOW_TOO_SHORT明确续跑，不自动增加预算。199后端、22前端、4真实双引擎页面/回源通过，Safari实际问答与报告展示；未提交推送，正式人工质量待验。[本轮记录](../../docs/zhy/shared_platform/ai_live_validation_2026_11_06.md)。
+
+## H-20261107-ZHY-001：现行四份根文档与站内指南统一
+
+日期：2026-11-07；记录者：Codex辅助zhy队长；模块：共享层/四模块集成说明；任务：DOC-FINAL-20261107；分支main、基线70096a8，工作区未提交；接收状态：待zhy及各成员本人接收。
+
+输入：当前路由/代码、现行API/契约、四人目录、11月5日M4新增及11月6日PDF/AI实测。输出：重写README.md、user.md、main_idea.md、Hustudy_team_collaboration.md，区分复现入口/完整手册/设计路线/协作进度。手册保留25章站内契约，补答案文件、自选组卷、手动日程、标准包、账户模型、长任务预算/历史推荐与四方面验收。更正真题身份已实现、教师标记尚缺，以及独立知识点页面/AI新题停用边界。
+
+附带说明修正：frontend/src/features/platform/Help.tsx同步默认手动保存/可选自动保存和已实现课程笔记图谱；最新main删去独立知识点指南后FAQ共8条，frontend/tests/e2e/shared/user-manual.spec.ts的旧9条断言修正为8，不降低保存/默认收起/逐项展开/重入重置检查。无API/schema/迁移/依赖或业务写入改造。
+
+实际验证：npm run test --prefix frontend -- tests/unit/manual.test.ts，4 passed；npm run build --prefix frontend（含TypeScript），通过。HUSTUDY_E2E_CHROME_CHANNEL=chrome npm run test:e2e --prefix frontend -- user-manual.spec.ts manual-learning-loop.spec.ts，首轮10 passed/2 failed，均为上述9/8条旧断言；修正后同命令限定-g '使用指南说明全部默认收起'，Chromium/WebKit 2 passed。12个不同场景经复验通过，包含390/1440自制资料→笔记→题库→错题回源→计划重做→备份、手册按需25章/搜索/真实下载及离线/安全/迟到保护。保留NO_COLOR环境警告，不当业务失败。四份本地链接、25章/字节预算和git diff --check通过。
+
+范围：未重新全量后端/全站E2E，未真实模型调用/日常账号或数据写入，不把历史199/721等数字当当前全量结论；未提交推送。工程外日志与原四文档备份在/tmp/hustudy-docs-20261107，非长期发布证据。无个人凭据进入文档。M1教师标记、事实标签联合验收、正式40任务/成员/真实设备/真人试用/公共部署保持各自实际状态。下一步由zhy与成员审阅四份文档，按手册执行目标机器复现及当前全量检查；签收不代填。
+
+## H-20261107-ZHY-002：目录分类、路径同步与冗余产物整理
+
+日期：2026-11-07；记录者：Codex辅助zhy队长；模块：共享层/M1与测试/四模块文档集成；任务：REPO-ORGANIZATION-20261107；分支main、基线70096a8，工作区未提交；接收状态：待本人/成员接收。
+
+用户授权整理backend/tests、frontend/tests、collaboration、docs、data及local产物。306份文件迁移：测试按shared/m1/m2/m3/m4/integration分类并保留support，更新所有显式导入、__file__/URL样例路径与根文档命令；保留全部测试用例。docs/m4并入xtc/implementation，成员验收/历史/格式分目录，公共API/契约和必要第三方许可保留；协作早期冗余指南归档至docs/zhy/history/collaboration，保留4人成员入口/真实进度与公共roles/workflow/task_board/handoff。运行产物统一根.artifacts，Playwright输出配置与手写截图路径同步。fixtures为网站指南/测试的必要自制输入，移除其整体忽略，保留全部样例/锁文件/依赖/构建钩子。
+
+数据：旧local等296份产物与12份旧迁移快照工程外归档；data内最近两份快照分类留存，不改日常DB、storage、活跃WAL/SHM或账户加密配置。业务对象数量整理前后相同。受影响原文件、SHA-256/迁移映射、旧差异与一致性SQLite备份位于/Users/zhy/Desktop/hustudy-cleanup-backups/20261107-175318（0700，不提交）。详情见docs/zhy/shared_platform/repository_organization_2026_11_07.md。
+
+实际验证：790项后端测试身份多重集合不变；前端40单测文件/706浏览器场景不变；全量Vitest251 passed、TypeScript/生产构建通过、Ruff及临时库迁移/模型漂移通过。后端完整运行784 passed/4 failed/2 skipped；其中旧0022迁移头断言已改为核对实际head，6项迁移测试定向全通过。余3项课程包跨课程/账户对象错误用整理前原平铺测试也同样失败，保留待修，不删除/跳过或宣称全绿。BankAnswerImport既有__all__遗漏已补全，保留模型注册。Chromium/WebKit专项44 passed，覆盖资料/笔记/AI历史/题库及完整手册闭环；文档本地链接0失效、git diff --check通过。
+
+测试均隔离/模拟Provider，无真实模型调用、日常账户写入或新依赖/迁移，无提交推送。未重跑全部706浏览器用例，不代签成员/真人/全设备。工程外日志/tmp/hustudy-reorganize-20261107；临时日志不是长期交付。下一步：成员核对新路径，另修原有课程包兼容失败，按任务实际验收，不自动Done。
+
+
+## H-20261107-ZHY-003：补充清理与报告
+
+Codex辅助队长：进一步归档约15.2MB旧截图与测试输出，保留必要依赖/样例/数据，补齐2处测试截图输出路径（Chromium390px两项通过）。完成reference/项目报告.docx第一、二章与第三至六章四人框架，32页逐页检查，含35组需求、2张UML和6张原PPT真实截图。正式体验/成员贡献/用户反馈仍由本人补充；原教案/模板/PPT未改。详见[交接](../handoff.md#h-20261107-zhy-003补充清理与课程项目报告)与[整理记录](../../docs/zhy/shared_platform/repository_organization_2026_11_07.md#补充清理与课程报告h-20261107-zhy-003)。未提交推送，待本人审阅。
+
+
+## H-20261107-ZHY-004：独立四方面验收材料
+
+完成reference/Hustudy四方面验收汇报.docx（16页、16表、6图），以数据库恢复案例串联四模块，附分工、8分钟安排、性能/安全/错误/健壮性、架构数据与当前代码量。主体37618行，样式/测试/迁移工具单列，成品统计命令复跑一致。新增自制讲义与4题题库，严格解析通过，浏览器闭环待执行；无业务修改/真实模型调用/日常写入/提交。详见[H-20261107-ZHY-004](../handoff.md#h-20261107-zhy-004四方面验收汇报与代码量重计)，待本人/成员审阅。

@@ -1,14 +1,14 @@
 # Hustudy 需求实现与验收追踪
 
-2026-10-27 M3-NOTE-ASSISTANT-05 / PLATFORM-MODEL-CONNECTIONS-01 → 笔记阅读连续性、AI辅助与账户模型选择：目录/课程/标题分页、仅选定文本确认发送、五类任务与可撤销草稿采纳；原智谱独立保留，M2/M4共享配置及修订校验。无新迁移/依赖，课程包样例自动生成并回导合并验证。[命令、结果与待验边界](fzk/note_assistant_acceptance.md)。原阅读与可选保存已获用户验收；用户已确认本轮新增功能验收通过，原第9项状态独立，不代签团队接收。
+2026-10-27 M3-NOTE-ASSISTANT-05 / PLATFORM-MODEL-CONNECTIONS-01 → 笔记阅读连续性、AI辅助与账户模型选择：目录/课程/标题分页、仅选定文本确认发送、五类任务与可撤销草稿采纳；原智谱独立保留，M2/M4共享配置及修订校验。无新迁移/依赖，课程包样例自动生成并回导合并验证。[命令、结果与待验边界](fzk/acceptance/note_assistant_acceptance.md)。原阅读与可选保存已获用户验收；用户已确认本轮新增功能验收通过，原第9项状态独立，不代签团队接收。
 
-2026-10-27 M3-NOTE-READING-04 → C01/C03/C05/C06/C08/C09/C10，FR-10/11/12/13及TC-07/08/23：独立安全Markdown阅读、目录/字号/专注、图片公式/双链/只读回源，默认手动且可选自动保存，草稿/撤销/离开保护。本机开关只存账户隔离布尔偏好；无新API/迁移/依赖。[自动证据与复验](fzk/note_reading_acceptance.md)，不代签人工或原第9项。
+2026-10-27 M3-NOTE-READING-04 → C01/C03/C05/C06/C08/C09/C10，FR-10/11/12/13及TC-07/08/23：独立安全Markdown阅读、目录/字号/专注、图片公式/双链/只读回源，默认手动且可选自动保存，草稿/撤销/离开保护。本机开关只存账户隔离布尔偏好；无新API/迁移/依赖。[自动证据与复验](fzk/acceptance/note_reading_acceptance.md)，不代签人工或原第9项。
 
-2026-10-27 PLATFORM-PORTABLE-PACKAGE-03 → 课程迁移、M1原件／M3笔记组织与选择导出／M4题库练习连续性、安全与可靠性增量：标准ZIP自选导入导出、课程追加合并、目录／图片／双链／引用重建、预览摘要与幂等事务。按用户要求自动生成工程外验收样例；[范围、实际验证及复验步骤](fzk/portable_packages_acceptance.md)。独立账户恢复及跨课程旧关系的人工第9项继续暂缓，不按新增迁移测试代签。
+2026-10-27 PLATFORM-PORTABLE-PACKAGE-03 → 课程迁移、M1原件／M3笔记组织与选择导出／M4题库练习连续性、安全与可靠性增量：标准ZIP自选导入导出、课程追加合并、目录／图片／双链／引用重建、预览摘要与幂等事务。按用户要求自动生成工程外验收样例；[范围、实际验证及复验步骤](fzk/acceptance/portable_packages_acceptance.md)。独立账户恢复及跨课程旧关系的人工第9项继续暂缓，不按新增迁移测试代签。
 
-2026-10-26 M3-NOTE-GRAPH-02 → FR-12、C03/C04/C09/C10的关系浏览增量：仅可访问当前课程有效笔记，元数据投影/去重方向/真实度数、标题与孤立筛选、一跳邻域、明确打开及草稿/会话保护。20项相关后端、232单元、28个不同Chrome/WebKit场景及类型/构建通过；[图谱验证与人工步骤](fzk/note_graph_acceptance.md)记录实际过程。没有自动语义关系、跨课程图谱或笔记审阅状态变更，不代签第9项与成员验收。
+2026-10-26 M3-NOTE-GRAPH-02 → FR-12、C03/C04/C09/C10的关系浏览增量：仅可访问当前课程有效笔记，元数据投影/去重方向/真实度数、标题与孤立筛选、一跳邻域、明确打开及草稿/会话保护。20项相关后端、232单元、28个不同Chrome/WebKit场景及类型/构建通过；[图谱验证与人工步骤](fzk/acceptance/note_graph_acceptance.md)记录实际过程。没有自动语义关系、跨课程图谱或笔记审阅状态变更，不代签第9项与成员验收。
 
-2026-10-26 M3-SAFE-MERGE-01 → C08自动保存与409冲突、C09笔记安全测试、C10交互：共同版本与有界LCS、逐段/元数据选择、明确保存及再次409、原副本保留/下载、缺基线与配额失败退路。221单元、类型/构建及38个双引擎场景通过。无接口/schema变更；用户已反馈本人复验通过，自动证据见[合并说明](fzk/note_merge_acceptance.md)，不代签既有第9项或其他成员验收。
+2026-10-26 M3-SAFE-MERGE-01 → C08自动保存与409冲突、C09笔记安全测试、C10交互：共同版本与有界LCS、逐段/元数据选择、明确保存及再次409、原副本保留/下载、缺基线与配额失败退路。221单元、类型/构建及38个双引擎场景通过。无接口/schema变更；用户已反馈本人复验通过，自动证据见[合并说明](fzk/acceptance/note_merge_acceptance.md)，不代签既有第9项或其他成员验收。
 
 2026-10-24 M1-REFERENCE-NOTES-28 → A06/A07/A08/A10与M3引用/笔记集成可用性增量：原文→聚合笔记检索→按需预览→显式保存/编辑→原片段，保留归属、UUID、正文/revision与离开保护；旧引用查询不再读取Note.content。478后端/2跳过、187单元/类型/构建/迁移/安全检查及84个不同双引擎场景经修正复验通过，user.md与121项人工清单同步。[证据](zhy/materialhub/reference_notes_acceptance.md)。无新表/迁移/依赖，不代签正式40任务/成员/真人/实机。
 
@@ -53,10 +53,10 @@ A05/A07/A10、B03/B04/B05；FR-03/06/07/16–20及NFR-06/08/09：有界资料批
 
 ## CR-M4-PDF-ZIP-03 / AI-EXTRACT-04
 
-FR-39/40：PDF自动拆题/分组与跨页解答/ZIP逐条安全导入；FR-20/45（用户覆盖）：免费固定模型拆分现有原题，原文预览/发送确认、结构化行号/完整性校验，非AI出新题；FR-25–28：解答参考文本只在提交后显示、不评分；NFR-06/08/09：来源撤回、ZIP预算、旧快照/恢复、立即展示。18项专项、Chrome11及全量边界见[验收](m4/pdf_zip_ai_acceptance.md)，未真实调用或代签。
+FR-39/40：PDF自动拆题/分组与跨页解答/ZIP逐条安全导入；FR-20/45（用户覆盖）：免费固定模型拆分现有原题，原文预览/发送确认、结构化行号/完整性校验，非AI出新题；FR-25–28：解答参考文本只在提交后显示、不评分；NFR-06/08/09：来源撤回、ZIP预算、旧快照/恢复、立即展示。18项专项、Chrome11及全量边界见[验收](xtc/implementation/pdf_zip_ai_acceptance.md)，未真实调用或代签。
 ## CR-M4-IMPORT-IMAGE-02（2026-10-20）
 
-FR-39/40：仅题目/解析判别、显式图片OCR、阅读顺序/跨图/无题号切分与原图校正；FR-37/44：插图授权/裁剪/审核及快照/备份；FR-41–43：删除后统计陈旧与历史保留；NFR-06/09/10：归属/冲突、统一批量审核、44px点击区和390宽度。相关28项M4后端专项/8项Chrome/58项前端、类型/构建通过；全量失败与人工边界见[本轮验收](m4/import_images_acceptance.md)，未代签或上传。
+FR-39/40：仅题目/解析判别、显式图片OCR、阅读顺序/跨图/无题号切分与原图校正；FR-37/44：插图授权/裁剪/审核及快照/备份；FR-41–43：删除后统计陈旧与历史保留；NFR-06/09/10：归属/冲突、统一批量审核、44px点击区和390宽度。相关28项M4后端专项/8项Chrome/58项前端、类型/构建通过；全量失败与人工边界见[本轮验收](xtc/implementation/import_images_acceptance.md)，未代签或上传。
 
 ## CR-M4-BANK-01（2026-10-19）
 
@@ -69,39 +69,39 @@ FR-39/40：仅题目/解析判别、显式图片OCR、阅读顺序/跨图/无题
 | FR-35/41–43、TC-29/30 | 主次标签、别名/合并、独立样本与未知项分母、统计快照STALE、资料/笔记/图片候选 | 三样卷复算、拆合/人工去重与跨归属回归通过；真人核实待执行 |
 | AI学习练习入口、TC-BANK-05 | 共用BankPractice；旧候选新建410、旧队列派发前失败、历史仍可读 | Chrome请求观察及后端假Provider零调用断言通过 |
 
-真实命令/数量与未完成项见[M4验收](m4/question_bank_acceptance.md)；本轮未提交推送、不代记成员贡献，FR-35/41–43本轮补齐统计快照/真实分母/STALE、标签改名合并/别名、资料笔记图片候选及蓝图UI；D10真人试用/正式汇报和签收仍待实际执行。
+真实命令/数量与未完成项见[M4验收](xtc/implementation/question_bank_acceptance.md)；本轮未提交推送、不代记成员贡献，FR-35/41–43本轮补齐统计快照/真实分母/STALE、标签改名合并/别名、资料笔记图片候选及蓝图UI；D10真人试用/正式汇报和签收仍待实际执行。
 
 ## 2026-10-19 fzk/M3验收与提交
 
-用户确认第1–8项通过；第9项跨课程与独立完整恢复暂缓。82项相关后端、58项前端单元、22项Chrome和类型/构建通过。M3 AI整理/配置启用停用，识别只插入当前笔记。详见[人工验收](fzk/manual_recheck.md)及[提交验证](fzk/m3_completion_audit.md)。此为个人提交证据，团队整合及全站P0状态由队长接收后更新。
+用户确认第1–8项通过；第9项跨课程与独立完整恢复暂缓。82项相关后端、58项前端单元、22项Chrome和类型/构建通过。M3 AI整理/配置启用停用，识别只插入当前笔记。详见[人工验收](fzk/acceptance/manual_recheck.md)及[提交验证](fzk/acceptance/m3_completion_audit.md)。此为个人提交证据，团队整合及全站P0状态由队长接收后更新。
 
 ## 2026-10-18 fzk/M3回收站：待集成证据
 
-FR-10/11/12、C01/C08：批量软删除、原UUID恢复、状态/revision冲突与快照清空；FR-14/37、C07：回收站不进日常导出、完整账户备份兼容；C09/C10：清理设置、旧记录宽限、锁内期限重验、隔离自动验证及复验文档。[当前记录](fzk/note_trash_acceptance.md)、[交接006](../collaboration/handoff.md#h-20261018-fzk-006)。用户已确认前轮布局全部通过，本轮新增回收站仍待本人复验。
+FR-10/11/12、C01/C08：批量软删除、原UUID恢复、状态/revision冲突与快照清空；FR-14/37、C07：回收站不进日常导出、完整账户备份兼容；C09/C10：清理设置、旧记录宽限、锁内期限重验、隔离自动验证及复验文档。[当前记录](fzk/acceptance/note_trash_acceptance.md)、[交接006](../collaboration/handoff.md#h-20261018-fzk-006)。用户已确认前轮布局全部通过，本轮新增回收站仍待本人复验。
 
 ## 2026-10-18 fzk/M3工作区：待集成证据
 
-FR-09/10/11、C01/C02/C08/C10：目录/标题侧栏、中央选择与批量动作、保留编辑状态的视图切换、按需弹窗、带revision的笔记/文件夹拖动、键盘/触屏替代动作。数据契约不变。[验证与边界](fzk/note_workspace_acceptance.md)、[交接005](../collaboration/handoff.md#h-20261018-fzk-005)。用户只确认前一切片1–5通过，本轮界面仍待本人复验，不扩大为团队验收。
+FR-09/10/11、C01/C02/C08/C10：目录/标题侧栏、中央选择与批量动作、保留编辑状态的视图切换、按需弹窗、带revision的笔记/文件夹拖动、键盘/触屏替代动作。数据契约不变。[验证与边界](fzk/acceptance/note_workspace_acceptance.md)、[交接005](../collaboration/handoff.md#h-20261018-fzk-005)。用户只确认前一切片1–5通过，本轮界面仍待本人复验，不扩大为团队验收。
 
 ## 2026-10-18 fzk/M3整理与编辑器：待集成证据
 
-FR-09/10/11与C01/C02/C08：文件夹归属持久化、批量标签/目录原子revision校验、MD逐文件幂等导入、丰富编辑器且首存保留焦点；FR-14/C07：保留目录的选择ZIP、根目录未归档笔记、深层相对图片/双链及0015账户恢复。C09/C10：隔离API/浏览器、桌面/390px证据、使用与接口文档。分类推荐明确为本地匹配，不视为语义检索或已审阅可信笔记功能。[实际测试/限制](fzk/note_organization_acceptance.md)、[交接](../collaboration/handoff.md#h-20261018-fzk-004)。当前未提交，团队集成与新增功能人工复验待完成。
+FR-09/10/11与C01/C02/C08：文件夹归属持久化、批量标签/目录原子revision校验、MD逐文件幂等导入、丰富编辑器且首存保留焦点；FR-14/C07：保留目录的选择ZIP、根目录未归档笔记、深层相对图片/双链及0015账户恢复。C09/C10：隔离API/浏览器、桌面/390px证据、使用与接口文档。分类推荐明确为本地匹配，不视为语义检索或已审阅可信笔记功能。[实际测试/限制](fzk/acceptance/note_organization_acceptance.md)、[交接](../collaboration/handoff.md#h-20261018-fzk-004)。当前未提交，团队集成与新增功能人工复验待完成。
 
 ## 2026-10-18 fzk/M3引用闭环：待集成证据
 
-FR-13/C06：逐字引用去重、50条上限、本人本笔记引用移除、授权来源名称与版本、失败重试、反查/旧导出撤权；FR-11/C08：后台暂停新自动保存，前台恢复2秒计时，401/409不重放。无迁移/新依赖；[M3完整核查与实际测试](fzk/m3_completion_audit.md)、[交接003](../collaboration/handoff.md#h-20261018-fzk-003)。用户反馈仅确认图片上传/导出成功，团队整合签收仍待。
+FR-13/C06：逐字引用去重、50条上限、本人本笔记引用移除、授权来源名称与版本、失败重试、反查/旧导出撤权；FR-11/C08：后台暂停新自动保存，前台恢复2秒计时，401/409不重放。无迁移/新依赖；[M3完整核查与实际测试](fzk/acceptance/m3_completion_audit.md)、[交接003](../collaboration/handoff.md#h-20261018-fzk-003)。用户反馈仅确认图片上传/导出成功，团队整合签收仍待。
 
 ## 2026-10-18 fzk/M3批量图片：待集成证据
 
-FR-14/C07：ZIP只包含所选标题.md与其引用图片，页面自动带图，去重和解压相对路径；FR-09/C05：编辑器与图库每批20张顺序上传，部分失败保留、异常停止和显式重试。基线/契约已同步，[实际测试记录](fzk/note_batch_images_acceptance.md)、[交接](../collaboration/handoff.md#h-20261018-fzk-002)。未提交，本人复验/团队接收待完成；下方旧默认值为历史记录。
+FR-14/C07：ZIP只包含所选标题.md与其引用图片，页面自动带图，去重和解压相对路径；FR-09/C05：编辑器与图库每批20张顺序上传，部分失败保留、异常停止和显式重试。基线/契约已同步，[实际测试记录](fzk/acceptance/note_batch_images_acceptance.md)、[交接](../collaboration/handoff.md#h-20261018-fzk-002)。未提交，本人复验/团队接收待完成；下方旧默认值为历史记录。
 
 ## 2026-10-18 fzk/M3日常导出：待集成证据
 
-FR-14/C07：单篇与ZIP成员按标题命名，勾选1–2000篇、同名安全序号、默认Markdown-only，可选images附件；内部自动校验、不要求CMD。FR-37/C05：笔记页管理课程图片，复用M1元数据/引用/删除和revision保护。更新main_idea与正式需求FR-14，未改其他成员记录或签收；[实际验证](fzk/note_batch_images_acceptance.md)、[交接](../collaboration/handoff.md#h-20261018-fzk-001)。工作区未提交，新修复待本人复验。
+FR-14/C07：单篇与ZIP成员按标题命名，勾选1–2000篇、同名安全序号、默认Markdown-only，可选images附件；内部自动校验、不要求CMD。FR-37/C05：笔记页管理课程图片，复用M1元数据/引用/删除和revision保护。更新main_idea与正式需求FR-14，未改其他成员记录或签收；[实际验证](fzk/acceptance/note_batch_images_acceptance.md)、[交接](../collaboration/handoff.md#h-20261018-fzk-001)。工作区未提交，新修复待本人复验。
 
 ## 2026-10-17 fzk/M3验收反馈修复：待集成证据
 
-FR-37/C05：笔记编辑器直接上传PNG/JPEG/WebP，解码失败保留正文，成功插入并预览；FR-14/C07：ZIP日期时间下载名、课程/标题目录、同名/特殊字符相对链接与hash。12项相关后端、12项Chrome、27项Vitest及Ruff/构建通过；[本轮证据](fzk/note_batch_images_acceptance.md)、[交接003](../collaboration/handoff.md#h-20261017-fzk-003)。无新迁移、未提交，新增修复待本人复验；不扩大用户已确认的双链/改名/ZIP校验/断网保留范围。
+FR-37/C05：笔记编辑器直接上传PNG/JPEG/WebP，解码失败保留正文，成功插入并预览；FR-14/C07：ZIP日期时间下载名、课程/标题目录、同名/特殊字符相对链接与hash。12项相关后端、12项Chrome、27项Vitest及Ruff/构建通过；[本轮证据](fzk/acceptance/note_batch_images_acceptance.md)、[交接003](../collaboration/handoff.md#h-20261017-fzk-003)。无新迁移、未提交，新增修复待本人复验；不扩大用户已确认的双链/改名/ZIP校验/断网保留范围。
 
 ## 2026-10-17 fzk/M3便携知识库：待集成证据
 
@@ -112,7 +112,7 @@ FR-37/C05：笔记编辑器直接上传PNG/JPEG/WebP，解码失败保留正文�
 | FR-11；C08 | 网络恢复重试、首次创建UUID请求幂等 | 响应丢失后不重复创建，等待期间修改最终保存；401/409不自动重放 |
 | FR-15/NFR-10；兼容配套 | 0014派生表与新备份版本，排除NOTE_EXPORT控制数据，兼容0012/0013 | 全量旧备份往返与新0013兼容、迁移模型无漂移 |
 
-工作区未提交；275后端通过/3个既有Windows失败、27Vitest/17Chrome通过。[详细证据/未验范围](fzk/m3_completion_audit.md)与[交接](../collaboration/handoff.md#h-20261017-fzk-002)。标签用户已验收，本轮人工/团队集成待完成；正式全站状态由zhy整合。下方是上一切片历史。
+工作区未提交；275后端通过/3个既有Windows失败、27Vitest/17Chrome通过。[详细证据/未验范围](fzk/acceptance/m3_completion_audit.md)与[交接](../collaboration/handoff.md#h-20261017-fzk-002)。标签用户已验收，本轮人工/团队集成待完成；正式全站状态由zhy整合。下方是上一切片历史。
 
 ## 2026-10-17 fzk/M3分支待集成证据
 
@@ -122,7 +122,7 @@ FR-37/C05：笔记编辑器直接上传PNG/JPEG/WebP，解码失败保留正文�
 | FR-11；C08/C09 | 标签和正文同revision保存，409/401保留本地标签草稿，待输入保护 | 新增冲突、会话恢复、离页和校验测试 |
 | FR-15/NFR-10；兼容配套 | 0013迁移、账户备份版本与0012恢复；Windows tzdata | 新旧备份往返/损坏标签回滚及迁移漂移通过；旧程序不支持恢复新备份 |
 
-Codex辅助fzk；codex/fzk-m3-note-tags工作区未提交/未合并。27Vitest/12Chrome通过；全量264后端通过、3个既有Windows权限前提失败。详细[证据](fzk/note_tags_acceptance.md)、[交接](../collaboration/handoff.md#h-20261017-fzk-001)。正式集成状态由zhy审阅汇总；保留其他成员历史记录，不宣称全部P0完成。
+Codex辅助fzk；codex/fzk-m3-note-tags工作区未提交/未合并。27Vitest/12Chrome通过；全量264后端通过、3个既有Windows权限前提失败。详细[证据](fzk/acceptance/note_tags_acceptance.md)、[交接](../collaboration/handoff.md#h-20261017-fzk-001)。正式集成状态由zhy审阅汇总；保留其他成员历史记录，不宣称全部P0完成。
 
 ## 2026-10-16 M2-CANDIDATES-01
 
@@ -134,7 +134,7 @@ Codex辅助fzk；codex/fzk-m3-note-tags工作区未提交/未合并。27Vitest/1
 | FR-22/23/44候选部分、B02/06/07 | 3题型/3模式、题数/分值/选项/答案/rubric/引用/原题与hash校验、公开QuestionDraft | M4正式蓝图章节映射/全卷约束/审阅与状态仍归M4；仅规范化去重，非语义或学科正确性证明 |
 | FR-15/NFR-06/10、B09/10 | 候选/请求备份往返无派发，越权、依赖变化、无迁移漂移、代码/文档交接 | 相关89项通过；全量中间版167通过/3个既有Windows失败 |
 
-[验收](gcx/candidate_acceptance.md)、[当前B01–B10](gcx/m2_plan.md)、[人工评估空表](gcx/evaluation_checklist.md)。
+[验收](gcx/acceptance/candidate_acceptance.md)、[当前B01–B10](gcx/design/m2_plan.md)、[人工评估空表](gcx/acceptance/evaluation_checklist.md)。
 
 
 ## 2026-10-16 M2报告增量
@@ -147,7 +147,7 @@ Codex辅助fzk；codex/fzk-m3-note-tags工作区未提交/未合并。27Vitest/1
 | FR-20 | 坏JSON/伪引用/超时/截断拒绝，单次派发与取消保护 | 自动通过，不自动发起修复请求 |
 | FR-15/NFR-06/10 | 报告请求/结果备份往返无重复派发、跨账户/来源撤权、迁移无漂移 | 对应关联回归通过，非完整首版验收 |
 
-证据：[gcx报告验收](gcx/study_report_acceptance.md)、[计划](gcx/m2_plan.md)。已有全量Windows权限相关3失败如实保留。
+证据：[gcx报告验收](gcx/acceptance/study_report_acceptance.md)、[计划](gcx/design/m2_plan.md)。已有全量Windows权限相关3失败如实保留。
 
 
 更新：2026-10-16。完整需求与测试矩阵以[正式追踪](../hustudy/Hustudy_traceability_matrix.md)为基线；当前功能见[README](../README.md)，实际执行结果见[测试报告](test_report.md)，队长任务见[zhy当前表](../collaboration/zhy/task_status.md)。下文按日期保留实现增量，Phase 0的早期待办不能覆盖后续已实现行为。
@@ -196,7 +196,7 @@ Codex辅助fzk；codex/fzk-m3-note-tags工作区未提交/未合并。27Vitest/1
 | FR-06/09 | 当前课程原文查找；携带 document/version/chunk 定位到指定片段 | 新增 test_workspace_discovery.py 验证响应身份、跨课程/跨用户隔离和删除后搜索排除；当前是字符串匹配，非完整 FTS5/语义检索验收 |
 | FR-10–12 | 查找课程笔记并直达；首页按 updated_at 排序并直达 | TypeScript/生产构建通过；复用笔记保存/离开保护；非完整 Markdown/图片验收 |
 | FR-16/NFR-09 | 五步使用指南、演示模型与未实现能力说明、键盘入口、手机 viewport | 构建通过；真实易用性试用未执行 |
-| NFR-10 | 补充前端导航契约及按依赖的交付关口 | docs/contracts.md、collaboration/experience_roadmap.md；无数据库迁移/API 变更 |
+| NFR-10 | 补充前端导航契约及按依赖的交付关口 | docs/contracts.md、docs/zhy/history/collaboration/experience_roadmap.md；无数据库迁移/API 变更 |
 
 本轮 pytest 共 8 passed（含既有测试），新增测试 Ruff 通过。浏览器业务验证尚等待测试账号登录；不得把构建成功写为 Safari 闭环通过。
 
@@ -404,30 +404,30 @@ CR-M1-NATIVE-01覆盖FR-06/36的早期Office仅转PDF入口；新增PPTX/Word直
 
 ## 2026-10-16 DOC-PROGRESS-SYNC-01
 
-NFR-10、A09/A10文档交付：README/协作入口/路线/复现/文档索引按实际实现与日期校正，新增GitHub功能分支提交推送指引；公共状态引用正式十任务，不将历史聚合Done等同全P0。验证仅文档链接、交接ID和diff检查；未重跑业务测试或执行commit/push。见[操作指南](../collaboration/github_sync.md)，H-20261016-ZHY-002待本人审阅/接收。
+NFR-10、A09/A10文档交付：README/协作入口/路线/复现/文档索引按实际实现与日期校正，新增GitHub功能分支提交推送指引；公共状态引用正式十任务，不将历史聚合Done等同全P0。验证仅文档链接、交接ID和diff检查；未重跑业务测试或执行commit/push。见[操作指南](zhy/history/collaboration/github_sync.md)，H-20261016-ZHY-002待本人审阅/接收。
 
 ## M2-LABEL-REVIEW-01增量追踪（2026-10-16）
 
-FR-38：逐项标签类型/理由编辑、原始AI建议对照、笔记草稿保存与引用冻结已实现；来源仍为AI建议，教师/真题确认依据待接入。main_idea14.1：学习分层/概念关系/难点突破/复习建议已增量实现，历史缺字段保持兼容。[证据](gcx/basic_acceptance.md)。父需求整体和真实质量不因此标Done。
+FR-38：逐项标签类型/理由编辑、原始AI建议对照、笔记草稿保存与引用冻结已实现；来源仍为AI建议，教师/真题确认依据待接入。main_idea14.1：学习分层/概念关系/难点突破/复习建议已增量实现，历史缺字段保持兼容。[证据](gcx/acceptance/basic_acceptance.md)。父需求整体和真实质量不因此标Done。
 
 ## 2026-10-18 M3 图标工具栏与公式编辑器
 
-FR-10/C02、NFR-09：分组图标、中文悬浮与无障碍名称、触屏热区、模板辅助公式编辑。FR-14/C07：标准 Markdown 公式保存/导出保留。C08：撤销/重做及登录失效时公式草稿保留。安全边界、尺寸/浏览器验证及未验项见[记录](fzk/note_math_editor_acceptance.md)。用户授权范围扩展，无新 API/数据库，未提交。
+FR-10/C02、NFR-09：分组图标、中文悬浮与无障碍名称、触屏热区、模板辅助公式编辑。FR-14/C07：标准 Markdown 公式保存/导出保留。C08：撤销/重做及登录失效时公式草稿保留。安全边界、尺寸/浏览器验证及未验项见[记录](fzk/acceptance/note_math_editor_acceptance.md)。用户授权范围扩展，无新 API/数据库，未提交。
 
 ## 2026-10-18 M3 公式工作区扩展
 
-FR-10/C02：分类公式库、嵌套参数、矩阵生成和本地帮助；FR-14/C07：公式标准源码导出保持；C08与NFR-09：草稿/撤销和键盘/触屏操作。用户明确授权扩展，整体M3/P0状态不据此改为完成。[证据](fzk/formula_workspace_acceptance.md)。
+FR-10/C02：分类公式库、嵌套参数、矩阵生成和本地帮助；FR-14/C07：公式标准源码导出保持；C08与NFR-09：草稿/撤销和键盘/触屏操作。用户明确授权扩展，整体M3/P0状态不据此改为完成。[证据](fzk/acceptance/formula_workspace_acceptance.md)。
 
 ## 2026-10-19 M3 图形符号与结构填写
 
-FR-10/C02：图形符号、结构字段与既有公式恢复；C08：字段/源码单一草稿、撤销及确认保护；NFR-09：中文辅助名称、Tab/Alt导航、五尺寸触控。标准Markdown导出协议保持。[证据](fzk/formula_graphic_input_acceptance.md)。
+FR-10/C02：图形符号、结构字段与既有公式恢复；C08：字段/源码单一草稿、撤销及确认保护；NFR-09：中文辅助名称、Tab/Alt导航、五尺寸触控。标准Markdown导出协议保持。[证据](fzk/acceptance/formula_graphic_input_acceptance.md)。
 
 ## 2026-10-19 M3 识别文本插入与AI整理停用
 
-FR-10/C02与C08：识别文本插入已有编辑会话，原笔记撤销、保存、冲突保护；NFR-09：390/1440双浏览器核对。按用户要求停用旧M3-CAPTURE-01中的AI整理/识别新建流程，保留原文与归属校验。[实现、验证和边界](fzk/capture_text_acceptance.md)。
+FR-10/C02与C08：识别文本插入已有编辑会话，原笔记撤销、保存、冲突保护；NFR-09：390/1440双浏览器核对。按用户要求停用旧M3-CAPTURE-01中的AI整理/识别新建流程，保留原文与归属校验。[实现、验证和边界](fzk/acceptance/capture_text_acceptance.md)。
 ## 2026-10-20 M4-TOPIC-INDEX-01 增量证据
 
-FR-22–26/44：上传后知识点自动归类、已有标签优先高亮、候选短语人工创建；新增 test_bank_topic_index.py 八项风险测试和 bank-topic-index.spec.ts 两项浏览器测试。相关后端58项/浏览器5项/前端58项通过；没有真实AI调用或真人质量结论。见 docs/m4/topic_index_acceptance.md。
+FR-22–26/44：上传后知识点自动归类、已有标签优先高亮、候选短语人工创建；新增 test_bank_topic_index.py 八项风险测试和 bank-topic-index.spec.ts 两项浏览器测试。相关后端58项/浏览器5项/前端58项通过；没有真实AI调用或真人质量结论。见 docs/xtc/implementation/topic_index_acceptance.md。
 ## 2026-10-20 M4-TOPIC-AI-02
 
 用户反馈短语匹配不足，本轮改用AI语义标签建议。test_bank_topic_ai.py 19项验证预览零发送、同意/幂等/跨窗口、模型输出、归属、来源撤权、迟到/取消、超时和备份恢复；bank-topic-ai.spec.ts 3项模拟响应浏览器验证接入说明、语义高亮选用和候选创建。相关后端69项及前端58项通过，未进行真实模型准确率测试。历史短语索引记录保留但已停用。
@@ -437,3 +437,17 @@ FR-22–26/44：上传后知识点自动归类、已有标签优先高亮、候�
 ## 2026-10-20 M4-LIBRARY-DELETE-05
 
 上传与删除体验增量：独立文件范围/目录/列表、资料检索和导出隔离、旧文件明确移库、标题删除/批量撤销/整库集合快照删除；test_bank_library_delete.py新增10项、bank-library-delete.spec.ts新增3项。最终相关26项、浏览器17项及前端58项通过，0021迁移/旧备份/ORM漂移通过；全量3项既有Windows权限失败仍保留。无真实模型、真人反馈或成员签收结论。
+
+## REPO-ORGANIZATION-20261107
+
+用户仓库整理要求→测试按模块分类/文档四人归位/必要依赖保留/本地生成物与旧快照归档→[整理与实际验证](zhy/shared_platform/repository_organization_2026_11_07.md)→交接H-20261107-ZHY-002。后端790身份、前端706场景发现不变，251单元/44专项及构建等通过；3项原有课程包失败未关闭，不标全量通过。
+
+
+## REPORT-CH12-20261107
+
+用户教案/模板/汇报PPT与当前功能→reference/项目报告.docx第1–2章完整需求论述、第3–6章四人协作框架→[编写与核验范围](zhy/shared_platform/repository_organization_2026_11_07.md#补充清理与课程报告h-20261107-zhy-003)→H-20261107-ZHY-003。报告R01–R35为叙述索引，不替代既有FR/TC或40任务状态；32页排版检查不代表业务全量验收。
+
+
+## ACCEPTANCE-FOUR-20261107（H-20261107-ZHY-004）
+
+教案四方面及用户要求→[Hustudy四方面验收汇报](../reference/Hustudy四方面验收汇报.docx)→D01–D04核心闭环、S01–S08共享支持、历史性能与异常证据、架构数据、cloc2.06当前主体37618行及复核命令。两份数据库恢复自制fixture通过现有题库解析器，不冒称已完成浏览器验收；正式FR/TC及40项状态不变。

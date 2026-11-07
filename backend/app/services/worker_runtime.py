@@ -119,6 +119,33 @@ class WorkerRuntime:
         self.ready = False
         self.stream = None
         self.thread = None
+        self.source_stamp = self._source_stamp()
+        self.next_source_check = 0.0
+
+    @staticmethod
+    def _source_stamp():
+        app_root = Path(__file__).resolve().parents[1]
+        return tuple(
+            (
+                str(path.relative_to(app_root)),
+                path.stat().st_mtime_ns,
+                path.stat().st_size,
+            )
+            for path in sorted(app_root.rglob("*.py"))
+        )
+
+    def source_changed(self):
+        if base_settings().env != "development":
+            return False
+        now = time.monotonic()
+        if now < self.next_source_check:
+            return False
+        self.next_source_check = now + 2
+        try:
+            return self._source_stamp() != self.source_stamp
+        except OSError:
+            # A checkout can temporarily remove files; check again after it settles.
+            return False
 
     def publish(self):
         payload = {

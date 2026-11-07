@@ -28,8 +28,8 @@ Office渲染在 `sandbox="allow-scripts"`、无allow-same-origin的iframe中执�
 ## 实际验证
 
 - [自制样例生成](../../../scripts/create_native_preview_fixtures.py)：2页PPTX含隐藏页/字体/背景/表格/自制图片；2阅读页DOCX含粗体/表格/图片/外部链接/显式换页与字面script文本。不读取用户课程，不伪造人工核对或Word原版截图。
-- [隔离单测](../../../frontend/tests/unit/native-office.test.ts)：nonce/CSP、结束script字符串转义、防注入标识；连同原有前端单测共14项通过。
-- [浏览器场景](../../../frontend/tests/e2e/native-preview.spec.ts)：两格式直接原件渲染/样式表格图片、2页导航/隐藏页、缩放/演示；强制PDF预览不可读且请求次数0，验证无需转换；隔离读取父localStorage抛错、主动fetch被CSP阻止、无外网请求、父窗口伪造state无效、字面script不执行。渲染坏ZIP给错误并卸载iframe，显式重试重新读原件成功，不偷偷转PDF。
+- [隔离单测](../../../frontend/tests/unit/m1/native-office.test.ts)：nonce/CSP、结束script字符串转义、防注入标识；连同原有前端单测共14项通过。
+- [浏览器场景](../../../frontend/tests/e2e/m1/native-preview.spec.ts)：两格式直接原件渲染/样式表格图片、2页导航/隐藏页、缩放/演示；强制PDF预览不可读且请求次数0，验证无需转换；隔离读取父localStorage抛错、主动fetch被CSP阻止、无外网请求、父窗口伪造state无效、字面script不执行。渲染坏ZIP给错误并卸载iframe，显式重试重新读原件成功，不偷偷转PDF。
 - 首轮4项原格式双引擎通过（21.7秒）；完整回归新增故障注入最初被React StrictMode重复GET干扰，改为持续坏数据直至用户重试；随后WebKit暴露后台解析切回文本问题，已修复并补确定性时序。不将失败或首轮部分通过冒记最终全部通过。
 - 共享check已运行：116 pytest / 19.60秒、14Vitest、Ruff、迁移漂移、安全Markdown/AI显示、PDF双页、类型/构建通过；日志/tmp/hustudy-native-check-final.log。随后文件读取取消/后台模式修复的最终类型/构建及26项浏览器复验通过；最终构建日志/tmp/hustudy-native-build-final.log。
 - 最终双引擎全量26项通过（2.1分钟，Chrome/WebKit各13项，无重试）；日志/tmp/hustudy-native-all-e2e-final.log。不使用现有8000/5173/用户账户或真实模型。

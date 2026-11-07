@@ -1,0 +1,1 @@
+"""Hustudy isolated test suite."""

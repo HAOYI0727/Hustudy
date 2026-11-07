@@ -28,7 +28,7 @@ M1-READING-TOOLS-05，Codex辅助zhy，延续持续迭代授权。先记录[契�
 npm test --prefix frontend
 npm run check --prefix frontend
 npm run build --prefix frontend
-.venv/bin/python -m pytest backend/tests/test_materialhub.py backend/tests/test_preview_assets.py backend/tests/test_learning_hub.py backend/tests/test_note_catalog.py -q
+.venv/bin/python -m pytest backend/tests/m1/test_materialhub.py backend/tests/m1/test_preview_assets.py backend/tests/test_learning_hub.py backend/tests/m3/test_note_catalog.py -q
 .venv/bin/ruff check backend
 node scripts/verify_markdown.mjs
 HUSTUDY_E2E_CHROME_CHANNEL=chrome npm run test:e2e --prefix frontend -- reading-tools.spec.ts material-study-flow.spec.ts continuity-workspace.spec.ts learning-loop.spec.ts --project=webkit --project=chromium

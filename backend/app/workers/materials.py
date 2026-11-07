@@ -17,6 +17,7 @@ from ..core.database import SessionLocal, init_db
 from ..models import Document, DocumentChunk, DocumentVersion, ProcessingJob
 from ..models.base import utc_now
 from ..services.search import index_version
+from ..services.preview_runtime import CONVERSION_TIMEOUT_SECONDS, PREVIEW_LEASE_SECONDS
 from .material_exports import run_export_once
 from .note_exports import run_note_export_once
 from .note_trash import run_trash_cleanup
@@ -100,7 +101,13 @@ def claim_job(db, kinds=("PARSE", "INDEX", "PREVIEW")):
             .values(
                 status="RUNNING",
                 lease_token=token,
-                lease_until=utc_now() + timedelta(seconds=LEASE_SECONDS),
+                lease_until=case(
+                    (
+                        ProcessingJob.type == "PREVIEW",
+                        utc_now() + timedelta(seconds=PREVIEW_LEASE_SECONDS),
+                    ),
+                    else_=utc_now() + timedelta(seconds=LEASE_SECONDS),
+                ),
                 attempt_count=ProcessingJob.attempt_count + 1,
                 progress=10,
                 error=None,
@@ -146,16 +153,39 @@ def parse_isolated(source):
     with tempfile.TemporaryDirectory(prefix="hustudy-parser-") as folder:
         output = Path(folder) / "chunks.json"
         env = {**os.environ, "PYTHONPATH": str(Path(__file__).resolve().parents[2])}
-        subprocess.run(
-            [sys.executable, "-m", "app.workers.parse_file", str(source), str(output)],
-            timeout=60,
-            check=True,
-            capture_output=True,
-            env=env,
-        )
-        if output.stat().st_size > 32 * 1024 * 1024:
-            raise ValueError("解析输出超过32MiB预算")
-        result = json.loads(output.read_text(encoding="utf-8"))
+        try:
+            subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "app.workers.parse_file",
+                    str(Path(source).resolve()),
+                    str(output.resolve()),
+                ],
+                cwd=str(Path(__file__).resolve().parents[2]),
+                timeout=60,
+                check=True,
+                capture_output=True,
+                env=env,
+            )
+        except subprocess.TimeoutExpired as exc:
+            raise ValueError("正文解析超过60秒，请拆分资料后重试") from exc
+        except subprocess.CalledProcessError as exc:
+            raise ValueError(
+                "解析子进程异常退出，请刷新处理状态并恢复原任务；持续失败请重启处理服务"
+            ) from exc
+        except OSError as exc:
+            raise ValueError(
+                "无法启动解析子进程，请检查服务运行环境后恢复原任务"
+            ) from exc
+        try:
+            if output.stat().st_size > 32 * 1024 * 1024:
+                raise ValueError("解析输出超过32MiB预算")
+            result = json.loads(output.read_text(encoding="utf-8"))
+        except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+            raise ValueError("解析结果不可读取，请核对原件后恢复原任务") from exc
+        if not isinstance(result, dict):
+            raise ValueError("解析结果结构无效，请核对原件后恢复原任务")
         if "error" in result:
             raise ValueError(result["error"])
         return result["chunks"]
@@ -205,13 +235,15 @@ def preview_file(source):
                     str(scratch),
                     str(source.resolve()),
                 ],
-                timeout=120,
+                timeout=CONVERSION_TIMEOUT_SECONDS,
                 check=True,
                 capture_output=True,
+                cwd=str(scratch),
+                stdin=subprocess.DEVNULL,
             )
         except subprocess.TimeoutExpired as exc:
             raise ValueError(
-                "Office转PDF超过120秒，已停止；可继续读文本，或自行导出PDF后上传"
+                "Office转PDF超过10分钟，已停止；原格式和文本仍可阅读，请核对文件后重试"
             ) from exc
         except (subprocess.CalledProcessError, OSError) as exc:
             raise ValueError(
@@ -462,6 +494,12 @@ def serve():
                     raise RuntimeError(
                         "Preview lane stopped; restart the processing worker"
                     )
+                if runtime.source_changed():
+                    # Finish the current preview before releasing the runtime lock.
+                    # Never interrupt an in-flight provider or reset its job budget.
+                    stop.set()
+                    preview.join()
+                    return True
                 if not run_core_once():
                     stop.wait(0.5)
         finally:
@@ -492,7 +530,10 @@ if __name__ == "__main__":
                     run_archive_once()
     else:
         try:
-            serve()
+            if serve():
+                os.execv(
+                    sys.executable, [sys.executable, "-m", "app.workers.materials"]
+                )
         except WorkerAlreadyRunning:
             logging.getLogger(__name__).info(
                 "Processing worker already running; leaving existing owner in place"

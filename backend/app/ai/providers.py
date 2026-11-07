@@ -31,6 +31,34 @@ class ProviderFailure(Exception):
         self.retry_after_seconds = retry_after_seconds
 
 
+def json_failure_message(content):
+    """Fixed diagnostics only: never echo failed content or parser context."""
+    prefix = "模型返回内容不是合法JSON"
+    if not isinstance(content, str) or not content.strip():
+        return prefix + "（最终内容为空），未采纳结果"
+    if content.lstrip().startswith("```"):
+        return prefix + "（包含代码围栏，须直接输出JSON对象），未采纳结果"
+    try:
+        json.loads(content)
+    except json.JSONDecodeError as error:
+        if error.msg.startswith("Invalid control character"):
+            reason = "字符串含未转义的换行或控制字符"
+        elif error.msg.startswith("Invalid \\escape"):
+            reason = "字符串含非法转义，请核对公式或反斜杠"
+        elif error.msg == "Extra data":
+            reason = "JSON对象外存在额外内容"
+        elif error.msg == "Expecting property name enclosed in double quotes":
+            reason = "字段名未使用双引号或存在尾逗号"
+        elif error.msg == "Expecting ',' delimiter":
+            reason = "缺少字段分隔符或引号未正确转义"
+        else:
+            reason = "JSON语法不完整"
+        return prefix + f"（{reason}；第{min(error.lineno, 99999)}行、第{min(error.colno, 99999)}列），未采纳结果"
+    except (ValueError, RecursionError):
+        pass
+    return prefix + "，未采纳结果"
+
+
 def safe_http_failure(response, started, vendor="智谱"):
     """Only numeric vendor codes and bounded Retry-After survive; never raw bodies."""
     data = bytearray()
@@ -354,7 +382,7 @@ class ZhipuProvider:
         except ValidationError as error:
             if any(item["type"] == "json_invalid" for item in error.errors()):
                 failure = ProviderFailure(
-                    "INVALID_JSON", "模型返回内容不是合法JSON，未采纳结果"
+                    "INVALID_JSON", json_failure_message(content)
                 )
             else:
                 failure = schema_failure(error, output_schema)

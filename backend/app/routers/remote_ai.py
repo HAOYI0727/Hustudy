@@ -241,6 +241,7 @@ def report_history(
                     "zhipu-study-report-v7",
                     "zhipu-study-report-v8",
                     "zhipu-study-report-v9",
+                    "zhipu-study-report-v10",
                 ]
             ),
         )
@@ -271,6 +272,7 @@ def saved_report(
                     "zhipu-study-report-v7",
                     "zhipu-study-report-v8",
                     "zhipu-study-report-v9",
+                    "zhipu-study-report-v10",
                 ]
             ),
         )

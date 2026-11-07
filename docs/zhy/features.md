@@ -68,13 +68,13 @@
 
 | 功能/需求 | 输入→输出、异常/不变量 | 证据 |
 |---|---|---|
-| 导入/版本，FR-03/04 | PPTX/PDF/DOCX/MD≤30MiB→去重资料/新不可变版本；非法/超限/越权拒绝 | [测试](../../backend/tests/test_materialhub.py)；低磁盘预检已实现/测试，本机容量及权限矩阵已补，复杂真实样本另验 |
+| 导入/版本，FR-03/04 | PPTX/PDF/DOCX/MD≤30MiB→去重资料/新不可变版本；非法/超限/越权拒绝 | [测试](../../backend/tests/m1/test_materialhub.py)；低磁盘预检已实现/测试，本机容量及权限矩阵已补，复杂真实样本另验 |
 | 解析/定位，FR-04/36 | 原件→Chunk及slide/page/docx_block/heading；扫描无正文明确提示 | DOCX正文顺序、PPTX嵌套组合/表格、Markdown Unicode偏移测试；不声称OCR |
-| 阅读/来源，FR-06/07/08 | 有效版本→原件/PDF.js/文本降级/回源/引用笔记；删除撤权，旧引用不改指 | [预览测试](../../backend/tests/test_preview_assets.py)；LibreOffice成功转换/legacy兼容/隐藏页定位及双引擎截图回源已补；复杂版式与完整Safari链路待验收 |
+| 阅读/来源，FR-06/07/08 | 有效版本→原件/PDF.js/文本降级/回源/引用笔记；删除撤权，旧引用不改指 | [预览测试](../../backend/tests/m1/test_preview_assets.py)；LibreOffice成功转换/legacy兼容/隐藏页定位及双引擎截图回源已补；复杂版式与完整Safari链路待验收 |
 | 整理/搜索，FR-09 | 名称/分类/标签/版本范围→FTS5/BM25带定位结果 | 关键词检索已实现，非语义搜索；资料/任务及知识搜索均已分页，本机容量/双引擎与命中摘要已验 |
 | 资料任务，FR-05 | PARSE/INDEX/PREVIEW→独立状态/错误、取消恢复/幂等重建 | [任务控制验收](materialhub/acceptance_2026_10_14.md)，不是全M1验收 |
 | 图片/截图，FR-37的M1依赖 | PNG/JPEG/WebP→Asset、版本/页号/说明/标签、分页/反链 | 实际解码、来源/删除失效、revision冲突测试；M3附件ZIP仍缺 |
-| 人工PDF来源 | 页号/转录→草稿、确认、修订、撤回与Citation | [补录测试](../../backend/tests/test_manual_transcripts.py)；M4正式拆题消费待接入 |
+| 人工PDF来源 | 页号/转录→草稿、确认、修订、撤回与Citation | [补录测试](../../backend/tests/m1/test_manual_transcripts.py)；M4正式拆题消费待接入 |
 | 课程资料包，FR-14/15/37依赖 | 本人课程→原件/版本/预览/正文/确认补录/图片/来源ZIP/hash | [实际下载验收](materialhub/material_export_acceptance.md)；不含完整笔记/AI/考试学习记录，不支持恢复 |
 
 M1完整说明/缺口及旧方案见[materialhub目录](materialhub/README.md)。图片识别、语义检索属于P1，不能因为没有实现就称P0资料库解析失败。

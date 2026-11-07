@@ -29,7 +29,7 @@
 
 401为浏览器测试中的状态注入，不伪称等待真实令牌自然过期；登录、其余读写、解析、备份worker均连接真实隔离API。WebKit自动测试不是用户Safari全功能验收。首次WebKit运行因相对安装目录随进程cwd改变而无法启动，修正绝对路径后上述最终8项全部通过。此前3项/4项Chrome运行是增量证据，不重复累计为测试数。
 
-日志位于本机临时目录：`/tmp/hustudy-web-base-final.log`、`/tmp/hustudy-python312-tests.log`、`/tmp/hustudy-e2e-final.log`；可复现测试源码见[单元测试](../../../frontend/tests/unit/platform.test.ts)、[浏览器测试](../../../frontend/tests/e2e/platform.spec.ts)、[隔离服务](../../../scripts/e2e_server.py)。安装/运行命令见[环境指南](../../setup_guide.md)。测试报告与截图/trace只含测试数据且被Git忽略，不把原始token/用户资料放入文档。
+日志位于本机临时目录：`/tmp/hustudy-web-base-final.log`、`/tmp/hustudy-python312-tests.log`、`/tmp/hustudy-e2e-final.log`；可复现测试源码见[单元测试](../../../frontend/tests/unit/shared/platform.test.ts)、[浏览器测试](../../../frontend/tests/e2e/shared/platform.spec.ts)、[隔离服务](../../../scripts/e2e_server.py)。安装/运行命令见[环境指南](../../setup_guide.md)。测试报告与截图/trace只含测试数据且被Git忽略，不把原始token/用户资料放入文档。
 
 ## 剩余验收
 

@@ -32,18 +32,24 @@ def validate_file(upload: UploadFile):
     if not data or len(data) > MAX_BYTES:
         raise ValueError("文件不能为空且不能超过 30 MiB")
     if suffix in {".pptx", ".docx"}:
+        if data.startswith(bytes.fromhex("d0cf11e0a1b11ae1")):
+            raise ValueError(
+                "文件实际为旧版或加密 Office 格式，请在 Office 中另存为未加密的 PPTX/DOCX；仅修改扩展名无效"
+            )
         try:
             with zipfile.ZipFile(io.BytesIO(data)) as archive:
                 infos = archive.infolist()
                 required = (
                     "ppt/presentation.xml" if suffix == ".pptx" else "word/document.xml"
                 )
-                if (
-                    required not in archive.namelist()
-                    or len(infos) > 10000
-                    or sum(i.file_size for i in infos) > 100 * 1024 * 1024
-                ):
-                    raise ValueError("Office 文件内容或解压预算不合法")
+                if required not in archive.namelist():
+                    raise ValueError("Office 文件缺少正文结构，请核对格式并重新另存")
+                if len(infos) > 10000:
+                    raise ValueError("Office 文件内部条目超过10000项，请拆分课件后上传")
+                if sum(i.file_size for i in infos) > 100 * 1024 * 1024:
+                    raise ValueError(
+                        "Office 文件解压后超过100 MiB，请压缩内嵌图片或拆分课件后上传"
+                    )
                 if any(i.flag_bits & 1 for i in infos):
                     raise ValueError("不支持加密 Office 文件")
         except zipfile.BadZipFile as error:

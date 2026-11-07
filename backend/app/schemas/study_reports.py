@@ -8,7 +8,7 @@ from .remote_ai import Evidence, ExcerptReference, Text
 from .ai_supplements import SupplementSelection
 
 REQUEST_PREFIX = "hustudy:study-report:v1\n"
-REPORT_PROMPT_VERSION = "zhipu-study-report-v10"
+REPORT_PROMPT_VERSION = "zhipu-study-report-v11"
 DEMO_REPORT_PROMPT_VERSION = "demo-study-report-v2"
 
 
